@@ -8,7 +8,9 @@ const home = async (req, res) => {
 
 const register = async (req, res) => {
     try {
-        res.send("Welcome to the register page using controller");
+        // register handles and response with JSON data
+        console.log(req.body);
+        res.json({ message: "User registered successfully", data: req.body });
     } catch (error) {
         console.log(error);
     }
