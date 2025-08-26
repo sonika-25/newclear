@@ -10,7 +10,7 @@ const connectDB = async () => {
 
     try {
         const conn = await mongoose.connect(URI, {
-            dbName: "Scheduling of Care",
+            dbName: "users",
         });
         console.log("MongoDB Database Connected Successfully");
     } catch (error) {
