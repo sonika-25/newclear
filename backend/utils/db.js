@@ -1,15 +1,16 @@
 const mongoose = require("mongoose");
-
-const URI = process.env.MONGO_URI;
+require("dotenv").config();
+URI = process.env.MONGO_URI;
 
 const connectDB = async () => {
     if (!URI) {
         console.error("MongoDB URI is not defined");
         process.exit(1);
     }
-
     try {
-        const conn = await mongoose.connect(URI, {
+        await mongoose.connect(URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
             dbName: "users",
         });
         console.log("MongoDB Database Connected Successfully");
