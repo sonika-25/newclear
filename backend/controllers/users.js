@@ -10,7 +10,8 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-    const { username, email, phone, password } = req.body;
+    const { username, role, org_id, email, phone, password, patients } =
+        req.body;
     if (!username || !email || !phone || !password) {
         // client error
         return res.status(400).json({ message: "Please fill all the fields" });
@@ -28,6 +29,7 @@ router.post("/", async (req, res) => {
             email,
             phone,
             password,
+            patients,
             isAdmin,
         });
         await user.save();
