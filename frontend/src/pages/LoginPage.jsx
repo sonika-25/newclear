@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import LogoReact from "/src/pages/LoginPage.jsx";
 import { ConfigProvider, theme, Card, Typography, Form, Input, Button, Checkbox } from "antd";
+import { App as AntApp } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 const { Title, Text } = Typography;
 
@@ -25,8 +26,40 @@ function ReactLogo({ size = 420}) {
     )
 }
 
+// temporary authentication
+function tempAuth({ email, password }) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            const ok = email?.includes("@") && (password?.length ?? 0) >= 6;
+            ok
+                ? resolve({ user: { email }, token: "dev-only-token" })
+                : reject(new Error("Invalid credentials"))
+        }, 800);
+    });
+}
+
 // Login card
 export default function LoginPage() {
+    const [submitting, setSubmitting] = useState(false);
+    const { message } = AntApp.useApp();
+    
+    // temp authenticaion
+    async function onFinish(values) {
+        setSubmitting(true);
+        try {
+            const result = await tempAuth(values);
+            message.success(`Welcome ${result.user.email}`);
+        }
+
+        catch (err) {
+            message.error(err.message);
+        }
+
+        finally {
+            setSubmitting(false);
+        }
+    }
+
     return (
         <ConfigProvider theme={{ algorithm: theme.defaultAlgorithm}}>
             <div
@@ -64,7 +97,8 @@ export default function LoginPage() {
                         name="login"
                         layout="vertical"
                         initialValues={{ remember: true }}
-                        onFinish={() => {}}
+                        onFinish={onFinish}
+                        disabled={submitting}
                     >
                         {/* email input */}
                         <Form.Item
@@ -89,7 +123,8 @@ export default function LoginPage() {
                         >
                             <Input.Password prefix={<LockOutlined />}/>
                         </Form.Item>
-                            
+                        
+                        {/* remember details & forgot password button */}
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                             <Form.Item name="remember" valuePropName="checked" noStyle>
                                 <Checkbox>Remember me</Checkbox>
@@ -97,7 +132,8 @@ export default function LoginPage() {
                             <a href="#">Forgot Password</a>
                         </div>
 
-                        <Button type="primary" htmlType="submit" block>
+                        {/* sign in button */}
+                        <Button type="primary" htmlType="submit" block loading={submitting}>
                             Sign in
                         </Button>
                     </Form>
