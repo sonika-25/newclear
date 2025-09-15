@@ -10,6 +10,7 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
+    isAdmin = false;
     const { username, role, org_id, email, phone, password, patients } =
         req.body;
     if (!username || !email || !phone || !password) {
@@ -20,15 +21,19 @@ router.post("/", async (req, res) => {
     if (userExists) {
         return res.status(400).json({ message: "User already exists" });
     }
+
     try {
-        isAdmin = false;
+        // encrypt password
+        const salt = await bcrypt.genSalt();
+        const hashedPassword = await bcrypt.hash(password, salt);
+        // create new user entry
         const user = new User({
             username,
             role,
             org_id,
             email,
             phone,
-            password,
+            hashedPassword,
             patients,
             isAdmin,
         });
