@@ -1,6 +1,7 @@
 import React from "react";
 import LogoReact from "/src/pages/LoginPage.jsx";
-import { ConfigProvider, theme, Card, Typography } from "antd";
+import { ConfigProvider, theme, Card, Typography, Form, Input, Button, Checkbox } from "antd";
+import { UserOutlined, LockOutlined } from "@ant-design/icons";
 const { Title, Text } = Typography;
 
 // Add React Logo on the home page (temporary)
@@ -51,9 +52,55 @@ export default function LoginPage() {
                 >
                     <ReactLogo />
                 </div>
+
+                {/* login form using ant design ui */}
                 <Card style={{ width: 360 }} bordered={false}>
-                    <Title level={3} style={{ marginBottom: 4 }}>Sign In</Title>
-                    <Text type="secondary">Welcome</Text>
+                    <div style={{ textAlign: "center", marginBottom: 8 }}>
+                        <Title level={3} style={{ marginBottom: 4 }}>Sign In</Title>
+                        <Text type="secondary">Keep Clear: Schelduing for Care</Text>
+                    </div>
+
+                    <Form
+                        name="login"
+                        layout="vertical"
+                        initialValues={{ remember: true }}
+                        onFinish={() => {}}
+                    >
+                        {/* email input */}
+                        <Form.Item
+                            label="Email"
+                            name="email"
+                            rules={[
+                                { required: true, message: "Please enter your email" },
+                                { type: "email", message: "That doesn't look like a valud email" }
+                            ]}
+                        >
+                            <Input prefix={<UserOutlined />}/>
+                        </Form.Item>
+                        
+                        {/* password input */}
+                        <Form.Item
+                            label="Password"
+                            name="password"
+                            rules={[
+                                { required: true, message: "Please enter your password" },
+                                { min: 6, message: "Password must be at least 6 characters" },
+                            ]}
+                        >
+                            <Input.Password prefix={<LockOutlined />}/>
+                        </Form.Item>
+                            
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                            <Form.Item name="remember" valuePropName="checked" noStyle>
+                                <Checkbox>Remember me</Checkbox>
+                            </Form.Item>
+                            <a href="#">Forgot Password</a>
+                        </div>
+
+                        <Button type="primary" htmlType="submit" block>
+                            Sign in
+                        </Button>
+                    </Form>
                 </Card>
             </div>
         </ConfigProvider>
