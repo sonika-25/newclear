@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import LogoReact from "/src/pages/LoginPage.jsx";
+import { useNavigate } from "react-router-dom";
+import LogoReact from "/src/assets/react.svg";
 import { ConfigProvider, theme, Card, Typography, Form, Input, Button, Checkbox } from "antd";
 import { App as AntApp } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
@@ -42,13 +43,15 @@ function tempAuth({ email, password }) {
 export default function LoginPage() {
     const [submitting, setSubmitting] = useState(false);
     const { message } = AntApp.useApp();
-    
+    const navigate = useNavigate();
+
     // temp authenticaion
     async function onFinish(values) {
         setSubmitting(true);
         try {
             const result = await tempAuth(values);
             message.success(`Welcome ${result.user.email}`);
+            navigate("/home");
         }
 
         catch (err) {
