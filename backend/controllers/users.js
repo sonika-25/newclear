@@ -1,5 +1,6 @@
 const User = require("../model/user-model");
 const express = require("express");
+const bcrypt = require("bcrypt");
 const app = express();
 const router = require("express").Router();
 
@@ -25,7 +26,13 @@ router.post("/", async (req, res) => {
     try {
         // encrypt password
         const salt = await bcrypt.genSalt();
+        console.log("testing");
         const hashedPassword = await bcrypt.hash(password, salt);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+
+    try {
         // create new user entry
         const user = new User({
             username,
@@ -33,7 +40,7 @@ router.post("/", async (req, res) => {
             org_id,
             email,
             phone,
-            hashedPassword,
+            password,
             patients,
             isAdmin,
         });
@@ -43,5 +50,23 @@ router.post("/", async (req, res) => {
         res.status(400).json({ error: error.message });
     }
 });
+
+function login(req, res) {
+    const username = req.body.username;
+    const password = req.body.password;
+    const user = User.find((user) => user.username === username);
+    if (user == null) {
+        return res.status(400).json({ error: "Cannot find user" });
+    }
+    try {
+        if (bcrypt.compare(password, user.password)) {
+            res.send("Successful login");
+        } else {
+            res.send("Username or password is wrong");
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
 
 module.exports = router;
