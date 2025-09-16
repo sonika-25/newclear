@@ -26,7 +26,6 @@ router.post("/", async (req, res) => {
     try {
         // encrypt password
         const salt = await bcrypt.genSalt();
-        console.log("testing");
         const hashedPassword = await bcrypt.hash(password, salt);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -40,7 +39,7 @@ router.post("/", async (req, res) => {
             org_id,
             email,
             phone,
-            password,
+            hashedPassword,
             patients,
             isAdmin,
         });
@@ -51,7 +50,7 @@ router.post("/", async (req, res) => {
     }
 });
 
-function login(req, res) {
+router.get("/signin", async (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
     const user = User.find((user) => user.username === username);
@@ -67,6 +66,6 @@ function login(req, res) {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
-}
+});
 
 module.exports = router;
