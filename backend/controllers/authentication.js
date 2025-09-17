@@ -4,13 +4,13 @@ const bcrypt = require("bcrypt");
 const app = express();
 const router = require("express").Router();
 
-router.get("/", async (req, res) => {
-    User.find({}).then((data) => {
+router.get("/:email", async (req, res) => {
+    User.find((user) => user.email === req.params.email).then((data) => {
         res.json(data);
     });
 });
 
-router.post("/", async (req, res) => {
+router.post("/signin", async (req, res) => {
     isAdmin = false;
     let { username, role, org_id, email, phone, password, patients } = req.body;
     if (!username || !email || !phone || !password) {
@@ -50,15 +50,15 @@ router.post("/", async (req, res) => {
 });
 
 router.get("/signin", async (req, res) => {
-    const username = req.body.username;
+    const email = req.body.email;
     const password = req.body.password;
-    const user = User.find((user) => user.username === username);
+    const user = User.find((user) => user.email === email);
     if (user == null) {
         return res.status(400).json({ error: "Cannot find user" });
     }
     try {
         if (bcrypt.compare(password, user.password)) {
-            res.send("Successful login");
+            res.send("Successful login"); 
         } else {
             res.send("Username or password is wrong");
         }

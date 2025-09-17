@@ -9,11 +9,8 @@ const userSchema = new mongoose.Schema({
     },
     role : {
         type: String,
-        enum: ['family', 'org_staff', 'POA'],
+        enum: ['family', 'POA'],
         required: true,
-    },
-    org_id : {
-        type: String, //for org staff only
     },
     email: {
         type: String,
