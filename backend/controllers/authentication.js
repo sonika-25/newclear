@@ -56,9 +56,9 @@ router.post("/signup", async (req, res) => {
 });
 
 router.post("/signin", async (req, res) => {
-    const username = req.body.username;
+    const email = req.body.email;
     const password = req.body.password;
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ email });
     if (user == null) {
         return res.status(400).json({ error: "Cannot find user" });
     }
@@ -66,7 +66,7 @@ router.post("/signin", async (req, res) => {
         if (bcrypt.compare(password, user.password)) {
             res.send("Successful login");
         } else {
-            res.send("Username or password is wrong");
+            res.send("Email or password is wrong");
         }
     } catch (error) {
         res.status(500).json({ error: error.message });
