@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LogoReact from "/src/assets/react.svg";
-import { ConfigProvider, theme, Card, Typography, Form, Input, Button, Checkbox } from "antd";
+import { ConfigProvider, theme, Card, Typography, Form, Input, Button, Checkbox, Modal } from "antd";
 import { App as AntApp } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 const { Title, Text } = Typography;
@@ -44,6 +44,7 @@ export default function LoginPage() {
     const [submitting, setSubmitting] = useState(false);
     const { message } = AntApp.useApp();
     const navigate = useNavigate();
+    const [openRegister, setOpenRegister] = useState(false);
 
     // temp authenticaion
     async function onFinish(values) {
@@ -90,7 +91,7 @@ export default function LoginPage() {
                 </div>
 
                 {/* login form using ant design ui */}
-                <Card style={{ width: 360 }} bordered={false}>
+                <Card style={{ width: 360 }} variant={false}>
                     <div style={{ textAlign: "center", marginBottom: 8 }}>
                         <Title level={3} style={{ marginBottom: 4 }}>Sign In</Title>
                         <Text type="secondary">Keep Clear: Schelduing for Care</Text>
@@ -140,6 +141,83 @@ export default function LoginPage() {
                             Sign in
                         </Button>
                     </Form>
+
+                    {/* create user account */}
+                    <div style={{ marginTop: 12, textAlign: "center" }}>
+                        <Text type="secondary">
+                            New user?{" "}
+                            <a onClick={() => setOpenRegister(true)}>
+                                Create account
+                            </a>
+                        </Text>
+                    </div>
+
+                    {/* pop up form to register new user*/}
+                    <Modal
+                        title="Create Account"
+                        open={openRegister}
+                        onCancel={() => setOpenRegister(false)}
+                        footer={null}
+                        destroyOnHidden
+                    >
+                        <Form
+                            layout="vertical"
+                            onFinish={(values) => {
+                                console.log("New account values:", values);
+                                setOpenRegister(false);
+                                message.success("Account created");
+                            }}
+                        >
+                            {/* user fields */}
+                            <Form.Item
+                                label="First Name"
+                                name="firstname"
+                                rules={[{ required: true, message: "Please enter your first name" }]}
+                            >
+                                <Input placeholder="John" />
+                            </Form.Item>
+
+                            <Form.Item
+                                label="Last Name"
+                                name="lastname"
+                                rules={[{ required: true, message: "Please enter your last name"}]}
+                            >
+                                <Input placeholder="Smith" />
+                            </Form.Item>
+
+                            <Form.Item
+                                label="Email"
+                                name="email"
+                                rules={[{ required: true, message: "Please enter your email"}]}
+                            >
+                                <Input placeholder="example@example.com"/>
+                            </Form.Item>
+
+                            <Form.Item
+                                label="Password"
+                                name="password"
+                                rules={[
+                                    { required: true, message: "Please enter a password"},
+                                    { min: 6, message: "Password must be at least 6 charcters"}
+                                ]}
+                            >
+                                <Input.Password placeholder="••••••••"/>
+                            </Form.Item>
+
+                            <Form.Item
+                                label="Phone Number"
+                                name="phoneNumber"
+                                rules={[{ required: true, message: "Please enter your phone number"}]}
+                            >
+                                <Input placeholder="04xxxxxxxx"/>
+                            </Form.Item>
+
+                            {/* create user button */}
+                            <Button type="primary" htmlType="submit" block>
+                                Create Account
+                            </Button>
+                        </Form>
+                    </Modal>
                 </Card>
             </div>
         </ConfigProvider>
