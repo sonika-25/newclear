@@ -63,7 +63,8 @@ router.post("/signin", async (req, res) => {
         return res.status(400).json({ error: "Cannot find user" });
     }
     try {
-        if (bcrypt.compare(password, user.password)) {
+        match = await bcrypt.compare(password, user.password);
+        if (match) {
             res.send("Successful login");
         } else {
             res.send("Email or password is wrong");
