@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="48.497814mm"
+   height="37.170956mm"
+   viewBox="0 0 48.497814 37.170956"
+   version="1.1"
+   id="svg1"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1">
+    <linearGradient
+       id="linearGradient96">
+      <stop
+         style="stop-color:#000000;stop-opacity:0.65863456;"
+         offset="0"
+         id="stop96" />
+      <stop
+         style="stop-color:#ff0f3d;stop-opacity:1;"
+         offset="1"
+         id="stop97" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient1">
+      <stop
+         style="stop-color:#d57b7b;stop-opacity:1;"
+         offset="0"
+         id="stop1" />
+      <stop
+         style="stop-color:#ff8787;stop-opacity:0;"
+         offset="1"
+         id="stop2" />
+    </linearGradient>
+    <linearGradient
+       xlink:href="#linearGradient1"
+       id="linearGradient2"
+       x1="82.070625"
+       y1="169.66171"
+       x2="118.13754"
+       y2="169.66171"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(0.55204461,-0.36802974)" />
+    <linearGradient
+       xlink:href="#linearGradient96"
+       id="linearGradient97"
+       x1="81.559212"
+       y1="169.20453"
+       x2="128.44238"
+       y2="169.20453"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
+  <g
+     id="layer1"
+     transform="translate(-82.622866,-150.15611)">
+    <rect
+       style="fill:#412441;fill-opacity:0.208835;stroke-width:0.264583"
+       id="rect78-7"
+       width="6.6145868"
+       height="6.0854106"
+       x="85.625778"
+       y="165.09999"
+       rx="2" />
+    <rect
+       style="fill:#412441;fill-opacity:0.208835;stroke-width:0.264583"
+       id="rect78-3"
+       width="6.6145868"
+       height="6.0854106"
+       x="94.720833"
+       y="164.96768"
+       rx="2" />
+    <rect
+       style="fill:#412441;fill-opacity:0.208835;stroke-width:0.264583"
+       id="rect78-8"
+       width="6.6145868"
+       height="6.0854106"
+       x="94.555458"
+       y="156.10414"
+       rx="2" />
+    <rect
+       style="fill:#412441;fill-opacity:0.208835;stroke-width:0.264583"
+       id="rect78-8-8"
+       width="6.6145868"
+       height="6.0854106"
+       x="103.34194"
+       y="156.01704"
+       rx="2" />
+    <path
+       id="rect78-8-8-5"
+       style="display:inline;fill:#412441;fill-opacity:0.208835;stroke-width:0.264583"
+       d="m 105.43853,165.0044 c -1.108,0 -2.0004,0.89188 -2.0004,1.99988 v 2.08514 c 0,0.0938 0.007,0.18619 0.0191,0.27647 0.35221,-0.19666 1.18132,-0.66032 1.44126,-0.8108 0.33325,-0.19294 2.51372,-1.5318 2.61896,-1.5844 0.0974,-0.0487 1.77839,-1.1396 2.02726,-1.30122 -0.36569,-0.40876 -0.89774,-0.66507 -1.49189,-0.66507 z" />
+    <path
+       id="path2-8"
+       style="display:inline;fill:#d2c6bd;fill-opacity:1;stroke-width:0.264583"
+       d="m 131.12068,153.109 c 0,0 -19.68913,21.52991 -46.555299,27.78642 0.102881,0.61727 0.262911,3.59265 1.41335,6.16086 0.175648,0.0736 0.402603,0.14195 0.678512,0.1726 0.685335,0.0762 9.446333,0.0818 10.663948,0.0822 C 109.0693,177.76902 131.12068,153.109 131.12068,153.109 Z" />
+    <path
+       id="rect1"
+       style="display:inline;fill:url(#linearGradient2);stroke-width:0.264583"
+       d="m 87.622559,151.26002 c -2.77,0 -4.999695,2.23021 -4.999695,5.00021 v 26.06714 c 0,2.77 2.229695,4.9997 4.999695,4.9997 h 9.681579 c 1.424124,-1.25985 6.999702,-6.203 8.926072,-8.07186 2.21588,-2.14974 11.41015,-11.77395 11.80703,-12.03854 0.12649,-0.0843 0.37373,-0.27961 0.65216,-0.50643 v -10.45001 c 0,-2.77 -2.2297,-5.00021 -4.9997,-5.00021 z" />
+    <path
+       id="path2"
+       style="display:inline;fill:url(#linearGradient97);fill-opacity:0.658635;stroke-width:0.266166"
+       d="m 128.44229,150.15621 c 0,0 -19.29822,21.05796 -45.795655,27.66136 v 4.96817 c 0,0 0.104893,0.78333 0.198437,1.02888 0.09355,0.24556 0.514556,1.19255 0.631486,1.30948 0.11693,0.11693 0.783346,0.99403 1.438156,1.35651 0.654809,0.36248 1.122747,0.80667 2.210201,0.80667 0.738768,0 2.445341,0.002 3.463871,0.003 9.881664,-5.91914 37.853504,-37.13417 37.853504,-37.13417 z" />
+    <rect
+       style="display:inline;fill:#864a53;fill-opacity:0.686275;stroke-width:0.264583"
+       id="rect78"
+       width="6.6145868"
+       height="6.0854106"
+       x="85.857292"
+       y="156.10414"
+       rx="2" />
+  </g>
+</svg>
