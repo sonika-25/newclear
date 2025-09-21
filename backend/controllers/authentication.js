@@ -18,8 +18,8 @@ router.get("/:email", async (req, res) => {
 
 router.post("/signup", async (req, res) => {
     isAdmin = false;
-    let { username, role, org_id, email, phone, password, patients } = req.body;
-    if (!username || !email || !phone || !password) {
+    let { firstName, lastName, email, phone, password, patients } = req.body;
+    if (!firstName || !lastName || !email || !phone || !password) {
         // client error
         return res.status(400).json({ message: "Please fill all the fields" });
     }
@@ -30,15 +30,13 @@ router.post("/signup", async (req, res) => {
 
     try {
         // encrypt password
-        const salt = await bcrypt.genSalt();
         const originalPassword = password;
-        password = await bcrypt.hash(originalPassword, salt);
+        password = await encryptPassword(originalPassword);
         try {
             // create new user entry
             const user = new User({
-                username,
-                role,
-                org_id,
+                firstName,
+                lastName,
                 email,
                 phone,
                 password,
@@ -67,11 +65,74 @@ router.post("/signin", async (req, res) => {
         if (match) {
             res.send("Successful login");
         } else {
-            res.send("Email or password is wrong");
+            res.send("Password is wrong");
         }
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
+
+router.patch("/:id", getUser, async (req, res) => {
+    if (req.body.firstName != null) {
+        res.user.firstName = req.body.firstName;
+    }
+
+    if (req.body.lastName != null) {
+        res.user.lastName = req.body.lastName;
+    }
+
+    if (req.body.email != null) {
+        res.user.email = req.body.email;
+    }
+
+    if (req.body.phone != null) {
+        res.user.phone = req.body.phone;
+    }
+
+    if (req.body.password != null) {
+        res.user.password = await encryptPassword(req.body.password);
+    }
+
+    try {
+        const updatedUser = await res.user.save();
+        res.json(updatedUser);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+router.delete("/:id", getUser, async (req, res) => {
+    try {
+        await res.user.deleteOne();
+        res.json({ message: "Deleted User" });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+async function getUser(req, res, next) {
+    let user;
+    try {
+        user = await User.findById(req.params.id);
+        if (user == null) {
+            return res.status(404).json({ message: "Cannot find user" });
+        }
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+
+    res.user = user;
+    next();
+}
+
+async function encryptPassword(password) {
+    try {
+        // encrypt password
+        const salt = await bcrypt.genSalt();
+        return await bcrypt.hash(password, salt);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
 
 module.exports = router;

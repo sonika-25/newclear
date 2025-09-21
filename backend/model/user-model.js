@@ -2,15 +2,18 @@ const mongoose = require("mongoose");
 const Patient = require("./patient-model");
 //need to change naming conventions (this will be user-schema )
 const userSchema = new mongoose.Schema({
-    username: {
+    firstName: {
         type: String,
         required: true,
-        unique: true,
+    },
+    lastName: {
+        type: String,
+        required: true,
     },
     role : {
         type: String,
         enum: ['family', 'POA'],
-        required: true,
+        required: false,
     },
     email: {
         type: String,
