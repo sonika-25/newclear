@@ -6,7 +6,7 @@ const UILayout = () => {
    return( 
    <Layout>
         <Navbar />
-        <Layout>
+        <Layout style={{ minHeight: "100vh" }}>
             <Outlet />
         </Layout>
     </Layout>

@@ -1,5 +1,5 @@
 import { Layout, Menu } from 'antd';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {AreaChartOutlined, ScheduleOutlined, EditOutlined, SettingOutlined, QuestionCircleOutlined} from '@ant-design/icons';
 import {Typography} from 'antd';
 import './navbar.css';
@@ -7,16 +7,14 @@ import logo from '../assets/importedlogotest.svg';
 import profile from '../assets/profile-circle-svgrepo-com.svg';
 
 const {Sider} = Layout;
-
 const Navbar = () => {
   return (
-    <Sider width={120} style={{background: '#fff7f7',}}>
-
+    <Sider width={120} className='siderDisplay' style={{background: '#fff7f7', overflow: "auto"}}>
         <div>
             <img src={logo} className="navLogo" />
         </div>
 
-         <div>
+         <div style={{ marginBottom: 150 }}>
             <Link to="/home">
              <img src={profile} className="navProfile" />
             </Link>
@@ -48,10 +46,10 @@ const Navbar = () => {
             },
             ,
             {
-                key: '/home',
+                key: '/management',
                 label: (
                 <div>    
-                <Link to="/home" className="navItem">
+                <Link to="/management" className="navItem">
                     <EditOutlined className="navIcon" />
                 </Link>
                   <Typography.Title level={5} style={{margin:0}} className="navTitle">Management</Typography.Title>
@@ -59,11 +57,10 @@ const Navbar = () => {
                 ),
             },
             ]}
-        
-       
-        style={{ background: 'transparent',  marginTop:'150px' }}
+            
+        style={{ background: 'transparent' }}
         />
-        
+             <div style={{ flex: 1}} />
          <Menu mode="inline"
          className="menuCSSBottom" items = {[
                 {
@@ -86,8 +83,8 @@ const Navbar = () => {
                 ),
             }
             ]}
-              style={{ background: 'transparent',  marginTop:'180px' }}
-            />
+            
+            style={{ background: 'transparent' }}/>
 
     </Sider>
   );

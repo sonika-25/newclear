@@ -85,7 +85,11 @@
     border-radius: 15%;
   background-color: #dbd2eb;
 }
-
+.siderDisplay .ant-layout-sider-children {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100%;
+}
 .menuCSS .ant-menu-item .anticon + span,
 .menuCSS .ant-menu-item .ant-menu-item-icon + span {
   margin-left: 0 !important;
