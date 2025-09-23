@@ -8,7 +8,7 @@ const crypto = require('crypto');
 
 router.post("/create", async (req, res) => {
 
-    const {scheduleAuthor, resident_name, schedule_id, schedule_password} = req.body;
+    let {scheduleAuthor, resident_name, schedule_id, schedule_password} = req.body;
     if (!scheduleAuthor || !resident_name || !schedule_id 
         || !schedule_password) {
             //client error
@@ -25,7 +25,8 @@ router.post("/create", async (req, res) => {
     try {
         // encrypt schedule password
         const salt = await bcrypt.genSalt();
-        const hashedPassword = await bcrypt.hash(schedulePassword, salt);
+        const hashedPassword = await bcrypt.hash(schedule_password, salt);
+        schedule_password = hashedPassword;
 
         // create an invite token
         const inviteToken = crypto.randomBytes(16).toString('hex');
@@ -37,7 +38,7 @@ router.post("/create", async (req, res) => {
                 scheduleAuthor, 
                 resident_name, 
                 schedule_id, 
-                hashedPassword,
+                schedule_password,
                 inviteToken
             });
 
@@ -51,3 +52,12 @@ router.post("/create", async (req, res) => {
         res.status(500).json({error: error.message});
     }
 });
+
+// router.get("/data", async(req, res) => {
+
+        
+
+// }); 
+
+
+module.exports = router;

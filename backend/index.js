@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const Users = require("./model/user-model.js");
 const cont = require("./controllers/users.js")
+const scheduleCont = require("./controllers/schedules.js");
 
 const app = express();
 const connectDB= require ("./utils/db.js");
@@ -16,6 +17,7 @@ app.use(cors());
 PORT=3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 app.use('/users',cont);
+app.use('/schedule', scheduleCont);
 
 
 app.get("/", (req, res) => {
