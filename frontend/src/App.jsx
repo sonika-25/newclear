@@ -8,7 +8,6 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LoginPage />}/>
-
       <Route element={<UILayout/>}>
         <Route path="/home" element={<HomePage />}/>
         <Route path="/schedule" element={<SchedulePage/>}/>
