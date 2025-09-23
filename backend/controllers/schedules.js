@@ -8,12 +8,11 @@ const crypto = require('crypto');
 
 router.post("/create", async (req, res) => {
 
-    let {scheduleAuthor, resident_name, schedule_id, schedule_password} = req.body;
-    if (!scheduleAuthor || !resident_name || !schedule_id 
-        || !schedule_password) {
-            //client error
-            return res.status(400).json({message: "Please fill in all the fields!"});
-    }
+    let {scheduleAuthor, resident_name, schedule_id} = req.body;
+    if (!scheduleAuthor || !resident_name || !schedule_id ) {
+        //client error
+        return res.status(400).json({message: "Please fill in all the fields!"});
+    }   
 
     // Only one created schedule per user at this stage
     const authorExists = await Schedule.findOne({scheduleAuthor: scheduleAuthor});
@@ -23,10 +22,6 @@ router.post("/create", async (req, res) => {
 
     
     try {
-        // encrypt schedule password
-        const salt = await bcrypt.genSalt();
-        const hashedPassword = await bcrypt.hash(schedule_password, salt);
-        schedule_password = hashedPassword;
 
         // create an invite token
         const inviteToken = crypto.randomBytes(16).toString('hex');
@@ -38,7 +33,6 @@ router.post("/create", async (req, res) => {
                 scheduleAuthor, 
                 resident_name, 
                 schedule_id, 
-                schedule_password,
                 inviteToken
             });
 

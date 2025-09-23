@@ -15,10 +15,6 @@ const scheduleSchema = new mongoose.Schema({
         required: true,
         unique: true,
     },
-    schedule_password: {
-        type: String,
-        required: true,
-    },
     tasks: [{
         type : mongoose.Schema.Types.ObjectId,
         ref : 'Task'
