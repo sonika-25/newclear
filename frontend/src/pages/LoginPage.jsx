@@ -5,6 +5,7 @@ import { ConfigProvider, theme, Card, Typography, Form, Input, Button, Checkbox,
 import { App as AntApp } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 const { Title, Text } = Typography;
+import axios from 'axios';
 
 // Add React Logo on the home page (temporary)
 function ReactLogo({ size = 420}) {
@@ -33,7 +34,7 @@ function tempAuth({ email, password }) {
         setTimeout(() => {
             const ok = email?.includes("@") && (password?.length ?? 0) >= 6;
             ok
-                ? resolve({ user: { email }, token: "dev-only-token" })
+                ? resolve({ user: { email , password}, token: "dev-only-token" })
                 : reject(new Error("Invalid credentials"))
         }, 800);
     });
@@ -46,13 +47,47 @@ export default function LoginPage() {
     const navigate = useNavigate();
     const [openRegister, setOpenRegister] = useState(false);
 
+    //register user
+    async function registerUser (values){
+            console.log("New account values:", values);
+            setOpenRegister(false);
+            message.success("Account created");
+            console.log(values)
+            axios.post("http://localhost:3000/users/signup" , {
+                "firstName": values.firstname,
+                "lastName": values.lastname,
+                "phone": values.phoneNumber,
+                "email" : values.email,
+                "password" : values.password
+            })
+            .then((res)=>{
+              console.log(res.data)
+            })
+            .catch (console.err);
+        }
     // temp authenticaion
     async function onFinish(values) {
         setSubmitting(true);
         try {
-            const result = await tempAuth(values);
-            message.success(`Welcome ${result.user.email}`);
-            navigate("/home");
+           const result = await tempAuth(values);           
+                axios.post("http://localhost:3000/users/signin" , {
+                    "email" : result.user.email,
+                    "password" : result.user.password
+                })
+                .then((res)=>{
+                    console.log(res.data)   
+                    if (res.data == "Successful login"){
+                        message.success(`Welcome ${result.user.email}`);
+                        navigate("/home");
+                    }
+                    else {
+                        console.log(res.data)
+                    }
+                    })
+                .catch ((err)=> {
+                    console.log(err.response.data)
+                })
+                ;
         }
 
         catch (err) {
@@ -162,11 +197,7 @@ export default function LoginPage() {
                     >
                         <Form
                             layout="vertical"
-                            onFinish={(values) => {
-                                console.log("New account values:", values);
-                                setOpenRegister(false);
-                                message.success("Account created");
-                            }}
+                            onFinish={registerUser}
                         >
                             {/* user fields */}
                             <Form.Item
