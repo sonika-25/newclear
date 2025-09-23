@@ -28,28 +28,24 @@ router.post("/signup", async (req, res) => {
         return res.status(400).json({ message: "User already exists" });
     }
 
+    // encrypt password
+    const originalPassword = password;
+    password = await encryptPassword(originalPassword);
     try {
-        // encrypt password
-        const originalPassword = password;
-        password = await encryptPassword(originalPassword);
-        try {
-            // create new user entry
-            const user = new User({
-                firstName,
-                lastName,
-                email,
-                phone,
-                password,
-                patients,
-                isAdmin,
-            });
-            await user.save();
-            res.status(201).json(user);
-        } catch (error) {
-            res.status(400).json({ error: error.message });
-        }
+        // create new user entry
+        const user = new User({
+            firstName,
+            lastName,
+            email,
+            phone,
+            password,
+            patients,
+            isAdmin,
+        });
+        await user.save();
+        res.status(201).json(user);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(400).json({ error: error.message });
     }
 });
 
