@@ -1,0 +1,10 @@
+.schedule {
+    background: #ffe3e3 !important;
+}
+
+.taskCell {
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.2;
+    padding-right: 8px;
+}

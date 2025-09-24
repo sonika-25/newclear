@@ -10,7 +10,7 @@ export default function App() {
       <Route path="/" element={<LoginPage />}/>
       <Route element={<UILayout/>}>
         <Route path="/home" element={<HomePage />}/>
-        <Route path="/schedule" element={<SchedulePage/>}/>
+        <Route path="/schedule" element={<SchedulePage />}/>
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />}/>
     </Routes>
