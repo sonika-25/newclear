@@ -57,6 +57,65 @@ router.get("/schedule-info", async(req, res) => {
 
 }); 
 
+// Add a task to a schedule
+router.post("/add-task", async(req, res) => {
+
+    // User should provide scheduleID, their userID, and rhe user they want to add
+    const {scheduleID, authorID} = req.body;
+
+    let givenSchedule = await Schedule.findOne({_id: scheduleID});
+    if (!givenSchedule) {
+        return res.status(400).json({message: "The provided schedule does not exist!"});
+    }
+
+    // Check that author is really the author of the given schedule
+    if (authorID !=  givenSchedule.scheduleAuthor.toString()) {
+
+        return res.status(400).json({message: "You do not have access to add tasks to this schedule"});
+    }
+
+    const addedTask = await createTask(req, res);
+    console.log(addedTask);
+
+    // Try to add task
+    try {
+
+        givenSchedule.schedule_tasks.push(addedTask);
+        await givenSchedule.save();
+        res.status(201).json(givenSchedule);
+
+    } catch (error) {
+        res.status(400).json({error: error.message});
+    }
+
+});
+
+async function createTask(req, res) {
+    
+    let {task, description, frequency, interval, budget, isCompleted} = req.body;
+    // Create the task
+    console.log(task);
+    console.log(description);
+    console.log(frequency);
+    console.log(interval);
+    console.log(budget);
+    if (!task || !description || !frequency || !interval || !budget 
+        || !isCompleted) {
+
+        return res.status(400).json({message: "Please fill in all the fields!"});
+    }
+
+    try {
+        const addedTask = new Task({task, description, frequency, interval, budget
+            , isCompleted});
+        await addedTask.save();
+        return await addedTask;
+    } catch (error) {
+        res.status(400).json({error: error.message});
+    }
+
+}
+
 
 // Add a user to a schedule 
 router.post("/add-user", async(req, res) => {
@@ -64,7 +123,7 @@ router.post("/add-user", async(req, res) => {
     // User should provide scheduleID, their userID, and rhe user they want to add
     const {scheduleID, authorID, addedUser} = req.body;
 
-    const givenSchedule = await Schedule.findOne({_id: scheduleID});
+    let givenSchedule = await Schedule.findOne({_id: scheduleID});
     if (!givenSchedule) {
         return res.status(400).json({message: "The provided schedule does not exist!"});
     }
