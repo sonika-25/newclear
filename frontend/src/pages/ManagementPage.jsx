@@ -1,7 +1,7 @@
 import './css/management.css';
-import {Modal, Table, Popconfirm, Radio, Layout, List, Splitter, Button, Form, Input, Switch, message, Space, Typography } from 'antd';
-import React, { useState, useRef} from 'react';
-import {CloseOutlined} from '@ant-design/icons';
+import {Modal, Tabs, Table, Popconfirm, Radio, Layout, List, Splitter, Button, Form, Input, Switch, message, Space, Typography } from 'antd';
+import React, { useState, useRef, act} from 'react';
+import {CloseOutlined, PlusOutlined} from '@ant-design/icons';
 
 const { Content } = Layout;
 
@@ -14,14 +14,25 @@ const { Content } = Layout;
   const [taskForm] = Form.useForm();
   const nextKey = useRef(2);
 
+  const [isCategoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [categoryForm] = Form.useForm();
+  const nextCategoryKey = useRef(2);
 
-  const [dataSource, setTaskData] = useState([
-    { key: '0', task: 'New Toothpaste', budget: '$100', frequency: 'Every 20 Days', description: 'Uses protective enamel paste only',
+
+  const [taskData, setTaskData] = useState([
+    { key: '0', task: 'New Toothpaste', category: '1', budget: '$100', frequency: 'Every 20 Days', description: 'Uses protective enamel paste only',
     dateRange: ['01-01-2025', '01-01-2050'],},
-    { key: '1', task: 'New Toothbrush', budget: '$100', frequency: 'Every 30 Days', description: 'Requires a soft bristle brush due to sensitivity',
+    { key: '1', task: 'New Toothbrush',  category: '1', budget: '$100', frequency: 'Every 30 Days', description: 'Requires a soft bristle brush due to sensitivity',
     dateRange: ['01-01-2025', '01-01-2050'], },
   ]);
 
+  /*****************Tab*************************** */
+  const defaultPanes = Array.from({ length: 2 }).map((_, index) => {
+    const id = String(index + 1);
+    return { label: `Category: ${id}`, children: `Content of Tab Pane ${index + 1}`, key: id };
+  });
+  /******************Tab******************* */
+  
   const columns = [
     { title: 'Task', dataIndex: 'task', key: 'task' },
     { title: 'Task Budget', dataIndex: 'budget', key: 'budget' },
@@ -31,12 +42,12 @@ const { Content } = Layout;
       key: 'operation',
       render: (_, record) => (
         <Popconfirm
-          title="Are you sure you want to delete this task?"
+          title="Are you sure you want to permanently delete this task?"
           okText="Delete"
           cancelText="Cancel"
           onConfirm={() => handleTaskDelete(record.key)}
         >
-          <a>Delete Task</a>
+          <a style={{color:'#ff0000ff'}}>Delete Task</a>
         </Popconfirm>
       ),
     },
@@ -60,12 +71,13 @@ const { Content } = Layout;
     const showModal = ()=> {
       setTaskModalOpen(true);
     };
+     
     const handleOk = (values) => {
-
         setTaskData(prev => [...prev,
         {
           key: String(nextKey.current++),
           task: values.task,
+          category: activeKey,
           budget: values.budget,
           frequency: values.frequency,
           description: values.description,
@@ -74,14 +86,56 @@ const { Content } = Layout;
       ]);
       taskForm.resetFields()
       setTaskModalOpen(false);
-
     };
-    const handleCancel = () => {
-      
+ /*********************END TAB BOILIER PLATE FROM ANTD WITH SLIGHT EDITS**************************** */   
+  
+  const [activeKey, setActiveKey] = useState(defaultPanes[0].key);
+  const [items, setItems] = useState(defaultPanes);
+  const newTabIndex = useRef(0);
+
+  const addCategoryData = (values) => {
+  const key = values.id;
+  const label = `Category: ${key}`;
+  setItems(prev => [...prev, { label, key }]);
+  setActiveKey(key);
+  setCategoryModalOpen(false);
+  categoryForm.resetFields();
+  };
+
+
+  const onChange = key => {
+    setActiveKey(key);
+  };
+
+  const addTab = () => {
+    const newActiveKey = `newTab${newTabIndex.current++}`;
+    setItems([...items, { label: 'New Tab', key: newActiveKey }]);
+    setActiveKey(newActiveKey);
+
+  };
+  const removeTab = targetKey => {
+    const targetIndex = items.findIndex(pane => pane.key === targetKey);
+    const newPanes = items.filter(pane => pane.key !== targetKey);
+    if (newPanes.length && targetKey === activeKey) {
+      const { key } = newPanes[targetIndex === newPanes.length ? targetIndex - 1 : targetIndex];
+      setActiveKey(key);
+    }
+    setItems(newPanes);
+    setTaskData(prev => prev.filter(t => t.category !== targetKey));
+  };
+
+  const onEdit = (targetKey, action) => {
+    if (action === 'add') {
+      addTab();
+    } else {
+      removeTab(targetKey);
+    }
+  };
+
+  const showCategoryModal = ()=> {
+      setCategoryModalOpen(true);
     };
-
-
-
+/*******************END TAB BOILIER PLATE FROM ANTD WITH SLIGHT EDITS***************************************** */
       return (
         
         <Layout>
@@ -141,7 +195,7 @@ const { Content } = Layout;
                   
                     <Form.Item style={{marginRight: 20}}>
                       
-                        <Button type="primary" htmlType="submit" block>
+                        <Button type="primary" htmlType="submit" block color="pink" variant="filled">
                           Add User
                         </Button>
                 
@@ -171,44 +225,79 @@ const { Content } = Layout;
                 </Splitter.Panel>
 
                 <Splitter.Panel>
-                  <Typography.Title level={4} style={{marginBottom:"20px", textAlign:"center"}}>Add a Task or Category to Schedule</Typography.Title>
-                  <Button type="primary" onClick={showModal} style={{marginLeft:"20px", marginBottom:"20px"}}>
-                          Add a new Task +
+                  <Typography.Title level={4} style={{marginBottom:"10px", textAlign:"center"}}>Add a Task or Category to Schedule</Typography.Title>
+                   <div>
+                    <div style={{ marginBottom: 16 }}>
+                      <Button   icon={<PlusOutlined/>} color="pink" variant="filled" style={{marginLeft:"20px"}} onClick={showCategoryModal} >Add New Category</Button>
+                    </div>
+                    <Tabs
+                      hideAdd
+                      onChange={onChange}
+                      activeKey={activeKey}
+                      type="editable-card"
+                      onEdit={onEdit}
+                      items={items}
+                      style={{marginLeft:"20px"}}
+                    />
+                  </div>
+                  <Button color="pink" variant="filled" type="primary" onClick={showModal} icon={<PlusOutlined/>}style={{marginLeft:"20px", marginBottom:"10px"}}>
+                          Add New Task 
                   </Button>
-                    <Table
+                  <Table
                     style={{marginLeft:"20px"}}
-                      columns={columns}
-                      
-                      pagination={true}
-                      expandable={{
-                        expandedRowRender: record => <div><p>Task Notes: {record.description}</p><p>Schedule Range: {record.dateRange?.join(' → ')}</p></div>,
-                      }}
-                      dataSource={dataSource}
-                        footer={() =>''}
-                    />              
+                    columns={columns}
+                    pagination={{pageSize: 8,}}
+                    expandable={{
+                      expandedRowRender: record => <div><p>Task Notes: {record.description}</p><p>Schedule Range: {record.dateRange?.join(' → ')}</p></div>,
+                    }}
+                    dataSource={taskData.filter(r => r.category === activeKey)}
+                    footer={() =>''}
+                  />              
                        
-                        <Modal
-                          title="Title"
-                          open={isTaskModalOpen}
-                          onOk={() => taskForm.submit()}
-                          onCancel={handleCancel}
-                        >
-                          <Form
-                            form={taskForm}
-                            layout="vertical"
-                            onFinish={handleOk}
-                            initialValues={{ frequency: "Every 30 Days" }}
-                          >
-                            <Form.Item
-                              label="Task"
-                              name="task"
-                              rules={[{ required: true, message: "Please enter a task name" }]}
-                            >
-                              <Input placeholder="e.g., New Toothbrush" />
-                            </Form.Item>
+                  <Modal
+                    title="Title"
+                    open={isTaskModalOpen}
+                    onOk={() => taskForm.submit()}
+                    onCancel={() => setTaskModalOpen(false)}
+                  >
+                    <Form
+                      form={taskForm}
+                      layout="vertical"
+                      onFinish={handleOk}
+                      initialValues={{ frequency: "Every 30 Days" }}
+                    >
+                      <Form.Item
+                        label="Task"
+                        name="task"
+                        rules={[{ required: true, message: "Please enter a task name" }]}
+                      >
+                      <Input placeholder="e.g., New Toothbrush" />
+                      </Form.Item>
 
-                          </Form>
-                        </Modal> 
+                    </Form>
+                  </Modal> 
+
+                  <Modal
+                    title="Title"
+                    open={isCategoryModalOpen}
+                    onOk={() => categoryForm.submit()}
+                    onCancel={() => setCategoryModalOpen(false)}
+                  >
+                    <Form
+                      form={categoryForm}
+                      layout="vertical"
+                      onFinish={addCategoryData}
+                    >
+                      <Form.Item
+                        label="Category"
+                        name="id"
+                        rules={[{ required: true, message: "Please enter a Category ID" }]}
+                      >
+                         <Input/>
+                      </Form.Item>
+
+                    </Form>
+                  </Modal> 
 
                 </Splitter.Panel>
 
