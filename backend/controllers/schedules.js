@@ -47,11 +47,58 @@ router.post("/create", async (req, res) => {
     }
 });
 
-// router.get("/data", async(req, res) => {
+router.get("/schedule-info", async(req, res) => {
 
-        
+    const inputAuthor = req.body.scheduleAuthor;
+    const inputResident = req.body.resident_name;
 
-// }); 
+    Schedule.findOne({scheduleAuthor: inputAuthor
+        , resident_name: inputResident}).then((data) => {res.json(data); });
+
+}); 
+
+
+// Add a user to a schedule 
+router.post("/add-user", async(req, res) => {
+
+    // User should provide scheduleID, their userID, and rhe user they want to add
+    const {scheduleID, authorID, addedUser} = req.body;
+
+    const givenSchedule = await Schedule.findOne({_id: scheduleID});
+    if (!givenSchedule) {
+        return res.status(400).json({message: "The provided schedule does not exist!"});
+    }
+
+    // Check that author is really the author of the given schedule
+    if (authorID !=  givenSchedule.scheduleAuthor.toString()) {
+
+        return res.status(400).json({message: "You do not have access to add users to this schedule"});
+    }
+
+    // Try to add user
+    try {
+
+        // Check that the user to be added exists
+        const userExists = await User.findById(addedUser);
+        if (!userExists) {
+            return res.status(400).json({ message: "User to be added does not exist!" });
+        }
+
+        // Check that the user is not already in the schedule
+        if (givenSchedule.schedule_users.includes(addedUser)) {
+            return res.status(400).json({message: "User is already added to this schedule!"});
+        }
+
+        givenSchedule.schedule_users.push(addedUser);
+        await givenSchedule.save();
+        res.status(201).json(givenSchedule);
+
+    } catch (error) {
+        res.status(400).json({error: error.message});
+    }
+
+    
+});
 
 
 module.exports = router;
