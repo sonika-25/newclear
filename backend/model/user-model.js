@@ -29,8 +29,8 @@ const userSchema = new mongoose.Schema({
         required: true,
     },
     patients: [{
-        type : mongoose.Schema.Types.ObjectId,
-        ref : 'Patient'
+        type : String,
+		required : false,
     }],
 });
 

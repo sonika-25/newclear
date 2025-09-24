@@ -23,13 +23,17 @@ const patientSchema = new mongoose.Schema({
 		type : mongoose.Schema.Types.ObjectId,
 		ref : 'Task'
 	}],
-    currentOrg: {
-		type : mongoose.Schema.Types.ObjectId,
-		ref : 'Org'
+    currentOrgId: {
+		type : String,
+		required : false,
 	},
-    family: {
-		type : mongoose.Schema.Types.ObjectId,
-		ref : 'User'
+    categories : [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category'
+    }],
+    familyId: {
+		type : String,
+		required : false,
 	},    
 });
 

@@ -10,7 +10,7 @@ router.post("/create-org", async(req,res) => {
         return res.status(400).json({ message: "All fields are required" });
         }
 
-        const newOrg = new Org({
+        const newOrg = new Organization({
         username,
         email,
         phone,
