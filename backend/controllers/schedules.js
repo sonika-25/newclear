@@ -165,6 +165,45 @@ router.post("/add-user", async(req, res) => {
     
 });
 
+router.delete("/remove-task", async(req, res) => {
+
+    const {scheduleID, authorID, removedTask} = req.body;
+
+    let givenSchedule = await Schedule.findOne({_id: scheduleID});
+    if (!givenSchedule) {
+        return res.status(400).json({message: "The provided schedule does not exist!"});
+    }
+
+    // Check that author is really the author of the given schedule
+    if (authorID !=  givenSchedule.scheduleAuthor.toString()) {
+
+        return res.status(400).json({message: "You do not have access to remove tasks from this schedule"});
+    }
+
+
+    // Try to remove the task
+    try {
+        // Check that the task is not already in the schedule
+        if (!givenSchedule.tasks.includes(removedTask)) { // This might not be the best code as might not return a string
+            return res.status(400).json({message: "Task is already not in this schedule!"});
+        }
+
+        let index = givenSchedule.tasks.indexOf(removedTask);
+        if ( index > -1) {
+            givenSchedule.tasks.splice(index, 1);
+        }
+
+        // Task might as well be deleted from database too
+        await Task.deleteOne({removedTask});
+
+        await givenSchedule.save();
+        res.status(200).json(givenSchedule);
+
+    } catch (error) {
+        res.status(400).json({error: error.message});
+    }
+});
+
 router.delete("/remove-user", async(req, res) => {
 
     const {scheduleID, authorID, removedUser} = req.body;
@@ -183,7 +222,7 @@ router.delete("/remove-user", async(req, res) => {
     // Try to remove the user
     try {
         // Check that the user is not already in the schedule
-        if (!givenSchedule.schedule_users.includes(removedUser)) {
+        if (!givenSchedule.schedule_users.includes(removedUser)) { // This might not be the best code as might not return a string
             return res.status(400).json({message: "User is already not in this schedule!"});
         }
 
@@ -191,7 +230,7 @@ router.delete("/remove-user", async(req, res) => {
         if ( index > -1) {
             givenSchedule.schedule_users.splice(index, 1);
         }
-        
+
         //await givenSchedule.updateOne({_id: scheduleID}, {$pull: {schedule_users: removedUser}});
         await givenSchedule.save();
         res.status(200).json(givenSchedule);
