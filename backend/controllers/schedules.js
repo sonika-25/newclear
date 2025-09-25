@@ -1,5 +1,6 @@
 const User = require("../model/user-model");
 const Schedule = require("../model/schedule-model");
+const Task = require("../model/task-model");
 const express = require("express");
 const bcrypt = require("bcrypt");
 const app = express();
@@ -74,13 +75,15 @@ router.post("/add-task", async(req, res) => {
         return res.status(400).json({message: "You do not have access to add tasks to this schedule"});
     }
 
-    const addedTask = await createTask(req, res);
-    console.log(addedTask);
-
-    // Try to add task
+    // Try to add task - causing error
     try {
+        const addedTask = await createTask(req, res);
 
-        givenSchedule.schedule_tasks.push(addedTask);
+        if (addedTask == null) {
+            throw new Error("addedTask is undefined");
+        }
+
+        givenSchedule.tasks.push(addedTask);
         await givenSchedule.save();
         res.status(201).json(givenSchedule);
 
@@ -88,9 +91,11 @@ router.post("/add-task", async(req, res) => {
         res.status(400).json({error: error.message});
     }
 
+    
+
 });
 
-async function createTask(req, res) {
+async function createTask(req) {
     
     let {task, description, frequency, interval, budget, isCompleted} = req.body;
     // Create the task
@@ -99,20 +104,21 @@ async function createTask(req, res) {
     console.log(frequency);
     console.log(interval);
     console.log(budget);
+    console.log(isCompleted);
+
     if (!task || !description || !frequency || !interval || !budget 
-        || !isCompleted) {
+        || isCompleted == null) {
 
-        return res.status(400).json({message: "Please fill in all the fields!"});
+        throw new Error("Please fill in all the fields!");
     }
 
-    try {
-        const addedTask = new Task({task, description, frequency, interval, budget
-            , isCompleted});
-        await addedTask.save();
-        return await addedTask;
-    } catch (error) {
-        res.status(400).json({error: error.message});
+    const addedTask = new Task({task, description, frequency, interval, budget
+        , isCompleted});
+    if (addedTask == null) {
+        throw new Error("addedTask is undefined");
     }
+    await addedTask.save();
+    return addedTask;
 
 }
 

@@ -10,7 +10,7 @@ const taskSchema = new mongoose.Schema({
         required: true,
     },
     frequency: {
-        type: Number,
+        type: String,
          enum: ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'],
         required: true,
     },
