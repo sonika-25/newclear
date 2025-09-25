@@ -165,5 +165,41 @@ router.post("/add-user", async(req, res) => {
     
 });
 
+router.delete("/remove-user", async(req, res) => {
+
+    const {scheduleID, authorID, removedUser} = req.body;
+
+    let givenSchedule = await Schedule.findOne({_id: scheduleID});
+    if (!givenSchedule) {
+        return res.status(400).json({message: "The provided schedule does not exist!"});
+    }
+
+    // Check that author is really the author of the given schedule
+    if (authorID !=  givenSchedule.scheduleAuthor.toString()) {
+
+        return res.status(400).json({message: "You do not have access to remove users from this schedule"});
+    }
+
+    // Try to remove the user
+    try {
+        // Check that the user is not already in the schedule
+        if (!givenSchedule.schedule_users.includes(removedUser)) {
+            return res.status(400).json({message: "User is already not in this schedule!"});
+        }
+
+        let index = givenSchedule.schedule_users.indexOf(removedUser);
+        if ( index > -1) {
+            givenSchedule.schedule_users.splice(index, 1);
+        }
+        
+        //await givenSchedule.updateOne({_id: scheduleID}, {$pull: {schedule_users: removedUser}});
+        await givenSchedule.save();
+        res.status(200).json(givenSchedule);
+
+    } catch (error) {
+        res.status(400).json({error: error.message});
+    }
+});
+
 
 module.exports = router;
