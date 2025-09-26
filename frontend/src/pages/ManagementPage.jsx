@@ -1,9 +1,37 @@
 import './css/management.css';
-import {Modal, Tabs, Table, Popconfirm, Radio, Layout, List, Splitter, Button, Form, Input, Switch, message, Space, Typography } from 'antd';
-import React, { useState, useRef, act} from 'react';
+import {Modal, Tabs, Table, Popconfirm, Radio, Layout, List, Cascader, InputNumber, Select,
+        Splitter, Button, Form, Input, Switch, message, Space, Typography } from 'antd';
+import React, { useState, useRef} from 'react';
 import {CloseOutlined, PlusOutlined} from '@ant-design/icons';
 
 const { Content } = Layout;
+
+
+import { Pie } from '@ant-design/plots';
+import { createRoot } from 'react-dom/client';
+
+const CatPie = ({data}) => {
+  const config = {
+    data,
+    angleField: 'value',
+    colorField: 'type',
+    label: {
+      text: 'value',
+      style: {
+        fontWeight: 'bold',
+      },
+    },
+    legend: {
+      color: {
+        title: false,
+        position: 'right',
+        rowPadding: 5,
+      },
+    },
+  };
+  return  <div style={{ width: 400, height: 200, margin: 'auto'}}><Pie {...config} /></div>
+};
+
 
 
   export default function ManagementPage() {
@@ -12,30 +40,30 @@ const { Content } = Layout;
 
   const [isTaskModalOpen, setTaskModalOpen] = useState(false);
   const [taskForm] = Form.useForm();
-  const nextKey = useRef(2);
+  const nextTaskKey = useRef(2);
 
   const [isCategoryModalOpen, setCategoryModalOpen] = useState(false);
   const [categoryForm] = Form.useForm();
-  const nextCategoryKey = useRef(2);
+
 
 
   const [taskData, setTaskData] = useState([
-    { key: '0', task: 'New Toothpaste', category: '1', budget: '$100', frequency: 'Every 20 Days', description: 'Uses protective enamel paste only',
+    { key: '0', task: 'New Toothpaste', category: '1', budget: '100', frequency: 'Every 20 Days', description: 'Uses protective enamel paste only',
     dateRange: ['01-01-2025', '01-01-2050'],},
-    { key: '1', task: 'New Toothbrush',  category: '1', budget: '$100', frequency: 'Every 30 Days', description: 'Requires a soft bristle brush due to sensitivity',
+    { key: '1', task: 'New Toothbrush',  category: '1', budget: '100', frequency: 'Every 30 Days', description: 'Requires a soft bristle brush due to sensitivity',
     dateRange: ['01-01-2025', '01-01-2050'], },
   ]);
 
   /*****************Tab*************************** */
   const defaultPanes = Array.from({ length: 2 }).map((_, index) => {
     const id = String(index + 1);
-    return { label: `Category: ${id}`, children: `Content of Tab Pane ${index + 1}`, key: id };
+    return { label: `${id}`, key: id, budget: 1000};
   });
   /******************Tab******************* */
   
   const columns = [
     { title: 'Task', dataIndex: 'task', key: 'task' },
-    { title: 'Task Budget', dataIndex: 'budget', key: 'budget' },
+    { title: 'Task Budget $', dataIndex: 'budget', key: 'budget' },
     { title: 'Schedule Frequency', dataIndex: 'frequency', key: 'frequency' },
     {
       title: 'Remove/Edit Task',
@@ -75,7 +103,7 @@ const { Content } = Layout;
     const handleOk = (values) => {
         setTaskData(prev => [...prev,
         {
-          key: String(nextKey.current++),
+          key: String(nextTaskKey.current++),
           task: values.task,
           category: activeKey,
           budget: values.budget,
@@ -94,14 +122,14 @@ const { Content } = Layout;
   const newTabIndex = useRef(0);
 
   const addCategoryData = (values) => {
-  const key = values.id;
-  const label = `Category: ${key}`;
-  setItems(prev => [...prev, { label, key }]);
-  setActiveKey(key);
-  setCategoryModalOpen(false);
-  categoryForm.resetFields();
+    const key = values.id;
+    const budget = values.budget || 0;
+    const label = `Category: ${key}`;
+    setItems(prev => [...prev, {label, key, budget}]);
+    setActiveKey(key);
+    setCategoryModalOpen(false);
+    categoryForm.resetFields();
   };
-
 
   const onChange = key => {
     setActiveKey(key);
@@ -109,7 +137,7 @@ const { Content } = Layout;
 
   const addTab = () => {
     const newActiveKey = `newTab${newTabIndex.current++}`;
-    setItems([...items, { label: 'New Tab', key: newActiveKey }]);
+    setItems([...items, { label: 'New Tab', key: newActiveKey}]);
     setActiveKey(newActiveKey);
 
   };
@@ -128,7 +156,10 @@ const { Content } = Layout;
     if (action === 'add') {
       addTab();
     } else {
-      removeTab(targetKey);
+      if(window.confirm("you sure? this will permananetly delete all the tasks in this category")){
+        removeTab(targetKey);
+      }
+        
     }
   };
 
@@ -136,7 +167,34 @@ const { Content } = Layout;
       setCategoryModalOpen(true);
     };
 /*******************END TAB BOILIER PLATE FROM ANTD WITH SLIGHT EDITS***************************************** */
-      return (
+  const displayPie = (key) => {
+  var inUse = 0;
+  var catBudget;
+
+  for(const t of taskData){
+    if(t.category == key){
+      inUse += Number(t.budget);
+    }
+  }
+    for(const c of items){
+      if(key == c.key){
+        catBudget = Number(c.budget);
+        break;
+      }
+    }
+    var remainingBudget = catBudget-inUse;
+
+    if(inUse == 0){
+      return [{type: "Remaining", value: remainingBudget}]
+    }
+
+    return[{type: "Total In Use", value: inUse}, {type: "Remaining", value: remainingBudget}];
+
+  }
+   
+
+
+  return (
         
         <Layout>
         <Content className='manageContent' style={{padding: '10px 15px' }}>
@@ -240,20 +298,22 @@ const { Content } = Layout;
                       style={{marginLeft:"20px"}}
                     />
                   </div>
+                  <CatPie data={displayPie(activeKey)}/> 
                   <Button color="pink" variant="filled" type="primary" onClick={showModal} icon={<PlusOutlined/>}style={{marginLeft:"20px", marginBottom:"10px"}}>
                           Add New Task 
                   </Button>
+                  
                   <Table
                     style={{marginLeft:"20px"}}
                     columns={columns}
-                    pagination={{pageSize: 8,}}
+                    pagination={{pageSize: 6,}}
                     expandable={{
                       expandedRowRender: record => <div><p>Task Notes: {record.description}</p><p>Schedule Range: {record.dateRange?.join(' → ')}</p></div>,
                     }}
                     dataSource={taskData.filter(r => r.category === activeKey)}
                     footer={() =>''}
                   />              
-                       
+                  
                   <Modal
                     title="Title"
                     open={isTaskModalOpen}
@@ -294,6 +354,17 @@ const { Content } = Layout;
                         rules={[{ required: true, message: "Please enter a Category ID" }]}
                       >
                          <Input/>
+                      </Form.Item>
+                      <Form.Item
+                        label="Category Budget"
+                        name="budget"
+                        rules={[{ required: true, message: "Please enter a Category Budget" }]}>
+                        <InputNumber
+                          addonBefore="+"
+                          addonAfter={'$'}
+                          defaultValue={0}
+                          controls
+                        />
                       </Form.Item>
 
                     </Form>
