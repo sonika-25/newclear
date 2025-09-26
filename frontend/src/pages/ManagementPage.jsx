@@ -1,18 +1,42 @@
 import './css/management.css';
-import {Modal, Tabs, Table, Popconfirm, Radio, Layout, List, Cascader, InputNumber, Select,
-        Splitter, Button, Form, Input, Switch, message, Space, Typography } from 'antd';
+import {Modal, Tabs, Table, Popconfirm, Radio, Layout, List, Cascader, Input, DatePicker, InputNumber, Select,
+        Splitter, Button, Form, Switch, message, Space, Typography } from 'antd';
 import React, { useState, useRef} from 'react';
 import {CloseOutlined, PlusOutlined} from '@ant-design/icons';
 
 const { Content } = Layout;
+const {RangePicker} = DatePicker;
+const{TextArea } = Input;
 
 
 import { Pie } from '@ant-design/plots';
 import { createRoot } from 'react-dom/client';
 
 const CatPie = ({data}) => {
+  let inUse = 0;
+  let remaining = 0;
+  for (const d of data) {
+    if (d.type === 'Total In Use') inUse = Number(d.value) || 0;
+    else if (d.type === 'Remaining') remaining = Number(d.value) || 0;
+  }
+  const overBudget = remaining < 0;
+
+  let inputData;
+
+  if(overBudget){
+      inputData =  [{ type: 'Over Budget By', value: Math.abs(remaining) }];
+  }
+  else{
+    if(inUse == 0){
+      inputData = [{type: "Remaining", value: remaining}];
+    }
+    else{
+      inputData = [{ type: 'Used', value: inUse},{ type: 'Remaining', value: Math.max(remaining, 0) },];
+    }
+  }
+   
   const config = {
-    data,
+    data: inputData,
     angleField: 'value',
     colorField: 'type',
     label: {
@@ -21,12 +45,10 @@ const CatPie = ({data}) => {
         fontWeight: 'bold',
       },
     },
-    legend: {
-      color: {
-        title: false,
-        position: 'right',
-        rowPadding: 5,
-      },
+    scale: {
+      color: overBudget
+        ? { domain: ['Over Budget By'], range: ['#ff4d4f'] }
+        : { domain: ['Used', 'Remaining'], range: ['#7d486fff', '#87114c5c'] },
     },
   };
   return  <div style={{ width: 400, height: 200, margin: 'auto'}}><Pie {...config} /></div>
@@ -183,12 +205,19 @@ const CatPie = ({data}) => {
       }
     }
     var remainingBudget = catBudget-inUse;
+      var overBudget = false;
 
-    if(inUse == 0){
-      return [{type: "Remaining", value: remainingBudget}]
+    if(inUse > catBudget){
+      overBudget = true;
     }
+    if(inUse == 0){
+      const data =  [{type: "Remaining", value: remainingBudget}];
+      return data;
+    }
+  
+    const data = [{type: "Total In Use", value: inUse}, {type: "Remaining", value: remainingBudget}];
 
-    return[{type: "Total In Use", value: inUse}, {type: "Remaining", value: remainingBudget}];
+    return data;
 
   }
    
@@ -333,7 +362,46 @@ const CatPie = ({data}) => {
                       >
                       <Input placeholder="e.g., New Toothbrush" />
                       </Form.Item>
+                       <Form.Item
+                        label="Task Budget"
+                        name="budget"
+                        rules={[{ required: true, message: "Enter a Task Budget" }]}>
+                        <InputNumber
+                          addonBefore="+"
+                          addonAfter={'$'}
+                          defaultValue={0}
+                          controls
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        label="Start and End Date"
+                        name="dateRange"
+                        rules={[{ required: true, message: "Enter a Task Start and End Date" }]}>
+                        <RangePicker
+                          format="DD-MM-YYYY"
+                        />
+                      </Form.Item>
 
+                      <Form.Item
+                        label="Task Completion Frequency"
+                        name="frequency"
+                        rules={[{ required: true, message: "Enter a Interval" }]}>
+                        <InputNumber size="large" min={1} max={100000} defaultValue={30}/>
+                      </Form.Item>
+              
+                        <Form.Item
+                        label="Add task context or further notes"
+                        name="description"
+                        rules={[{ required: true, message: "Please give some context" }]}> 
+
+                        <TextArea
+                        showCount
+                        maxLength={100}
+                        placeholder="disable resize"
+                        style={{ height: 120, resize: 'none' }}/>
+                          
+                        </Form.Item>
+                     
                     </Form>
                   </Modal> 
 
