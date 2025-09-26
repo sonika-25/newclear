@@ -1,7 +1,7 @@
 import './css/management.css';
 import {Modal, Tabs, Table, Popconfirm, Radio, Layout, List, Cascader, Input, DatePicker, InputNumber, Select,
         Splitter, Button, Form, Switch, message, Space, Typography } from 'antd';
-import React, { useState, useRef} from 'react';
+import React, { useState, useRef, useMemo} from 'react';
 import {CloseOutlined, PlusOutlined} from '@ant-design/icons';
 
 const { Content } = Layout;
@@ -10,7 +10,6 @@ const{TextArea } = Input;
 
 
 import { Pie } from '@ant-design/plots';
-import { createRoot } from 'react-dom/client';
 
 const CatPie = ({data}) => {
   let inUse = 0;
@@ -57,12 +56,12 @@ const CatPie = ({data}) => {
 
 
   export default function ManagementPage() {
+
   const [userData, setUserData] = useState([]);
   const [userForm] = Form.useForm();
 
   const [isTaskModalOpen, setTaskModalOpen] = useState(false);
   const [taskForm] = Form.useForm();
-  const nextTaskKey = useRef(2);
 
   const [isCategoryModalOpen, setCategoryModalOpen] = useState(false);
   const [categoryForm] = Form.useForm();
@@ -70,18 +69,12 @@ const CatPie = ({data}) => {
 
 
   const [taskData, setTaskData] = useState([
-    { key: '0', task: 'New Toothpaste', category: '1', budget: '100', frequency: 'Every 20 Days', description: 'Uses protective enamel paste only',
+    { key: '0', task: 'New Toothpaste', categoryId: "1", budget: 100, frequency: 30, description: 'Uses protective enamel paste only',
     dateRange: ['01-01-2025', '01-01-2050'],},
-    { key: '1', task: 'New Toothbrush',  category: '1', budget: '100', frequency: 'Every 30 Days', description: 'Requires a soft bristle brush due to sensitivity',
+    { key: '1', task: 'New Toothbrush',  categoryId: "1", budget: 100, frequency: 30, description: 'Requires a soft bristle brush due to sensitivity',
     dateRange: ['01-01-2025', '01-01-2050'], },
   ]);
 
-  /*****************Tab*************************** */
-  const defaultPanes = Array.from({ length: 2 }).map((_, index) => {
-    const id = String(index + 1);
-    return { label: `${id}`, key: id, budget: 1000};
-  });
-  /******************Tab******************* */
   
   const columns = [
     { title: 'Task', dataIndex: 'task', key: 'task' },
@@ -95,7 +88,7 @@ const CatPie = ({data}) => {
           title="Are you sure you want to permanently delete this task?"
           okText="Delete"
           cancelText="Cancel"
-          onConfirm={() => handleTaskDelete(record.key)}
+          onConfirm={() => HandleTaskDelete(record.key)}
         >
           <a style={{color:'#ff0000ff'}}>Delete Task</a>
         </Popconfirm>
@@ -103,34 +96,34 @@ const CatPie = ({data}) => {
     },
   ];
 
-  const formComplete = (values) => {
+  const UserFormComplete = (values) => {
       const user = `${values.firstName} ${values.lastName} · ${values.userType} · Admin Status: ${values.admin}`;
 
       setUserData(prevData => [...prevData, user]);
       userForm.resetFields();
   };
 
-   const remove = (idx) => {
+   const RemoveUser = (idx) => {
     setUserData(prev => prev.filter((_, i) => i !== idx));
   };
   
-  const handleTaskDelete = (key) => {
+  const HandleTaskDelete = (key) => {
     setTaskData(prev => prev.filter(item => item.key !== key));
   };
 
-    const showModal = ()=> {
+    const ShowTaskModal = ()=> {
       setTaskModalOpen(true);
     };
      
-    const handleOk = (values) => {
+    const HandleTaskOk = (values) => {
         setTaskData(prev => [...prev,
         {
-          key: String(nextTaskKey.current++),
-          task: values.task,
-          category: activeKey,
-          budget: values.budget,
-          frequency: values.frequency,
-          description: values.description,
+          key: crypto.randomUUID(),
+          task: values.task.trim(),
+          categoryId: activeKey,
+          budget: Number(values.budget),
+          frequency: Number(values.frequency),
+          description: values.description || '',
           dateRange: values.dateRange,
         },
       ]);
@@ -139,39 +132,42 @@ const CatPie = ({data}) => {
     };
  /*********************END TAB BOILIER PLATE FROM ANTD WITH SLIGHT EDITS**************************** */   
   
-  const [activeKey, setActiveKey] = useState(defaultPanes[0].key);
-  const [items, setItems] = useState(defaultPanes);
-  const newTabIndex = useRef(0);
+ 
+  const [categories, setCategories] = useState([
+    { id: '1', name: '1', budget: 1000 },
+    { id: '2', name: '2', budget: 1000 },
+    ]);
+  const [activeKey, setActiveKey] = useState(categories[0].id);
+  const tabItems = useMemo(() => categories.map(c => ({ label: c.name, key: c.id })),[categories]);
 
   const addCategoryData = (values) => {
-    const key = values.id;
-    const budget = values.budget || 0;
-    const label = `Category: ${key}`;
-    setItems(prev => [...prev, {label, key, budget}]);
-    setActiveKey(key);
+    const id = values.id;
+    const budget = Number(values.budget) || 0;
+    const name = `Category: ${id}`;
+    setCategories(prev => [...prev, {id, name, budget}]);
+    setActiveKey(id);
     setCategoryModalOpen(false);
     categoryForm.resetFields();
   };
 
-  const onChange = key => {
+  const OnCatChange = key => {
     setActiveKey(key);
   };
 
   const addTab = () => {
-    const newActiveKey = `newTab${newTabIndex.current++}`;
-    setItems([...items, { label: 'New Tab', key: newActiveKey}]);
-    setActiveKey(newActiveKey);
+    const id = crypto.randomUUID;
+    setCategories([...prev, { id, name: id, budget: 0}]);
+    setActiveKey(id);
 
   };
-  const removeTab = targetKey => {
-    const targetIndex = items.findIndex(pane => pane.key === targetKey);
-    const newPanes = items.filter(pane => pane.key !== targetKey);
-    if (newPanes.length && targetKey === activeKey) {
-      const { key } = newPanes[targetIndex === newPanes.length ? targetIndex - 1 : targetIndex];
-      setActiveKey(key);
+  const removeTab = categoryId => {
+     setCategories(prev => prev.filter(c => c.id !== categoryId));
+     setTaskData(prev => prev.filter(t => (t.categoryId) !== categoryId));
+
+    const newPanes = categories.filter(c => c.id !== categoryId);
+    if (newPanes.length && categoryId === activeKey) {
+      setActiveKey(newPanes[0].id);
     }
-    setItems(newPanes);
-    setTaskData(prev => prev.filter(t => t.category !== targetKey));
   };
 
   const onEdit = (targetKey, action) => {
@@ -194,12 +190,12 @@ const CatPie = ({data}) => {
   var catBudget;
 
   for(const t of taskData){
-    if(t.category == key){
+    if(t.categoryId == key){
       inUse += Number(t.budget);
     }
   }
-    for(const c of items){
-      if(key == c.key){
+    for(const c of categories){
+      if(key == c.id){
         catBudget = Number(c.budget);
         break;
       }
@@ -221,8 +217,6 @@ const CatPie = ({data}) => {
 
   }
    
-
-
   return (
         
         <Layout>
@@ -241,7 +235,7 @@ const CatPie = ({data}) => {
                    <Typography.Title level={4} style={{marginBottom:"20px", textAlign:"center"}}>Add People to the Schedule</Typography.Title>
                   <Form
                     form={userForm}
-                    onFinish={formComplete}
+                    onFinish={UserFormComplete}
                     layout="vertical"
                     autoComplete="off"
                   > 
@@ -300,7 +294,7 @@ const CatPie = ({data}) => {
                             key="remove"
                             shape="circle"
                             icon={<CloseOutlined />}
-                            onClick={() => remove(itemId)}
+                            onClick={() => RemoveUser(itemId)}
                           />
                         ]}>
                         {item}
@@ -319,16 +313,16 @@ const CatPie = ({data}) => {
                     </div>
                     <Tabs
                       hideAdd
-                      onChange={onChange}
+                      onChange={OnCatChange}
                       activeKey={activeKey}
                       type="editable-card"
                       onEdit={onEdit}
-                      items={items}
+                      items={tabItems}
                       style={{marginLeft:"20px"}}
                     />
                   </div>
                   <CatPie data={displayPie(activeKey)}/> 
-                  <Button color="pink" variant="filled" type="primary" onClick={showModal} icon={<PlusOutlined/>}style={{marginLeft:"20px", marginBottom:"10px"}}>
+                  <Button color="pink" variant="filled" type="primary" onClick={ShowTaskModal} icon={<PlusOutlined/>}style={{marginLeft:"20px", marginBottom:"10px"}}>
                           Add New Task 
                   </Button>
                   
@@ -337,9 +331,9 @@ const CatPie = ({data}) => {
                     columns={columns}
                     pagination={{pageSize: 6,}}
                     expandable={{
-                      expandedRowRender: record => <div><p>Task Notes: {record.description}</p><p>Schedule Range: {record.dateRange?.join(' → ')}</p></div>,
+                      expandedRowRender: record => <div><p>Task Notes: {record.description}</p><p>Schedule Range: {record.dateRange.join(' → ')}</p></div>,
                     }}
-                    dataSource={taskData.filter(r => r.category === activeKey)}
+                    dataSource={taskData.filter(r => (r.categoryId) === activeKey)}
                     footer={() =>''}
                   />              
                   
@@ -352,7 +346,7 @@ const CatPie = ({data}) => {
                     <Form
                       form={taskForm}
                       layout="vertical"
-                      onFinish={handleOk}
+                      onFinish={HandleTaskOk}
                       initialValues={{ frequency: "Every 30 Days" }}
                     >
                       <Form.Item
