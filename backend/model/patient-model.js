@@ -35,6 +35,10 @@ const patientSchema = new mongoose.Schema({
 		type : String,
 		required : false,
 	},    
+    budget : {
+        type: Number,
+        required: false,
+    }
 });
 
 const Patient = mongoose.model("Patient", patientSchema);

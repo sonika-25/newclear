@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Patient = require("./patient-model");
 //need to change naming conventions (this will be user-schema )
-const userSchema = new mongoose.Schema({
+const familySchema = new mongoose.Schema({
     firstName: {
         type: String,
         required: true,
@@ -34,5 +34,5 @@ const userSchema = new mongoose.Schema({
     }],
 });
 
-const User = mongoose.model("User", userSchema);
-module.exports = User;
+const Family = mongoose.model("Family", familySchemaSchema);
+module.exports = Family;

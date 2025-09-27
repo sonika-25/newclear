@@ -1,6 +1,6 @@
 const Patient = require("../model/patient-model");
 const express = require("express");
-const User = require("../model/user-model");
+const Family = require("../model/family-model");
 const app = express();
 const router = require("express").Router();
 
