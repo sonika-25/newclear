@@ -156,7 +156,7 @@ router.post("/patient/add-patient/:userId", async (req, res) => {
             username: username,
             email: email,
             phone: phone,
-            password: password,
+            password: await encryptPassword(password, res),
         });
         const newPatient = await patient.save();
         const patid = await newPatient._id;
