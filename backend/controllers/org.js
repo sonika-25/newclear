@@ -1,8 +1,8 @@
 const Organization = require("../model/org-model");
 const express = require("express");
+const bcrypt = require("bcrypt");
 const app = express();
 const router = require("express").Router();
-
 
 // sign in and register for organization
 router.post("/signup", async (req, res) => {
@@ -19,7 +19,7 @@ router.post("/signup", async (req, res) => {
 
     // encrypt password
     const originalPassword = password;
-    password = await encryptPassword(originalPassword);
+    password = await encryptPassword(originalPassword, res);
     try {
         // create new org entry
         const org = new Organization({
@@ -75,7 +75,7 @@ router.patch("/:id", getOrganization, async (req, res) => {
     }
 
     if (req.body.password != null) {
-        res.org.password = await encryptPassword(req.body.password);
+        res.org.password = await encryptPassword(req.body.password, res);
     }
 
     try {
@@ -95,14 +95,15 @@ router.delete("/:id", getOrganization, async (req, res) => {
     }
 });
 
-
 //simple getter using ID
 async function getOrganization(req, res, next) {
     let org;
     try {
         org = await Organization.findById(req.params.id);
         if (org == null) {
-            return res.status(404).json({ message: "Cannot find Organization" });
+            return res
+                .status(404)
+                .json({ message: "Cannot find Organization" });
         }
     } catch (error) {
         return res.status(500).json({ message: error.message });
@@ -112,7 +113,7 @@ async function getOrganization(req, res, next) {
     next();
 }
 
-async function encryptPassword(password) {
+async function encryptPassword(password, res) {
     try {
         // encrypt password
         const salt = await bcrypt.genSalt();
@@ -121,7 +122,5 @@ async function encryptPassword(password) {
         res.status(500).json({ error: error.message });
     }
 }
-
-
 
 module.exports = router;

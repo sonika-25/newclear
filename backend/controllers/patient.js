@@ -12,7 +12,7 @@ router.get("/users/:email/patients", async(req,res) => {
 })
 
 
-router.post(" //add-category" , async (req,res) => {
+router.post("//add-category" , async (req,res) => {
     try {
         const {name, budget} = req.body;
         if (!name) {
@@ -115,7 +115,7 @@ router.post("//add-task", async (req, res) => {
 
 
 
-async function checkAuth (userId,patientId) {
+async function checkAuth(userId,patientId) {
     try {
         let pat = await Patient.findOne ({patientId})
         if (pat.familyId == userId || pat.currentOrgId == userId){

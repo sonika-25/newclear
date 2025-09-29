@@ -30,7 +30,7 @@ router.post("/signup", async (req, res) => {
 
     // encrypt password
     const originalPassword = password;
-    password = await encryptPassword(originalPassword);
+    password = await encryptPassword(originalPassword, res);
     try {
         // create new user entry
         const user = new User({
@@ -86,7 +86,7 @@ router.patch("/:id", getUser, async (req, res) => {
     }
 
     if (req.body.password != null) {
-        res.user.password = await encryptPassword(req.body.password);
+        res.user.password = await encryptPassword(req.body.password, res);
     }
 
     try {
@@ -121,13 +121,14 @@ async function getUser(req, res, next) {
     next();
 }
 
-async function encryptPassword(password) {
+async function encryptPassword(password, res) {
     try {
         // encrypt password
         const salt = await bcrypt.genSalt();
         return await bcrypt.hash(password, salt);
     } catch (error) {
         res.status(500).json({ error: error.message });
+        return;
     }
 }
 

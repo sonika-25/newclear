@@ -1,7 +1,8 @@
 const Organization = require("../model/org-model");
 const Patient = require("../model/patient-model");
-const Family = require("../model/family-model")
+const Family = require("../model/family-model");
 const express = require("express");
+const bcrypt = require("bcrypt");
 const app = express();
 const router = require("express").Router();
 
@@ -20,7 +21,7 @@ router.post("/signup", async (req, res) => {
 
     // encrypt password
     const originalPassword = password;
-    password = await encryptPassword(originalPassword);
+    password = await encryptPassword(originalPassword, res);
     try {
         // create new Family entry
         const fam = new Family({
@@ -76,7 +77,7 @@ router.patch("/:id", getFamily, async (req, res) => {
     }
 
     if (req.body.password != null) {
-        res.fam.password = await encryptPassword(req.body.password);
+        res.fam.password = await encryptPassword(req.body.password, res);
     }
 
     try {
@@ -111,63 +112,61 @@ async function getFamily(req, res, next) {
     next();
 }
 
-async function encryptPassword(password) {
+async function encryptPassword(password, res) {
     try {
         // encrypt password
         const salt = await bcrypt.genSalt();
         return await bcrypt.hash(password, salt);
     } catch (error) {
         res.status(500).json({ error: error.message });
+        return;
     }
 }
 
-
 //add organization to patient
 //(add invite code)
-router.post("/addOrg", async(req,res) => {
-    let {orgId, patientId, famId} = req.body;
+router.post("/addOrg", async (req, res) => {
+    let { orgId, patientId, famId } = req.body;
     try {
-        //when scaling for more patients, check the family owns the patient.        
-        await Organization.updateOne (
-            {"_id" : orgId},
-            { $push: { "patients": patientId }}
-        )
-        await Patient.updateOne (
-            {"_id" : patientId},
-            { "currentOrgId": orgId}
-        )
+        //when scaling for more patients, check the family owns the patient.
+        await Organization.updateOne(
+            { _id: orgId },
+            { $push: { patients: patientId } }
+        );
+        await Patient.updateOne({ _id: patientId }, { currentOrgId: orgId });
+        res.status(200).json({
+            message: "Organisation added to patient successfully",
+        });
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({
+            error: "Failed to add organisation to patient",
+        });
     }
-    catch (err){console.log(err)}
-    
-})
+});
 //delete Org
 //edit patient
 //edit patient
 
-
-router.post("/patient/add-patient/:userId" , async(req,res) => {
+router.post("/patient/add-patient/:userId", async (req, res) => {
     try {
-        let {username, email,phone,password} = req.body //details of patient
-        let userId = req.params.userId //userId of family
+        let { username, email, phone, password } = req.body; //details of patient
+        let userId = req.params.userId; //userId of family
         const patient = new Patient({
-            "username": username,
-            "email" : email,
-            "phone": phone,
-            "password" : password
-        })
+            username: username,
+            email: email,
+            phone: phone,
+            password: password,
+        });
         const newPatient = await patient.save();
-        const patid = await newPatient._id
-        const fam = await User.findOne({ "_id" : userId})
-        console.log (fam)
-        await User.updateOne (
-            {"_id" : userId},
-            { $push: { "patients": patid }}
-        )
+        const patid = await newPatient._id;
+        const fam = await Family.findOne({ _id: userId });
+        console.log(fam);
+        await Family.updateOne({ _id: userId }, { $push: { patients: patid } });
         res.status(201).json(newPatient);
+    } catch (err) {
+        console.log(err);
     }
-    catch (err){
-        console.log(err)
-    }
-})
+});
 
 module.exports = router;
