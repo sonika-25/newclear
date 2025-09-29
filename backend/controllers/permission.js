@@ -29,7 +29,7 @@ function hasPermission(user, permission) {
 }
 
 // Middleware for permission handling
-// TODO: need the caller's information to be attacked to req.user
+// TODO: need the caller's information to be attached to req.user
 function checkPermission(permission) {
     return (req, res, next) => {
         const user = req.user;

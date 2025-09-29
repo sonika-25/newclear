@@ -1,13 +1,14 @@
-const User = require("../model/family-model");
+require("dotenv").config();
+
+const User = require("../model/user-model");
 const express = require("express");
-const bcrypt = require("bcrypt");
 const app = express();
 const router = require("express").Router();
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
-router.get("/", async (req, res) => {
-    User.find({}).then((data) => {
-        res.json(data);
-    });
+router.get("/", authenticateToken, async (req, res) => {
+    res.json(req.user);
 });
 
 router.get("/:email", async (req, res) => {
@@ -18,8 +19,8 @@ router.get("/:email", async (req, res) => {
 
 router.post("/signup", async (req, res) => {
     isAdmin = false;
-    let { firstName, lastName, email, phone, password, patients } = req.body;
-    if (!firstName || !lastName || !email || !phone || !password) {
+    let { username, email, phone, password, patients } = req.body;
+    if (!username || !email || !phone || !password) {
         // client error
         return res.status(400).json({ message: "Please fill all the fields" });
     }
@@ -34,8 +35,7 @@ router.post("/signup", async (req, res) => {
     try {
         // create new user entry
         const user = new User({
-            firstName,
-            lastName,
+            username,
             email,
             phone,
             password,
@@ -59,7 +59,15 @@ router.post("/signin", async (req, res) => {
     try {
         match = await bcrypt.compare(password, user.password);
         if (match) {
-            res.send("Successful login");
+            userObject = user.toObject();
+            delete userObject.password;
+
+            // JSON web token which keeps track of user information without leaking password once logged in
+            const accessToken = jwt.sign(
+                userObject,
+                process.env.ACCESS_TOKEN_SECRET
+            );
+            res.json({ message: "Successful login", accessToken: accessToken });
         } else {
             res.send("Password is wrong");
         }
@@ -130,6 +138,25 @@ async function encryptPassword(password, res) {
         res.status(500).json({ error: error.message });
         return;
     }
+}
+
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers["authorization"];
+    // since header is in the form "Bearer TOKEN", we can access token via the first index
+    const token = authHeader && authHeader.split(" ")[1];
+    if (token == null) {
+        return res.sendStatus(401);
+    }
+
+    // verify this token to make sure it isn't tampered with
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+        if (err) {
+            return res.sendStatus(403);
+        }
+        // valid token
+        req.user = user;
+        next();
+    });
 }
 
 module.exports = router;
