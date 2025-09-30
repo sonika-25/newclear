@@ -2,28 +2,31 @@
 const ROLES = {
     family: [
         "update:ownUser",
+        "delete:ownUser",
         "create:patient",
         "update:patient",
+        "delete:patient",
         "view:patient",
         "add:organisation",
     ],
     POA: [
         "update:ownUser",
+        "delete:ownUser",
         "create:patient",
         "update:patient",
+        "delete:patient",
         "view:patient",
         "add:organisation",
     ],
     admin: [
         "update:ownUser",
+        "delete:ownUser",
         "update:user",
         "update:patient",
         "view:patient",
-        "delete:patient",
         "add:carer",
-        "delete:carer",
     ],
-    carer: ["update:ownUser", "view:patient", "upload:files"],
+    carer: ["update:ownUser", "delete:ownUser", "view:patient", "upload:file"],
 };
 
 // check if the given user can perform an action

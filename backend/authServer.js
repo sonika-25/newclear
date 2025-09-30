@@ -140,5 +140,27 @@ function generateAccessToken(user) {
     });
 }
 
+// authenticates token by making sure it has not been tampered with
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers["authorization"];
+    // since header is in the form "Bearer TOKEN", we can access token via the first index
+    const token = authHeader && authHeader.split(" ")[1];
+    if (token == null) {
+        return res.sendStatus(401);
+    }
+
+    // verify this token to make sure it isn't tampered with
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+        if (err) {
+            return res.sendStatus(403);
+        }
+        // valid token
+        req.user = user;
+        next();
+    });
+}
+
 PORT = 4000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+module.exports = { authenticateToken };

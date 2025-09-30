@@ -7,6 +7,7 @@ const router = require("express").Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { hasPermission, checkPermission } = require("./permission");
+const { authenticateToken } = require("../authServer.js");
 
 router.get("/", authenticateToken, async (req, res) => {
     res.json(req.user);
@@ -76,29 +77,24 @@ router.patch("/:id", authenticateToken, getUser, async (req, res) => {
     }
 });
 
-router.delete("/:id", getUser, async (req, res) => {
-    try {
-        await res.user.deleteOne();
-        res.json({ message: "Deleted User" });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+router.delete("/:id", authenticateToken, getUser, async (req, res) => {
+    const userEditId = req.params.id;
+    const currentUser = req.user;
+    // checks whether the logged in user has permission to edit the user with a given id
+    if (
+        currentUser &&
+        (hasPermission(currentUser, "delete:user") ||
+            (hasPermission(currentUser, "delete:ownUser") &&
+                currentUser._id === userEditId))
+    ) {
+        try {
+            await res.user.deleteOne();
+            res.json({ message: "Deleted User" });
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
     }
 });
-
-async function getUser(req, res, next) {
-    let user;
-    try {
-        user = await User.findById(req.params.id);
-        if (user == null) {
-            return res.status(404).json({ message: "Cannot find user" });
-        }
-    } catch (error) {
-        return res.status(500).json({ message: error.message });
-    }
-
-    res.user = user;
-    next();
-}
 
 // edits user details
 async function editUser(req, res) {
@@ -134,6 +130,31 @@ async function editUser(req, res) {
     }
 }
 
+// finds the user with a given id and adds it to the response
+async function getUser(req, res, next) {
+    let user;
+    try {
+        user = await User.findById(req.params.id);
+        if (user == null) {
+            return res.status(404).json({ message: "Cannot find user" });
+        }
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+
+    res.user = user;
+    next();
+}
+
+// returns the user with matching id and role
+async function getUserWithRole(id, role) {
+    let user = await User.findById(req.params.id);
+    if (user && user.role && user.role === role) {
+        return user;
+    }
+    return null;
+}
+
 // encrypts password by hashing it with a salt
 async function encryptPassword(password, res) {
     try {
@@ -144,26 +165,6 @@ async function encryptPassword(password, res) {
         res.status(500).json({ error: error.message });
         return;
     }
-}
-
-// authenticates token by making sure it has not been tampered with
-function authenticateToken(req, res, next) {
-    const authHeader = req.headers["authorization"];
-    // since header is in the form "Bearer TOKEN", we can access token via the first index
-    const token = authHeader && authHeader.split(" ")[1];
-    if (token == null) {
-        return res.sendStatus(401);
-    }
-
-    // verify this token to make sure it isn't tampered with
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-        if (err) {
-            return res.sendStatus(403);
-        }
-        // valid token
-        req.user = user;
-        next();
-    });
 }
 
 module.exports = router;

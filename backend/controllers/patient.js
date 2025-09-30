@@ -113,8 +113,6 @@ router.post("//add-task", async (req, res) => {
 
 });
 
-
-
 async function checkAuth(userId,patientId) {
     try {
         let pat = await Patient.findOne ({patientId})
