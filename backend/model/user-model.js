@@ -6,6 +6,14 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    firstName: {
+        type: String,
+        required: false,
+    },
+    lastName: {
+        type: String,
+        required: false,
+    },
     role: {
         type: String,
         enum: ["family", "POA", "organisation", "carer"],

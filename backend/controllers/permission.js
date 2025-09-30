@@ -1,36 +1,37 @@
 // TODO: implement roles into database
 const ROLES = {
     family: [
-        "create:ownUser",
+        "update:ownUser",
         "create:patient",
         "update:patient",
         "view:patient",
         "add:organisation",
     ],
     POA: [
-        "create:ownUser",
+        "update:ownUser",
         "create:patient",
         "update:patient",
         "view:patient",
         "add:organisation",
     ],
     admin: [
+        "update:ownUser",
+        "update:user",
         "update:patient",
         "view:patient",
         "delete:patient",
         "add:carer",
         "delete:carer",
     ],
-    carer: ["view:patient", "upload:files"],
+    carer: ["update:ownUser", "view:patient", "upload:files"],
 };
 
-// check if the user can perform an action
+// check if the given user can perform an action
 function hasPermission(user, permission) {
     return ROLES[user.role].includes(permission);
 }
 
-// Middleware for permission handling
-// TODO: need the caller's information to be attached to req.user
+// check if current user has permission
 function checkPermission(permission) {
     return (req, res, next) => {
         const user = req.user;
@@ -50,4 +51,4 @@ function checkPermission(permission) {
     };
 }
 
-module.exports = { checkPermission };
+module.exports = { hasPermission, checkPermission };

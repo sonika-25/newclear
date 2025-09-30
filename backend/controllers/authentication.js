@@ -6,8 +6,8 @@ const app = express();
 const router = require("express").Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { hasPermission, checkPermission } = require("./permission");
 
-// TODO: add all features from family, org, etc into users
 router.get("/", authenticateToken, async (req, res) => {
     res.json(req.user);
 });
@@ -20,7 +20,16 @@ router.get("/:email", async (req, res) => {
 
 router.post("/signup", async (req, res) => {
     isAdmin = false;
-    let { username, email, phone, password, patients } = req.body;
+    let {
+        username,
+        firstName,
+        lastName,
+        role,
+        email,
+        phone,
+        password,
+        patients,
+    } = req.body;
     if (!username || !email || !phone || !password) {
         // client error
         return res.status(400).json({ message: "Please fill all the fields" });
@@ -37,6 +46,9 @@ router.post("/signup", async (req, res) => {
         // create new user entry
         const user = new User({
             username,
+            firstName,
+            lastName,
+            role,
             email,
             phone,
             password,
@@ -50,32 +62,17 @@ router.post("/signup", async (req, res) => {
     }
 });
 
-router.patch("/:id", getUser, async (req, res) => {
-    if (req.body.firstName != null) {
-        res.user.firstName = req.body.firstName;
-    }
-
-    if (req.body.lastName != null) {
-        res.user.lastName = req.body.lastName;
-    }
-
-    if (req.body.email != null) {
-        res.user.email = req.body.email;
-    }
-
-    if (req.body.phone != null) {
-        res.user.phone = req.body.phone;
-    }
-
-    if (req.body.password != null) {
-        res.user.password = await encryptPassword(req.body.password, res);
-    }
-
-    try {
-        const updatedUser = await res.user.save();
-        res.json(updatedUser);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
+router.patch("/:id", authenticateToken, getUser, async (req, res) => {
+    const userEditId = req.params.id;
+    const currentUser = req.user;
+    // checks whether the logged in user has permission to edit the user with a given id
+    if (
+        currentUser &&
+        (hasPermission(currentUser, "update:user") ||
+            (hasPermission(currentUser, "update:ownUser") &&
+                currentUser._id === userEditId))
+    ) {
+        await editUser(req, res);
     }
 });
 
@@ -103,6 +100,41 @@ async function getUser(req, res, next) {
     next();
 }
 
+// edits user details
+async function editUser(req, res) {
+    if (req.body.username != null) {
+        res.user.username = req.body.username;
+    }
+
+    if (req.body.firstName != null) {
+        res.user.firstName = req.body.firstName;
+    }
+
+    if (req.body.lastName != null) {
+        res.user.lastName = req.body.lastName;
+    }
+
+    if (req.body.email != null) {
+        res.user.email = req.body.email;
+    }
+
+    if (req.body.phone != null) {
+        res.user.phone = req.body.phone;
+    }
+
+    if (req.body.password != null) {
+        res.user.password = await encryptPassword(req.body.password, res);
+    }
+
+    try {
+        const updatedUser = await res.user.save();
+        res.json(updatedUser);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+}
+
+// encrypts password by hashing it with a salt
 async function encryptPassword(password, res) {
     try {
         // encrypt password
@@ -114,6 +146,7 @@ async function encryptPassword(password, res) {
     }
 }
 
+// authenticates token by making sure it has not been tampered with
 function authenticateToken(req, res, next) {
     const authHeader = req.headers["authorization"];
     // since header is in the form "Bearer TOKEN", we can access token via the first index
