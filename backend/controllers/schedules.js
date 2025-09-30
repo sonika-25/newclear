@@ -11,7 +11,6 @@ router.post("/create", async (req, res) => {
 
     let {scheduleAuthor, resident_name, schedule_id} = req.body;
     if (!scheduleAuthor || !resident_name || !schedule_id ) {
-        //client error
         return res.status(400).json({message: "Please fill in all the fields!"});
     }   
 
@@ -20,7 +19,6 @@ router.post("/create", async (req, res) => {
     if (authorExists) {
         return res.status(400).json({message: "User has already created a schedule."});
     }
-
     
     try {
 
@@ -99,12 +97,6 @@ async function createTask(req) {
     
     let {task, description, frequency, interval, budget, isCompleted} = req.body;
     // Create the task
-    console.log(task);
-    console.log(description);
-    console.log(frequency);
-    console.log(interval);
-    console.log(budget);
-    console.log(isCompleted);
 
     if (!task || !description || !frequency || !interval || !budget 
         || isCompleted == null) {
@@ -184,7 +176,7 @@ router.delete("/remove-task", async(req, res) => {
     // Try to remove the task
     try {
         // Check that the task is not already in the schedule
-        if (!givenSchedule.tasks.includes(removedTask)) { // This might not be the best code as might not return a string
+        if (!givenSchedule.tasks.includes(removedTask)) { 
             return res.status(400).json({message: "Task is already not in this schedule!"});
         }
 
@@ -222,7 +214,7 @@ router.delete("/remove-user", async(req, res) => {
     // Try to remove the user
     try {
         // Check that the user is not already in the schedule
-        if (!givenSchedule.schedule_users.includes(removedUser)) { // This might not be the best code as might not return a string
+        if (!givenSchedule.schedule_users.includes(removedUser)) { 
             return res.status(400).json({message: "User is already not in this schedule!"});
         }
 
