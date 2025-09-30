@@ -64,19 +64,19 @@ async function findSchedule(scheduleID, res) {
         return null;
     }
 
-    return givenSchedule;
+    return await givenSchedule;
 }
 
-async function verifyScheduleAuthor(givenSchedule, scheduleAuthor, res) {
+async function verifyScheduleAuthor(givenSchedule, authorID, res) {
 
     // Check that author is really the author of the given schedule
-    if (scheduleAuthor !=  givenSchedule.scheduleAuthor.toString()) {
+    if (authorID !=  givenSchedule.scheduleAuthor.toString()) {
 
         res.status(400).json({message: "You do not have access to perform this action!"});
-        return false;
+        return await false;
     }
 
-    return true;
+    return await true;
 }
 
 // Add a task to a schedule
@@ -85,8 +85,10 @@ router.post("/add-task", async(req, res) => {
     // User should provide scheduleID, their userID, and rhe user they want to add
     const {scheduleID, authorID} = req.body;
 
-    const givenSchedule = findSchedule(scheduleID, res);
+    const givenSchedule = await findSchedule(scheduleID, res);
     if (!givenSchedule) {return;}
+
+    console.log(givenSchedule);
 
     // Check that author is really the author of the given schedule
     if (!verifyScheduleAuthor(givenSchedule, authorID, res)) {return;}
@@ -139,7 +141,7 @@ router.post("/add-user", async(req, res) => {
     // User should provide scheduleID, their userID, and rhe user they want to add
     const {scheduleID, authorID, addedUser} = req.body;
 
-    let givenSchedule = findSchedule(scheduleID, res);
+    let givenSchedule = await findSchedule(scheduleID, res);
     if (!givenSchedule) {return;}
 
     // Check that author is really the author of the given schedule
@@ -174,7 +176,7 @@ router.delete("/remove-task", async(req, res) => {
 
     const {scheduleID, authorID, removedTask} = req.body;
 
-    let givenSchedule = findSchedule(scheduleID, res);
+    let givenSchedule = await findSchedule(scheduleID, res);
     if (!givenSchedule) {return;}
 
     // Check that author is really the author of the given schedule
@@ -208,7 +210,7 @@ router.delete("/remove-user", async(req, res) => {
 
     const {scheduleID, authorID, removedUser} = req.body;
 
-    let givenSchedule = findSchedule(scheduleID, res);
+    let givenSchedule = await findSchedule(scheduleID, res);
     if (!givenSchedule) {return;}
 
     // Check that author is really the author of the given schedule
@@ -240,7 +242,7 @@ router.delete("/remove-user", async(req, res) => {
 router.delete("/remove", async(req, res) => {
 
     const {scheduleID, authorID} = req.body;
-    let givenSchedule = findSchedule(scheduleID, res);
+    let givenSchedule = await findSchedule(scheduleID, res);
     if (!givenSchedule) {return;}
 
     // Check that author is really the author of the given schedule
