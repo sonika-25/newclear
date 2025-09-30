@@ -7,9 +7,9 @@ const router = require("express").Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { hasPermission, checkPermission } = require("./permission");
-const { authenticateToken } = require("../authServer.js");
+// const { authenticateToken } = require("../authServer.js");
 
-router.get("/", authenticateToken, async (req, res) => {
+router.get("/profile", authenticateToken, async (req, res) => {
     res.json(req.user);
 });
 
@@ -31,7 +31,7 @@ router.post("/signup", async (req, res) => {
         password,
         patients,
     } = req.body;
-    if (!username || !email || !phone || !password) {
+    if (!email || !phone || !password) {
         // client error
         return res.status(400).json({ message: "Please fill all the fields" });
     }
@@ -167,4 +167,24 @@ async function encryptPassword(password, res) {
     }
 }
 
-module.exports = router;
+// authenticates token by making sure it has not been tampered with
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers["authorization"];
+    // since header is in the form "Bearer TOKEN", we can access token via the first index
+    const token = authHeader && authHeader.split(" ")[1];
+    if (token == null) {
+        return res.sendStatus(401);
+    }
+
+    // verify this token to make sure it isn't tampered with
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+        if (err) {
+            return res.sendStatus(403);
+        }
+        // valid token
+        req.user = user;
+        next();
+    });
+}
+
+module.exports = { router, authenticateToken };

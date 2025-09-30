@@ -2,7 +2,10 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const Users = require("./model/family-model.js");
-const auth = require("./controllers/authentication.js");
+const {
+    router: auth,
+    authenticateToken,
+} = require("./controllers/authentication.js");
 const org = require("./controllers/org.js");
 const family = require("./controllers/family.js");
 const user = require("./controllers/userInfo.js");
@@ -16,10 +19,10 @@ connectDB();
 app.use(express.json());
 app.use(
     cors({
-        origin: "http://localhost:3000",
+        origin: "http://localhost:5173",
         methods: ["GET", "POST", "PUT", "DELETE"],
         allowedHeaders: ["Content-Type", "Authorization"],
-    })
+    }),
 );
 
 PORT = 3000;

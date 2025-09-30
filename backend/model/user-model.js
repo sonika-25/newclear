@@ -4,7 +4,7 @@ const Patient = require("./patient-model");
 const userSchema = new mongoose.Schema({
     username: {
         type: String,
-        required: true,
+        required: false,
     },
     firstName: {
         type: String,

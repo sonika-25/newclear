@@ -5,7 +5,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const app = express();
 const router = require("express").Router();
-const { authenticateToken } = require("../authServer.js");
+const { authenticateToken } = require("./authentication.js");
 const { checkPermission } = require("./permission.js");
 
 //add organization to patient
@@ -20,11 +20,11 @@ router.post(
             //when scaling for more patients, check the family owns the patient.
             await Organization.updateOne(
                 { _id: orgId },
-                { $push: { patients: patientId } }
+                { $push: { patients: patientId } },
             );
             await Patient.updateOne(
                 { _id: patientId },
-                { currentOrgId: orgId }
+                { currentOrgId: orgId },
             );
             res.status(200).json({
                 message: "Organisation added to patient successfully",
@@ -35,7 +35,7 @@ router.post(
                 error: "Failed to add organisation to patient",
             });
         }
-    }
+    },
 );
 //delete Org
 //edit patient
@@ -61,13 +61,13 @@ router.post(
             console.log(fam);
             await Family.updateOne(
                 { _id: userId },
-                { $push: { patients: patid } }
+                { $push: { patients: patid } },
             );
             res.status(201).json(newPatient);
         } catch (err) {
             console.log(err);
         }
-    }
+    },
 );
 
 module.exports = router;

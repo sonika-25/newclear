@@ -46,7 +46,7 @@ app.post("/users/token", async (req, res) => {
                 userObject = user.toObject();
                 const accessToken = generateAccessToken(userObject);
                 res.json({ accessToken: accessToken });
-            }
+            },
         );
     } catch (err) {
         res.sendStatus(500);
@@ -98,7 +98,7 @@ app.post("/users/signin", async (req, res) => {
             const accessToken = generateAccessToken(userObject);
             const refreshToken = jwt.sign(
                 userObject,
-                process.env.REFRESH_TOKEN_SECRET
+                process.env.REFRESH_TOKEN_SECRET,
             );
             // try to store refresh tokens
             const existingRefreshToken = await RefreshToken.findOne({
@@ -122,6 +122,7 @@ app.post("/users/signin", async (req, res) => {
 
             res.json({
                 message: "Successful login",
+                user: userObject,
                 accessToken: accessToken,
                 refreshToken: refreshToken,
             });
@@ -140,27 +141,5 @@ function generateAccessToken(user) {
     });
 }
 
-// authenticates token by making sure it has not been tampered with
-function authenticateToken(req, res, next) {
-    const authHeader = req.headers["authorization"];
-    // since header is in the form "Bearer TOKEN", we can access token via the first index
-    const token = authHeader && authHeader.split(" ")[1];
-    if (token == null) {
-        return res.sendStatus(401);
-    }
-
-    // verify this token to make sure it isn't tampered with
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-        if (err) {
-            return res.sendStatus(403);
-        }
-        // valid token
-        req.user = user;
-        next();
-    });
-}
-
 PORT = 4000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-module.exports = { authenticateToken };
