@@ -231,7 +231,7 @@ router.delete("/remove-user", async(req, res) => {
             givenSchedule.schedule_users.splice(index, 1);
         }
 
-        //await givenSchedule.updateOne({_id: scheduleID}, {$pull: {schedule_users: removedUser}});
+        
         await givenSchedule.save();
         res.status(200).json(givenSchedule);
 
@@ -240,5 +240,29 @@ router.delete("/remove-user", async(req, res) => {
     }
 });
 
+
+// Delete a schedule from the system and database
+router.delete("/remove", async(req, res) => {
+
+    const {scheduleID, authorID} = req.body;
+    let givenSchedule = await Schedule.findOne({_id: scheduleID});
+    if (!givenSchedule) {
+        return res.status(400).json({message: "The provided schedule does not exist!"});
+    }
+
+    // Check that author is really the author of the given schedule
+    if (authorID !=  givenSchedule.scheduleAuthor.toString()) {
+
+        return res.status(400).json({message: "You do not have access to delete this schedule"});
+    }
+
+    try {
+
+        await Schedule.findByIdAndDelete(scheduleID);
+        res.status(200).json({message: "Schedule has been successfully removed!"});
+    } catch (error) {
+        res.status(400).json({error: error.message});
+    }
+});
 
 module.exports = router;
