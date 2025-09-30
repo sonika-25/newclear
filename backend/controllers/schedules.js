@@ -56,22 +56,40 @@ router.get("/schedule-info", async(req, res) => {
 
 }); 
 
+async function findSchedule(scheduleID, res) {
+
+    const givenSchedule = await Schedule.findById(scheduleID);
+    if (!givenSchedule) {
+        res.status(400).json({message: "The provided schedule does not exist!"});
+        return null;
+    }
+
+    return givenSchedule;
+}
+
+async function verifyScheduleAuthor(givenSchedule, scheduleAuthor, res) {
+
+    // Check that author is really the author of the given schedule
+    if (scheduleAuthor !=  givenSchedule.scheduleAuthor.toString()) {
+
+        res.status(400).json({message: "You do not have access to perform this action!"});
+        return false;
+    }
+
+    return true;
+}
+
 // Add a task to a schedule
 router.post("/add-task", async(req, res) => {
 
     // User should provide scheduleID, their userID, and rhe user they want to add
     const {scheduleID, authorID} = req.body;
 
-    let givenSchedule = await Schedule.findOne({_id: scheduleID});
-    if (!givenSchedule) {
-        return res.status(400).json({message: "The provided schedule does not exist!"});
-    }
+    const givenSchedule = findSchedule(scheduleID, res);
+    if (!givenSchedule) {return;}
 
     // Check that author is really the author of the given schedule
-    if (authorID !=  givenSchedule.scheduleAuthor.toString()) {
-
-        return res.status(400).json({message: "You do not have access to add tasks to this schedule"});
-    }
+    if (!verifyScheduleAuthor(givenSchedule, authorID, res)) {return;}
 
     // Try to add task - causing error
     try {
@@ -121,16 +139,11 @@ router.post("/add-user", async(req, res) => {
     // User should provide scheduleID, their userID, and rhe user they want to add
     const {scheduleID, authorID, addedUser} = req.body;
 
-    let givenSchedule = await Schedule.findOne({_id: scheduleID});
-    if (!givenSchedule) {
-        return res.status(400).json({message: "The provided schedule does not exist!"});
-    }
+    let givenSchedule = findSchedule(scheduleID, res);
+    if (!givenSchedule) {return;}
 
     // Check that author is really the author of the given schedule
-    if (authorID !=  givenSchedule.scheduleAuthor.toString()) {
-
-        return res.status(400).json({message: "You do not have access to add users to this schedule"});
-    }
+    if (!verifyScheduleAuthor(givenSchedule, authorID, res)) {return;}
 
     // Try to add user
     try {
@@ -161,16 +174,11 @@ router.delete("/remove-task", async(req, res) => {
 
     const {scheduleID, authorID, removedTask} = req.body;
 
-    let givenSchedule = await Schedule.findOne({_id: scheduleID});
-    if (!givenSchedule) {
-        return res.status(400).json({message: "The provided schedule does not exist!"});
-    }
+    let givenSchedule = findSchedule(scheduleID, res);
+    if (!givenSchedule) {return;}
 
     // Check that author is really the author of the given schedule
-    if (authorID !=  givenSchedule.scheduleAuthor.toString()) {
-
-        return res.status(400).json({message: "You do not have access to remove tasks from this schedule"});
-    }
+    if (!verifyScheduleAuthor(givenSchedule, authorID, res)) {return;}
 
 
     // Try to remove the task
@@ -200,16 +208,11 @@ router.delete("/remove-user", async(req, res) => {
 
     const {scheduleID, authorID, removedUser} = req.body;
 
-    let givenSchedule = await Schedule.findOne({_id: scheduleID});
-    if (!givenSchedule) {
-        return res.status(400).json({message: "The provided schedule does not exist!"});
-    }
+    let givenSchedule = findSchedule(scheduleID, res);
+    if (!givenSchedule) {return;}
 
     // Check that author is really the author of the given schedule
-    if (authorID !=  givenSchedule.scheduleAuthor.toString()) {
-
-        return res.status(400).json({message: "You do not have access to remove users from this schedule"});
-    }
+    if (!verifyScheduleAuthor(givenSchedule, authorID, res)) {return;}
 
     // Try to remove the user
     try {
@@ -237,16 +240,11 @@ router.delete("/remove-user", async(req, res) => {
 router.delete("/remove", async(req, res) => {
 
     const {scheduleID, authorID} = req.body;
-    let givenSchedule = await Schedule.findOne({_id: scheduleID});
-    if (!givenSchedule) {
-        return res.status(400).json({message: "The provided schedule does not exist!"});
-    }
+    let givenSchedule = findSchedule(scheduleID, res);
+    if (!givenSchedule) {return;}
 
     // Check that author is really the author of the given schedule
-    if (authorID !=  givenSchedule.scheduleAuthor.toString()) {
-
-        return res.status(400).json({message: "You do not have access to delete this schedule"});
-    }
+    if (!verifyScheduleAuthor(givenSchedule, authorID, res)) {return;}
 
     try {
 
