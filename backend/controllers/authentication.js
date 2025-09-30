@@ -7,6 +7,7 @@ const router = require("express").Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
+// TODO: add all features from family, org, etc into users
 router.get("/", authenticateToken, async (req, res) => {
     res.json(req.user);
 });
@@ -46,33 +47,6 @@ router.post("/signup", async (req, res) => {
         res.status(201).json(user);
     } catch (error) {
         res.status(400).json({ error: error.message });
-    }
-});
-
-router.post("/signin", async (req, res) => {
-    const email = req.body.email;
-    const password = req.body.password;
-    const user = await User.findOne({ email });
-    if (user == null) {
-        return res.status(400).json({ error: "Cannot find user" });
-    }
-    try {
-        match = await bcrypt.compare(password, user.password);
-        if (match) {
-            userObject = user.toObject();
-            delete userObject.password;
-
-            // JSON web token which keeps track of user information without leaking password once logged in
-            const accessToken = jwt.sign(
-                userObject,
-                process.env.ACCESS_TOKEN_SECRET
-            );
-            res.json({ message: "Successful login", accessToken: accessToken });
-        } else {
-            res.send("Password is wrong");
-        }
-    } catch (error) {
-        res.status(500).json({ error: error.message });
     }
 });
 

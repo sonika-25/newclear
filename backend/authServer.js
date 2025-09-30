@@ -17,6 +17,8 @@ connectDB();
 app.use(express.json());
 app.use(cors());
 
+// generates a new access token using the refresh token,
+// effectively refreshing the access token
 app.post("/users/token", async (req, res) => {
     const refreshToken = req.body.token;
     if (refreshToken == null) {
@@ -30,6 +32,7 @@ app.post("/users/token", async (req, res) => {
         if (!isFound) {
             return res.sendStatus(403);
         }
+        // check that refresh token has not been tampered with
         jwt.verify(
             refreshToken,
             process.env.REFRESH_TOKEN_SECRET,
@@ -37,6 +40,8 @@ app.post("/users/token", async (req, res) => {
                 if (err) {
                     return res.sendStatus(403);
                 }
+                // generate a new access token (refreshing the access token)
+                // if refresh token is valid
                 user = await User.findById(user._id);
                 userObject = user.toObject();
                 const accessToken = generateAccessToken(userObject);
@@ -48,6 +53,8 @@ app.post("/users/token", async (req, res) => {
     }
 });
 
+// signs the user out of their account
+// by deleting the user's refresh token
 app.delete("/users/signout", async (req, res) => {
     const refreshToken = req.body.token;
     // no refresh token given
@@ -72,6 +79,8 @@ app.delete("/users/signout", async (req, res) => {
     }
 });
 
+// signs the user into their account
+// by granting their access to access and refresh tokens
 app.post("/users/signin", async (req, res) => {
     const email = req.body.email;
     const password = req.body.password;
@@ -124,9 +133,10 @@ app.post("/users/signin", async (req, res) => {
     }
 });
 
+// generates an access token which eventually expires
 function generateAccessToken(user) {
     return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "30s",
+        expiresIn: "15m",
     });
 }
 
