@@ -7,28 +7,73 @@ const express = require("express");
 const app = express();
 const router = require("express").Router();
 
-router.get("/users/:email/patients", async(req,res) => {
 
+
+router.get ("/getCategories/:patientId", async (req,res) => {
+    try {
+    const patientId = req.params.patientId
+    const patient = await Patient.findById(patientId)
+      .populate("categories") // populate Category documents
+
+    if (!patient) {
+      return res.status(404).json({ error: "Patient not found" });
+    }
+
+    res.json(patient.categories); 
+    
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
 })
 
+router.delete("/categories/:patientId/:categoryId", async (req, res) => {
+  try {
+    const { patientId, categoryId } = req.params;
 
-router.post("/add-category" , async (req,res) => {
+    // Remove category reference from patient
+    await Patient.updateOne(
+      { _id: patientId },
+      { $pull: { categories: categoryId } }
+    );
+
+    // Delete the actual Category document
+    await Category.findByIdAndDelete(categoryId);
+
+    res.json({ message: "Category deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/add-category/:patientId" , async (req,res) => {
     try {
         const {name, budget} = req.body;
+        const patientId = req.params.patientId
         if (!name) {
             console.log("need a name");
             return;
         }
-        await Category.findOne({name: name})
-            .then ((res)=>{
-                console.log ("category exists")
-                return;
-            })
-        let cat = await new Category.create({
+        const category = await Category.findOne({name})
+        if (category){
+            return "Category Exists"
+            res.send ("Category exists")
+        }
+
+        let cat =  new Category({
             name: name,
             budget: budget,
         })
-        return cat;
+        const newCat = await cat.save();
+
+        await Patient.updateOne(
+        { _id: patientId },
+        { $addToSet: { categories: newCat._id } }
+        );
+
+        res.status(201).json(newCat);
+        
 
     }
     catch (err){console.log(err)}
@@ -82,9 +127,9 @@ router.post("/add-task", async (req, res) => {
         if (!resolvedCategoryId && categoryName) {
         // find-or-create category by name (global or you can scope per-org/family later)
         let category = await Category.findOne({ name: categoryName });
-        if (!category) {
-            category = await Category.create({ name: categoryName, budget: 0 }); // or require budget in request
-        }
+        //if (!category) {
+        //    category = await Category.create({ name: categoryName, budget: 0 }); // or require budget in request
+        //}
         resolvedCategoryId = category._id;
         }
 
