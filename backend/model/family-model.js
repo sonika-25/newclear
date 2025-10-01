@@ -1,19 +1,19 @@
 const mongoose = require("mongoose");
 const Patient = require("./patient-model");
 //need to change naming conventions (this will be user-schema )
-const userSchema = new mongoose.Schema({
-    username: {
+const familySchema = new mongoose.Schema({
+    firstName: {
         type: String,
         required: true,
-        unique: true,
+    },
+    lastName: {
+        type: String,
+        required: true,
     },
     role : {
         type: String,
-        enum: ['family', 'org_staff', 'POA'],
-        required: true,
-    },
-    org_id : {
-        type: String, //for org staff only
+        enum: ['family', 'POA'],
+        required: false,
     },
     email: {
         type: String,
@@ -29,10 +29,10 @@ const userSchema = new mongoose.Schema({
         required: true,
     },
     patients: [{
-        type : mongoose.Schema.Types.ObjectId,
-        ref : 'Patient'
+        type : String,
+		required : false,
     }],
 });
 
-const User = mongoose.model("User", userSchema);
-module.exports = User;
+const Family = mongoose.model("Family", familySchema);
+module.exports = Family;

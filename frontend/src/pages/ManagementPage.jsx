@@ -8,6 +8,8 @@ import {CloseOutlined, PlusOutlined} from '@ant-design/icons';
 import { Pie } from '@ant-design/plots';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
+import axios from 'axios';
+
 dayjs.extend(customParseFormat);
 
 const { Content } = Layout;
@@ -130,11 +132,19 @@ const CatPie = ({data}) => {
   ];
 
   const UserFormComplete = (values) => {
-      const user = `${values.firstName} ${values.lastName} · ${values.userType} · Admin Status: ${values.admin}`;
-
-      setUserData(prevData => [...prevData, user]);
-      userForm.resetFields();
-  };
+    const user = `${values.firstName} ${values.lastName} · ${values.userType} · Admin Status: ${values.admin}`;
+    console.log(user)
+    axios.post("http://localhost:3000/family/addOrg" , {
+      "orgEmail": values.email,
+      "patientId": "68dcdf18f2dda60bf2e0d73d", //need a way to get patient id from code
+    })
+    .then((res)=>{
+      console.log(res.data)
+    })
+    .catch (console.err);
+    setUserData(prevData => [...prevData, user]);
+    userForm.resetFields();
+    };
 
    const RemoveUser = (idx) => {
     setUserData(prev => prev.filter((_, i) => i !== idx));
