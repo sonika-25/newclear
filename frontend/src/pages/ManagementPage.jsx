@@ -24,6 +24,7 @@ import React, { useState, useRef, useMemo } from "react";
 import { CloseOutlined, PlusOutlined } from "@ant-design/icons";
 import { Pie } from "@ant-design/plots";
 import dayjs from "dayjs";
+import axios from "axios";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 dayjs.extend(customParseFormat);
 import { jwtDecode } from "jwt-decode";
@@ -173,11 +174,39 @@ export default function ManagementPage() {
         },
     ];
 
-    const UserFormComplete = (values) => {
-        const user = `${values.firstName} ${values.lastName} · ${values.userType} · Admin Status: ${values.admin}`;
+    const UserFormComplete = async (values) => {
+        try {
+            const res = await axios.get(
+                `http://localhost:3000/users/${values.email}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${getAccessToken()}`,
+                    },
+                },
+            );
 
-        setUserData((prevData) => [...prevData, user]);
-        userForm.resetFields();
+            const userToAdd = res.data;
+            const userId = userToAdd._id;
+            if (!userId) {
+                return console.error("No user found");
+            }
+            console.log(userId);
+            const updated = await axios.patch(
+                `http://localhost:3000/users/${userId}`,
+                {
+                    role: values.userType,
+                    isAdmin: values.admin,
+                },
+                { headers: { Authorization: `Bearer ${getAccessToken()}` } },
+            );
+            const updatedUser = updated.data;
+            const user = `${updatedUser.firstName} ${updatedUser.lastName} · ${updatedUser.role} · Admin Status: ${updatedUser.isAdmin}`;
+
+            setUserData((prevData) => [...prevData, user]);
+            userForm.resetFields();
+        } catch (err) {
+            console.error("Error fetching user", err);
+        }
     };
 
     const RemoveUser = (idx) => {
@@ -366,15 +395,13 @@ export default function ManagementPage() {
         return data;
     };
 
+    // contains information of logged in user
     const token = getAccessToken();
     let roles = [];
     if (token) {
         const decoded = jwtDecode(token);
-        console.log(jwtDecode(token));
         roles = decoded.role || [];
     }
-    console.log("Roles is ");
-    console.log(roles);
 
     return (
         <Layout>
@@ -410,7 +437,10 @@ export default function ManagementPage() {
                                     label="Enter User Email"
                                     rules={[
                                         { required: true },
-                                        { type: "email", warningOnly: true },
+                                        {
+                                            type: "email",
+                                            warningOnly: true,
+                                        },
                                     ]}
                                 >
                                     <Input placeholder="Enter user email" />
@@ -427,12 +457,13 @@ export default function ManagementPage() {
                                 <Form.Item label="User Type" name="userType">
                                     <Radio.Group>
                                         {/* family member view */}
-                                        {roles.includes("family") && (
+                                        {(roles.includes("family") ||
+                                            roles.includes("POA")) && (
                                             <>
-                                                <Radio.Button value="Manager">
-                                                    Manager
+                                                <Radio.Button value="organisation">
+                                                    Service Provider
                                                 </Radio.Button>
-                                                <Radio.Button value="Family">
+                                                <Radio.Button value="family">
                                                     Family
                                                 </Radio.Button>
                                                 <Radio.Button value="POA">
@@ -447,7 +478,7 @@ export default function ManagementPage() {
                                         {/* organisation view */}
                                         {roles.includes("organisation") && (
                                             <>
-                                                <Radio.Button value="Carer">
+                                                <Radio.Button value="carer">
                                                     Carer
                                                 </Radio.Button>
                                             </>

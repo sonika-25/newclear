@@ -14,9 +14,16 @@ router.get("/profile", authenticateToken, async (req, res) => {
 });
 
 router.get("/:email", async (req, res) => {
-    User.find((user) => user.email === req.params.email).then((data) => {
-        res.json(data);
-    });
+    try {
+        const email = decodeURIComponent(req.params.email);
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        res.json(user);
+    } catch (err) {
+        res.status(500).json({ error: "Server error" });
+    }
 });
 
 router.post("/signup", async (req, res) => {
@@ -71,7 +78,8 @@ router.patch("/:id", authenticateToken, getUser, async (req, res) => {
         currentUser &&
         (hasPermission(currentUser, "update:user") ||
             (hasPermission(currentUser, "update:ownUser") &&
-                currentUser._id === userEditId))
+                currentUser._id === userEditId) ||
+            hasPermission(currentUser, "add:organisation"))
     ) {
         await editUser(req, res);
     }
@@ -112,6 +120,10 @@ async function editUser(req, res) {
 
     if (req.body.email != null) {
         res.user.email = req.body.email;
+    }
+
+    if (req.body.role != null) {
+        res.user.role = req.body.role;
     }
 
     if (req.body.phone != null) {
