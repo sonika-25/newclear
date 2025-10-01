@@ -76,10 +76,12 @@ router.patch("/:id", authenticateToken, getUser, async (req, res) => {
     // checks whether the logged in user has permission to edit the user with a given id
     if (
         currentUser &&
-        (hasPermission(currentUser, "update:user") ||
-            (hasPermission(currentUser, "update:ownUser") &&
-                currentUser._id === userEditId) ||
-            hasPermission(currentUser, "add:organisation"))
+        ((hasPermission(currentUser, "manage:ownUser") &&
+            currentUser._id === userEditId) ||
+            (hasPermission(currentUser, "manage:organisation") &&
+                currentUser.role === "family") ||
+            (hasPermission(currentUser, "manage:carer") &&
+                currentUser.role === "organisation"))
     ) {
         await editUser(req, res);
     }
@@ -91,8 +93,7 @@ router.delete("/:id", authenticateToken, getUser, async (req, res) => {
     // checks whether the logged in user has permission to edit the user with a given id
     if (
         currentUser &&
-        (hasPermission(currentUser, "delete:user") ||
-            (hasPermission(currentUser, "delete:ownUser") &&
+        ((hasPermission(currentUser, "manage:ownUser") &&
                 currentUser._id === userEditId))
     ) {
         try {

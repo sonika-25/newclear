@@ -1,32 +1,28 @@
 // TODO: implement roles into database
 const ROLES = {
     family: [
-        "update:ownUser",
-        "delete:ownUser",
+        "manage:ownUser",
         "create:patient",
         "update:patient",
         "delete:patient",
         "view:patient",
-        "add:organisation",
+        "manage:organisation",
     ],
     POA: [
-        "update:ownUser",
-        "delete:ownUser",
+        "manage:ownUser",
         "create:patient",
         "update:patient",
         "delete:patient",
         "view:patient",
-        "add:organisation",
+        "manage:organisation",
     ],
-    admin: [
-        "update:ownUser",
-        "delete:ownUser",
-        "update:user",
+    organisation: [
+        "manage:ownUser",
         "update:patient",
         "view:patient",
-        "add:carer",
+        "manage:carer",
     ],
-    carer: ["update:ownUser", "delete:ownUser", "view:patient", "upload:file"],
+    carer: ["manage:ownUser", "view:patient", "upload:file"],
 };
 
 // check if the given user can perform an action

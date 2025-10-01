@@ -29,6 +29,7 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
 dayjs.extend(customParseFormat);
 import { jwtDecode } from "jwt-decode";
 import { getAccessToken } from "../utils/tokenUtils";
+import { getUserByEmail } from "../utils/userUtils";
 
 const { Content } = Layout;
 const { RangePicker } = DatePicker;
@@ -176,23 +177,15 @@ export default function ManagementPage() {
 
     const UserFormComplete = async (values) => {
         try {
-            const res = await axios.get(
-                `http://localhost:3000/users/${values.email}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${getAccessToken()}`,
-                    },
-                },
-            );
+            const res = await getUserByEmail(values.email);
 
             const userToAdd = res.data;
-            const userId = userToAdd._id;
-            if (!userId) {
+            if (!userToAdd || !userToAdd._id) {
                 return console.error("No user found");
             }
-            console.log(userId);
+
             const updated = await axios.patch(
-                `http://localhost:3000/users/${userId}`,
+                `http://localhost:3000/users/${userToAdd._id}`,
                 {
                     role: values.userType,
                     isAdmin: values.admin,
