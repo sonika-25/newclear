@@ -1,18 +1,28 @@
 services:
-  mongodb:
-    image: mongo:latest
-    restart: always
-    environment:
-      container_name: scheduling-care-aws
-      MONGO_INITDB_DATABASE: scheduling-care-aws
-    ports:
-      - 27017:27017
-    volumes:
-      - ./mongo_data:/data/db
+    backend:
+        build: ./backend
+        environment:
+            MONGO_URI: ${MONGO_URI}
+        ports:
+            - ${PORT}:${PORT}
+        env_file:
+            - .env
 
-  backend:
-    build: ./backend
-    environment:
-      MONGO_URI: ${MONGO_URI}
-    ports:
-      - ${PORT}:${PORT}
+    frontend:
+        build: ./frontend
+        ports:
+            - 5173:5173
+        environment:
+            HOST: 0.0.0.0
+        command:
+            ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+
+    auth:
+        build: ./backend
+        environment:
+            MONGO_URI: ${MONGO_URI}
+        ports:
+            - "4000:4000"
+        env_file:
+            - .env
+        command: node authServer.js
