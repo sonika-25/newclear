@@ -1,14 +1,10 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const Users = require("./model/family-model.js");
-const {
-    router: auth,
-    authenticateToken,
-} = require("./controllers/authentication.js");
-const org = require("./controllers/org.js");
+const User = require("./model/user-model.js");
+const user = require("./controllers/user.js");
 const family = require("./controllers/family.js");
-const user = require("./controllers/userInfo.js");
+const userInfo = require("./controllers/userInfo.js");
 
 const app = express();
 const connectDB = require("./utils/db.js");
@@ -20,17 +16,16 @@ app.use(express.json());
 app.use(
     cors({
         origin: "http://localhost:5173",
-        methods: ["GET", "POST", "PUT", "DELETE"],
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
         allowedHeaders: ["Content-Type", "Authorization"],
     }),
 );
 
 PORT = 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-app.use("/users", auth);
-app.use("/org", org);
+app.use("/users", user);
 app.use("/family", family);
-app.use("/user-info", user);
+app.use("/user-info", userInfo);
 app.get("/", (req, res) => {
     res.send("Hello World");
 });

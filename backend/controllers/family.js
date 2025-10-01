@@ -1,11 +1,10 @@
-const Organization = require("../model/org-model");
 const Patient = require("../model/patient-model");
-const Family = require("../model/family-model");
+const User = require("../model/user-model");
 const express = require("express");
 const bcrypt = require("bcrypt");
 const app = express();
 const router = require("express").Router();
-const { authenticateToken } = require("./authentication.js");
+const { authenticateToken, encryptPassword } = require("./authentication.js");
 const { checkPermission } = require("./permission.js");
 
 //add organization to patient
@@ -18,8 +17,8 @@ router.post(
         let { orgId, patientId, famId } = req.body;
         try {
             //when scaling for more patients, check the family owns the patient.
-            await Organization.updateOne(
-                { _id: orgId },
+            await User.updateOne(
+                { _id: orgId, role: "organisation" },
                 { $push: { patients: patientId } },
             );
             await Patient.updateOne(
@@ -41,6 +40,7 @@ router.post(
 //edit patient
 //edit patient
 
+// TODO: family doesnt add patient
 router.post(
     "/patient/add-patient/:userId",
     authenticateToken,
@@ -57,10 +57,10 @@ router.post(
             });
             const newPatient = await patient.save();
             const patid = await newPatient._id;
-            const fam = await Family.findOne({ _id: userId });
+            const fam = await User.findOne({ _id: userId });
             console.log(fam);
-            await Family.updateOne(
-                { _id: userId },
+            await User.updateOne(
+                { _id: userId, role: { $in: ["family", "POA"] } },
                 { $push: { patients: patid } },
             );
             res.status(201).json(newPatient);

@@ -15,7 +15,13 @@ connectDB();
 
 // Middleware which executes during lifecycle of a request
 app.use(express.json());
-app.use(cors());
+app.use(
+    cors({
+        origin: "http://localhost:5173",
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+    }),
+);
 
 // generates a new access token using the refresh token,
 // effectively refreshing the access token
@@ -36,20 +42,25 @@ app.post("/users/token", async (req, res) => {
         jwt.verify(
             refreshToken,
             process.env.REFRESH_TOKEN_SECRET,
-            async (err, user) => {
+            async (err, payload) => {
                 if (err) {
                     return res.sendStatus(403);
                 }
                 // generate a new access token (refreshing the access token)
                 // if refresh token is valid
-                user = await User.findById(user._id);
-                userObject = user.toObject();
+                user = await User.findById(payload._id);
+                // user not found or id not provided
+                if (!user) {
+                    return res.sendStatus(403);
+                }
+                const userObject = user.toObject();
+                delete userObject.password;
                 const accessToken = generateAccessToken(userObject);
-                res.json({ accessToken: accessToken });
+                return res.json({ accessToken: accessToken });
             },
         );
     } catch (err) {
-        res.sendStatus(500);
+        return res.sendStatus(500);
     }
 });
 
@@ -90,45 +101,46 @@ app.post("/users/signin", async (req, res) => {
     }
     try {
         match = await bcrypt.compare(password, user.password);
-        if (match) {
-            userObject = user.toObject();
-            delete userObject.password;
 
-            // JSON web token which keeps track of user information without leaking password once logged in
-            const accessToken = generateAccessToken(userObject);
-            const refreshToken = jwt.sign(
-                userObject,
-                process.env.REFRESH_TOKEN_SECRET,
-            );
-            // try to store refresh tokens
-            const existingRefreshToken = await RefreshToken.findOne({
-                userId: user._id,
-            });
-            // one already exists for this user, so make room for a new one to replace it
-            if (existingRefreshToken) {
-                await RefreshToken.deleteOne({ userId: user._id });
-            }
-
-            // store refresh token in database
-            const newRefreshToken = new RefreshToken({
-                userId: user._id,
-                refreshToken: refreshToken,
-            });
-            try {
-                await newRefreshToken.save();
-            } catch (err) {
-                res.status(500).json({ error: "Error saving refresh token" });
-            }
-
-            res.json({
-                message: "Successful login",
-                user: userObject,
-                accessToken: accessToken,
-                refreshToken: refreshToken,
-            });
-        } else {
-            res.status(400).json({ message: "Password is wrong" });
+        if (!match) {
+            return res.status(400).json({ message: "Password is wrong" });
         }
+
+        const userObject = user.toObject();
+        delete userObject.password;
+
+        // JSON web token which keeps track of user information without leaking password once logged in
+        const accessToken = generateAccessToken(userObject);
+        const refreshToken = jwt.sign(
+            userObject,
+            process.env.REFRESH_TOKEN_SECRET,
+        );
+        // try to store refresh tokens
+        const existingRefreshToken = await RefreshToken.findOne({
+            userId: user._id,
+        });
+        // one already exists for this user, so make room for a new one to replace it
+        if (existingRefreshToken) {
+            await RefreshToken.deleteOne({ userId: user._id });
+        }
+
+        // store refresh token in database
+        const newRefreshToken = new RefreshToken({
+            userId: user._id,
+            refreshToken: refreshToken,
+        });
+        try {
+            await newRefreshToken.save();
+        } catch (err) {
+            res.status(500).json({ error: "Error saving refresh token" });
+        }
+
+        return res.json({
+            message: "Successful login",
+            user: userObject,
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -137,7 +149,7 @@ app.post("/users/signin", async (req, res) => {
 // generates an access token which eventually expires
 function generateAccessToken(user) {
     return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "15m",
+        expiresIn: "30s",
     });
 }
 

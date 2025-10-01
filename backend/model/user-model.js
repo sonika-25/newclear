@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ["family", "POA", "admin", "carer"],
+        enum: ["family", "POA", "admin", "carer", "organisation"],
         required: false,
     },
     email: {
@@ -34,11 +34,11 @@ const userSchema = new mongoose.Schema({
     },
     patients: [
         {
-            type: String,
-            required: false,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Patient",
         },
     ],
 });
 
-const Family = mongoose.model("User", userSchema);
-module.exports = Family;
+const User = mongoose.model("User", userSchema);
+module.exports = User;
