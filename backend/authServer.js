@@ -149,7 +149,7 @@ app.post("/users/signin", async (req, res) => {
 // generates an access token which eventually expires
 function generateAccessToken(user) {
     return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "30s",
+        expiresIn: "15m",
     });
 }
 

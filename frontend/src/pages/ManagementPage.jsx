@@ -26,6 +26,8 @@ import { Pie } from "@ant-design/plots";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 dayjs.extend(customParseFormat);
+import { jwtDecode } from "jwt-decode";
+import { getAccessToken } from "../utils/tokenUtils";
 
 const { Content } = Layout;
 const { RangePicker } = DatePicker;
@@ -364,6 +366,16 @@ export default function ManagementPage() {
         return data;
     };
 
+    const token = getAccessToken();
+    let roles = [];
+    if (token) {
+        const decoded = jwtDecode(token);
+        console.log(jwtDecode(token));
+        roles = decoded.role || [];
+    }
+    console.log("Roles is ");
+    console.log(roles);
+
     return (
         <Layout>
             <Content className="manageContent" style={{ padding: "10px 15px" }}>
@@ -404,22 +416,6 @@ export default function ManagementPage() {
                                     <Input placeholder="Enter user email" />
                                 </Form.Item>
                                 <Form.Item
-                                    style={{ marginRight: 20 }}
-                                    name="firstName"
-                                    label="Enter User First Name"
-                                    rules={[{ required: true }]}
-                                >
-                                    <Input placeholder="Enter user first name" />
-                                </Form.Item>
-                                <Form.Item
-                                    style={{ marginRight: 20 }}
-                                    name="lastName"
-                                    label="Enter User Last Name"
-                                    rules={[{ required: true }]}
-                                >
-                                    <Input placeholder="Enter user last name" />
-                                </Form.Item>
-                                <Form.Item
                                     name="admin"
                                     label="Enable Admin"
                                     valuePropName="checked"
@@ -430,18 +426,32 @@ export default function ManagementPage() {
 
                                 <Form.Item label="User Type" name="userType">
                                     <Radio.Group>
-                                        <Radio.Button value="Family">
-                                            Family
-                                        </Radio.Button>
-                                        <Radio.Button value="Carer">
-                                            Carer
-                                        </Radio.Button>
-                                        <Radio.Button value="Manager">
-                                            Manager
-                                        </Radio.Button>
-                                        <Radio.Button value="POA">
-                                            Power of Attorney
-                                        </Radio.Button>
+                                        {/* family member view */}
+                                        {roles.includes("family") && (
+                                            <>
+                                                <Radio.Button value="Manager">
+                                                    Manager
+                                                </Radio.Button>
+                                                <Radio.Button value="Family">
+                                                    Family
+                                                </Radio.Button>
+                                                <Radio.Button value="POA">
+                                                    Power of Attorney
+                                                </Radio.Button>
+                                            </>
+                                        )}
+                                        {/* carer view */}
+                                        {roles.includes("carer") && (
+                                            <>Cannot add users</>
+                                        )}
+                                        {/* organisation view */}
+                                        {roles.includes("organisation") && (
+                                            <>
+                                                <Radio.Button value="Carer">
+                                                    Carer
+                                                </Radio.Button>
+                                            </>
+                                        )}
                                     </Radio.Group>
                                 </Form.Item>
 
