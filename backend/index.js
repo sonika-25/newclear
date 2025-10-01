@@ -5,6 +5,7 @@ const User = require("./model/user-model.js");
 const user = require("./controllers/user.js");
 const family = require("./controllers/family.js");
 const userInfo = require("./controllers/userInfo.js");
+const schedule = require("./controllers/schedule.js");
 
 const app = express();
 const connectDB = require("./utils/db.js");
@@ -26,6 +27,8 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 app.use("/users", user);
 app.use("/family", family);
 app.use("/user-info", userInfo);
+app.user("schedule", schedule);
+
 app.get("/", (req, res) => {
     res.send("Hello World");
 });

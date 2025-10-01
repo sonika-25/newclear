@@ -73,16 +73,8 @@ router.post("/signup", async (req, res) => {
 router.patch("/:id", authenticateToken, getUser, async (req, res) => {
     const userEditId = req.params.id;
     const currentUser = req.user;
-    // checks whether the logged in user has permission to edit the user with a given id
-    if (
-        currentUser &&
-        ((hasPermission(currentUser, "manage:ownUser") &&
-            currentUser._id === userEditId) ||
-            (hasPermission(currentUser, "manage:organisation") &&
-                currentUser.role === "family") ||
-            (hasPermission(currentUser, "manage:carer") &&
-                currentUser.role === "organisation"))
-    ) {
+    // ensure that only the logged in user has permission to edit the user themselves
+    if (currentUser && currentUser._id === userEditId) {
         await editUser(req, res);
     }
 });
@@ -90,11 +82,11 @@ router.patch("/:id", authenticateToken, getUser, async (req, res) => {
 router.delete("/:id", authenticateToken, getUser, async (req, res) => {
     const userEditId = req.params.id;
     const currentUser = req.user;
-    // checks whether the logged in user has permission to edit the user with a given id
+    // ensure that only the logged in user has permission to delete the user themselves
     if (
         currentUser &&
-        ((hasPermission(currentUser, "manage:ownUser") &&
-                currentUser._id === userEditId))
+        hasPermission(currentUser, "manage:ownUser") &&
+        currentUser._id === userEditId
     ) {
         try {
             await res.user.deleteOne();
