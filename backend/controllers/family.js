@@ -12,7 +12,6 @@ const { checkPermission } = require("./permission.js");
 router.post(
     "/addOrg",
     authenticateToken,
-    checkPermission("add:organisation"),
     async (req, res) => {
         let { orgId, patientId, famId } = req.body;
         try {
@@ -44,7 +43,6 @@ router.post(
 router.post(
     "/patient/add-patient/:userId",
     authenticateToken,
-    checkPermission("create:patient"),
     async (req, res) => {
         try {
             let { username, email, phone, password } = req.body; //details of patient

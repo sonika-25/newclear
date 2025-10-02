@@ -1,5 +1,5 @@
 // TODO: implement roles into database
-import ScheduleUser from "../model/schedule-user-model";
+const ScheduleUser = require("../model/schedule-user-model.js");
 
 const ROLES = {
     family: [
@@ -49,9 +49,9 @@ async function hasPermission(userId, scheduleId, permission) {
 }
 
 // check if current user has permission
-async function checkPermission(permission) {
+function checkPermission(permission) {
     return async (req, res, next) => {
-        const userId = req.user.id;
+        const userId = req.user._id;
         const scheduleId = req.params.scheduleId;
         if (!userId || !scheduleId) {
             return res
@@ -74,9 +74,9 @@ async function checkPermission(permission) {
 function getRequiredPerm(role) {
     if (role === "organisation") {
         return "manage:organisation";
-    } else if (removedMembership.role === "carer") {
+    } else if (role === "carer") {
         return "manage:carer";
-    } else if (removedMembership.role === "family") {
+    } else if (role === "family" || role === "POA") {
         return "manage:family";
     } else {
         return null;

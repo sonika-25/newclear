@@ -27,7 +27,7 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 app.use("/users", user);
 app.use("/family", family);
 app.use("/user-info", userInfo);
-app.user("schedule", schedule);
+app.use("/schedule", schedule);
 
 app.get("/", (req, res) => {
     res.send("Hello World");

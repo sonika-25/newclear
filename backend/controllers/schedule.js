@@ -1,24 +1,45 @@
 const User = require("../model/user-model");
 const Schedule = require("../model/schedule-model");
+const ScheduleUser = require("../model/schedule-user-model");
 const Task = require("../model/task-model");
 const express = require("express");
 const bcrypt = require("bcrypt");
 const app = express();
 const router = require("express").Router();
 const crypto = require("crypto");
-const { authenticateToken } = require("./authentication");
+const { authenticateToken } = require("./authentication.js");
 const {
     getRequiredPerm,
     hasPermission,
     checkPermission,
 } = require("./permission.js");
 
-router.post("/create", async (req, res) => {
-    let { scheduleAuthor, resident_name, schedule_Id } = req.body;
-    if (!scheduleAuthor || !resident_name || !schedule_Id) {
+// Find all schedules associated with the current user
+router.get("/", authenticateToken, async (req, res) => {
+    try {
+        const scheduleUsers = await ScheduleUser.find({ user: req.user });
+        return res.status(200).json(scheduleUsers);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+router.post("/create", authenticateToken, async (req, res) => {
+    // Makes sure that the creation of schedule and scheduleUser is atomic,
+    // if one fails, they both fail
+    const session = await Schedule.startSession();
+    session.startTransaction();
+
+    let { scheduleAuthor, residentName } = req.body;
+    if (!scheduleAuthor || !residentName) {
         return res
             .status(400)
             .json({ message: "Please fill in all the fields!" });
+    }
+
+    const currentUser = req.user;
+    if (!currentUser) {
+        return res.status(400).json({ message: "User is not logged in" });
     }
 
     // Only one created schedule per user at this stage
@@ -32,26 +53,33 @@ router.post("/create", async (req, res) => {
     }
 
     try {
-        // create an invite token
+        // Create an invite token
         const inviteToken = crypto.randomBytes(16).toString("hex");
 
-        try {
-            // Create a new schedule entry
-            const schedule = new Schedule({
-                scheduleAuthor,
-                resident_name,
-                schedule_Id,
-                inviteToken,
-            });
+        // Create a new schedule entry
+        const schedule = new Schedule({
+            scheduleAuthor,
+            residentName,
+            inviteToken,
+        });
+        await schedule.save({ session });
 
-            await schedule.save();
-            const inviteLink = `/schedules/join/${inviteToken}`;
-            res.status(201).json(schedule, inviteLink);
-        } catch (error) {
-            res.status(400).json({ error: error.message });
-        }
+        // Link the creator to the schedule as a family member
+        const scheduleUser = new ScheduleUser({
+            user: currentUser,
+            schedule: schedule,
+            role: "family",
+        });
+        await scheduleUser.save();
+
+        await session.commitTransaction();
+        const inviteLink = `/schedules/join/${inviteToken}`;
+        res.status(201).json(schedule, inviteLink);
     } catch (error) {
+        await session.abortTransaction();
         res.status(500).json({ error: error.message });
+    } finally {
+        session.endSession();
     }
 });
 
@@ -167,41 +195,18 @@ router.post("/:scheduleId/add-user", authenticateToken, async (req, res) => {
         return;
     }
 
+    const currentUser = req.user;
     // Try to add user
     try {
-        // Check if the user has permission to add an organisation
-        if (role === "organisation") {
-            if (
-                !(await hasPermission(
-                    currentUser,
-                    scheduleId,
-                    "manage:organisation",
-                ))
-            ) {
-                return res
-                    .status(403)
-                    .json({ message: "Not allowed to add organisation" });
-            }
-        }
-        // Check if the user has permission to add a carer
-        if (role === "carer") {
-            if (
-                !(await hasPermission(currentUser, scheduleId, "manage:carer"))
-            ) {
-                return res
-                    .status(403)
-                    .json({ message: "Not allowed to add carer" });
-            }
-        }
-        // Check if the user has permission to add family
-        if (role === "family" || role === "POA") {
-            if (
-                !(await hasPermission(currentUser, scheduleId, "manage:family"))
-            ) {
-                return res
-                    .status(403)
-                    .json({ message: "Not allowed to add family/POA" });
-            }
+        // Check if the user has permission to add
+        const requiredPermission = getRequiredPerm(role);
+        if (
+            !requiredPermission ||
+            !(await hasPermission(currentUser, scheduleId, requiredPermission))
+        ) {
+            return res
+                .status(403)
+                .json({ message: "Not allowed to add user to schedule" });
         }
 
         // Check that the user to be added exists
@@ -237,7 +242,7 @@ router.post("/:scheduleId/add-user", authenticateToken, async (req, res) => {
 
 router.delete("/:scheduleId/remove-task", async (req, res) => {
     const { scheduleId } = req.params;
-    const { authorID, removedTask } = req.body;
+    const { authorId, removedTask } = req.body;
 
     let givenSchedule = await findSchedule(scheduleId, res);
     if (!givenSchedule) {
@@ -245,7 +250,7 @@ router.delete("/:scheduleId/remove-task", async (req, res) => {
     }
 
     // Check that author is really the author of the given schedule
-    if (!verifyScheduleAuthor(givenSchedule, authorID, res)) {
+    if (!(await verifyScheduleAuthor(givenSchedule, authorId, res))) {
         return;
     }
 
@@ -264,7 +269,7 @@ router.delete("/:scheduleId/remove-task", async (req, res) => {
         }
 
         // Task might as well be deleted from database too
-        await Task.deleteOne({ removedTask });
+        await Task.deleteOne({ _id: removedTask });
 
         await givenSchedule.save();
         res.status(200).json(givenSchedule);
@@ -278,7 +283,7 @@ router.delete(
     authenticateToken,
     async (req, res) => {
         const { scheduleId } = req.params;
-        const { removedUserId } = req.body;
+        const { removedUser } = req.body;
         const currentUser = req.user;
 
         let givenSchedule = await findSchedule(scheduleId, res);
@@ -288,32 +293,36 @@ router.delete(
 
         // Try to remove the user
         try {
-            const currentRelationship = await ScheduleUser.findOne({
-                user: currentUserId,
+            // schedule-user relationship of current user
+            const currentScheduleUser = await ScheduleUser.findOne({
+                user: currentUser,
                 schedule: scheduleId,
             });
 
-            const toBeRemovedRelationship = await ScheduleUser.findOne({
-                user: removedUserId,
+            // schedule-user relationship of user we want to remove
+            const tobeRemovedScheduleUser = await ScheduleUser.findOne({
+                user: removedUser,
                 schedule: scheduleId,
             });
 
-            if (!currentRelationship || !toBeRemovedRelationship) {
+            if (!currentScheduleUser || !tobeRemovedScheduleUser) {
                 return res.status(404).json({
                     message: "Users cannot not be found in the schedule",
                 });
             }
 
             const requiredPermission = getRequiredPerm(
-                toBeRemovedRelationship.role,
+                tobeRemovedScheduleUser.role,
             );
 
             if (!requiredPermission) {
-                res.status(403).json({ message: "Cannot remove this role" });
+                return res
+                    .status(403)
+                    .json({ message: "Cannot remove this role" });
             }
 
             const canDelete = await hasPermission(
-                currentUserId,
+                currentUser,
                 scheduleId,
                 requiredPermission,
             );
@@ -323,12 +332,12 @@ router.delete(
                 });
             }
             // Remove the link between the user and the schedule
-            const removedRelationship = await ScheduleUser.findOneAndDelete({
+            const removedScheduleUser = await ScheduleUser.findOneAndDelete({
+                user: removedUser,
                 schedule: scheduleId,
-                removedUser: removedUserId,
             });
 
-            if (!removedRelationship) {
+            if (!removedScheduleUser) {
                 return res
                     .status(400)
                     .json({ message: "User is already not in this schedule!" });
@@ -351,6 +360,7 @@ router.delete(
         const { authorId } = req.body;
         let givenSchedule = await findSchedule(scheduleId, res);
         if (!givenSchedule) {
+            console.log("No schedule found");
             return;
         }
 
@@ -358,20 +368,30 @@ router.delete(
         if (
             !req.user ||
             !givenSchedule.scheduleAuthor ||
-            req.user._id !== givenSchedule.scheduleAuthor._id
+            req.user !== givenSchedule.scheduleAuthor
         ) {
+            console.log("No author");
             return;
         }
 
+        // Makes sure that the deletion of schedule and scheduleUser are atomic,
+        // if any deletions fails, they all fail
+        const session = await Schedule.startSession();
+        session.startTransaction();
         try {
-            await Schedule.findByIdAndDelete(scheduleId);
+            await Schedule.findByIdAndDelete(scheduleId, { session });
             // Delete all schedule relationships
-            await ScheduleUser.deleteMany({ schedule: scheduleId });
+            (await ScheduleUser.deleteMany({ schedule: scheduleId }),
+                { session });
+            await session.commitTransaction();
             res.status(200).json({
                 message: "Schedule has been successfully removed!",
             });
         } catch (error) {
-            res.status(400).json({ error: error.message });
+            await session.abortTransaction();
+            res.status(500).json({ error: error.message });
+        } finally {
+            session.endSession();
         }
     },
 );

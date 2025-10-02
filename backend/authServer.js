@@ -111,9 +111,14 @@ app.post("/users/signin", async (req, res) => {
 
         // JSON web token which keeps track of user information without leaking password once logged in
         const accessToken = generateAccessToken(userObject);
+        // refresh token expires every 30 days to ensure that if it gets leaked,
+        // the refresh token will eventually provide no use
         const refreshToken = jwt.sign(
             userObject,
             process.env.REFRESH_TOKEN_SECRET,
+            {
+                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            },
         );
         // try to store refresh tokens
         const existingRefreshToken = await RefreshToken.findOne({
