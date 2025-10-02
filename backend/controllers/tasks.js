@@ -3,18 +3,18 @@ const Task = require("../model/task-model");
 const TaskRun = require("../model/task-run-model");
 const Category = require("../model/category-model");
 const Patient  = require("../model/patient-model"); // if you want to deduct patient budget too
-const { addMonths } = require("../utils/dates");
+const { addByUnit } = require("../utils/dates");
 
 // create a task that repeats every N months (default 6)
 async function createTask(req, res) {
   try {
     const {  categoryId, patientId } = req.params;
-    const { name, startDate, endDate, everyMonths = 6, costPerRun = 0, description, budget } = req.body;
+    const { name, startDate, endDate, unit, every = 1, description, budget } = req.body;
 
     const task = await Task.create({
       patientId, categoryId, name, description,
       startDate, endDate: endDate || null,
-      everyMonths, budget
+      unit,every, budget
     });
 
     // seed first year of runs (2 occurrences for 6-month cycle)
@@ -27,13 +27,15 @@ async function createTask(req, res) {
 }
 
 // make sure runs exist up to N months ahead
-async function seedRuns(task, monthsAhead = 20) {
-  const first = new Date(task.startDate);
-  const endLimit = task.endDate ? new Date(task.endDate) : addMonths(new Date(), monthsAhead);
+async function seedRuns(task, monthsAhead = 12) {
+  const start = new Date(task.startDate);
+  const horizon = new Date();
+  horizon.setMonth(horizon.getMonth() + monthsAhead);
 
-  let due = new Date(first);
+  const endLimit = task.endDate ? new Date(task.endDate) : horizon;
+
+  let due = new Date(start);
   while (due <= endLimit) {
-    // upsert so we don't create duplicates
     await TaskRun.updateOne(
       { taskId: task._id, dueOn: due },
       { $setOnInsert: {
@@ -46,7 +48,7 @@ async function seedRuns(task, monthsAhead = 20) {
       },
       { upsert: true }
     );
-    due = addMonths(due, task.everyMonths || 6);
+    due = addByUnit(due, task.unit, task.every || 1);
   }
 }
 

@@ -10,9 +10,8 @@ const taskSchema = new mongoose.Schema({
         enum: ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'],
         required: false
     },
-    interval : {type: Number,required: false,},
-    everyMonths: { type: Number, default: 6 },        // repeat gap (6 = every 6 months)
-
+    unit:{ type: String, enum: ["day","week","month","year"], required: true }, 
+    every:{ type: Number, min: 1, default: 1 }, 
     budget: {type: Number, required: true},
     category : {type : mongoose.Schema.Types.ObjectId, ref : 'Category'},
     patientId: { type: mongoose.Schema.Types.ObjectId, ref: "Patient", required: true },
