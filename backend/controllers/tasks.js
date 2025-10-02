@@ -57,12 +57,14 @@ async function listRuns(req, res) {
   try {
     const { patientId } = req.params;
     const from = req.query.from ? new Date(req.query.from) : new Date();
-    const to   = req.query.to   ? new Date(req.query.to)   : addMonths(new Date(), 12);
+    const to = req.query.to   ? new Date(req.query.to)   : addByUnit(new Date(),"month", 30);
 
     const runs = await TaskRun.find({
       patientId,
       dueOn: { $gte: from, $lte: to }
-    }).sort({ dueOn: 1 });
+    })
+    .populate("taskId", "name") 
+    .sort({ dueOn: 1 });
 
     res.json(runs);
   } catch (e) {

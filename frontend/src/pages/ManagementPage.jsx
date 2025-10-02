@@ -3,7 +3,7 @@
 import './css/management.css';
 import {Modal, Tabs, Table, Popconfirm, Radio, Layout, List, Cascader, Input, DatePicker, InputNumber, Select,
         Splitter, Button, Form, Switch, message, Space, Typography } from 'antd';
-import React, { useState, useRef, useMemo} from 'react';
+import React, { useState, useEffect, useRef, useMemo} from 'react';
 import {CloseOutlined, PlusOutlined} from '@ant-design/icons';
 import { Pie } from '@ant-design/plots';
 import dayjs from 'dayjs';
@@ -15,7 +15,7 @@ dayjs.extend(customParseFormat);
 const { Content } = Layout;
 const {RangePicker} = DatePicker;
 const{TextArea } = Input;
-
+const PATIENT_ID = "68dcdc74014b5dce70f92e40";
 /*Elements of this code utilise basic boiler plate code from AntD.*/
 
 
@@ -210,15 +210,81 @@ const CatPie = ({data}) => {
     };
  /*********************END TAB BOILIER PLATE FROM ANTD WITH SLIGHT EDITS**************************** */   
   
- 
-  const [categories, setCategories] = useState([
+  const [categories,setCategories] = useState ([])
+  /*const [categories, setCategories] = useState([
     { id: '1', name: '1', budget: 1000 },
     { id: '2', name: '2', budget: 1000 },
-    ]);
-  const [activeKey, setActiveKey] = useState(categories[0]?.id);
+    ]);*
+  const [activeKey, setActiveKey] = useState(categories[0]?.id);*/
+  const [activeKey, setActiveKey]   = useState(null);               
+  const [catLoading, setCatLoading] = useState(true);               
+  const [catError, setCatError]     = useState(null); 
   const tabItems = useMemo(() => categories.map(c => ({ label: c.name, key: c.id })),[categories]);
 
+
+  // === NEW === Load categories for this patient on mount
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        setCatLoading(true);
+        setCatError(null);
+        const { data } = await axios.get(
+          `http://localhost:3000/patients/getCategories/${PATIENT_ID}`
+        );
+        // normalize: id, name, budget
+        const normalized = (Array.isArray(data) ? data : data.categories || []).map(c => ({
+          id: c.id || c._id,
+          name: c.name,
+          budget: Number(c.budget) || 0
+        }));
+        if (!ignore) {
+          setCategories(normalized);
+          // set first tab active if any
+          setActiveKey(normalized[0]?.id || null);
+        }
+      } catch (err) {
+        if (!ignore) setCatError(err?.response?.data?.message || err.message || "Failed to load categories");
+      } finally {
+        if (!ignore) setCatLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, [PATIENT_ID]);
+
+
+
   const addCategoryData = (values) => {
+
+    try {
+      axios.post(`http://localhost:3000/patients/add-category/${PATIENT_ID}` , { //need way to get patientID from code
+        "name": values.name,
+        "budget": values.budget 
+      })
+      .then(({data})=>{
+         // expect either { id, name, budget } or { _id, name, budget } or { category: { ... } }
+        const c = data.category || data;
+        const id = c.id || c._id;
+        const budget = Number(c.budget) || 0;
+        const name = c.name;
+
+        if (editingCatKey) {
+          setCategories(prev =>
+            prev.map(cat => (cat.id !== editingCatKey ? cat : { ...cat, budget, name }))
+          );
+        } else {
+          setCategories(prev => [...prev, { id, name, budget }]);
+          setActiveKey(id);
+        }
+        message.success("Category saved");
+      })
+      .catch (console.err);
+      }
+    catch(err){
+      console.log(err)
+    }
+
+    //not sure what this code is doing will not touch it
     if(editingCatKey){
       setCategories(prev =>  prev.map(cat => {
           if (cat.id != editingCatKey) 
@@ -263,6 +329,14 @@ const CatPie = ({data}) => {
   };
 
   const removeTab = (categoryId) => {
+     axios.delete(`http://localhost:3000/patients/categories/${PATIENT_ID}/${categoryId}`)
+    .then(() => {
+      message.success("Category deleted");
+    })
+    .catch((err) => {
+      console.error(err);
+      message.error(err?.response?.data?.message || "Failed to delete category");
+    });
   setCategories(prev => {
     const newList = prev.filter(c => c.id !== categoryId);
     setTaskData(tasks => tasks.filter(t => t.categoryId !== categoryId));
