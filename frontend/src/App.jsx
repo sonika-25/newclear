@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import SchedulePage from "./pages/SchedulePage";
 import ManagementPage from "./pages/ManagementPage";
+import SelectSchedulePage from "./pages/SelectSchedulePage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
@@ -11,6 +12,14 @@ export default function App() {
         <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route element={<UILayout />}>
+                <Route
+                    path="/select-schedule"
+                    element={
+                        <ProtectedRoute>
+                            <SelectSchedulePage />
+                        </ProtectedRoute>
+                    }
+                />
                 <Route
                     path="/home"
                     element={

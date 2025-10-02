@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }) => {
         console.log("Login triggered", userData, accessToken, refreshToken);
         storeTokens(accessToken, refreshToken);
         setUser(userData);
-        navigate("/home");
+        navigate("/select-schedule");
     };
 
     // logout function

@@ -117,7 +117,7 @@ app.post("/users/signin", async (req, res) => {
             userObject,
             process.env.REFRESH_TOKEN_SECRET,
             {
-                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                expiresIn: "30d",
             },
         );
         // try to store refresh tokens

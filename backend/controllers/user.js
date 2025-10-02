@@ -15,7 +15,7 @@ router.get("/profile", authenticateToken, async (req, res) => {
 
 router.get("/:email", async (req, res) => {
     try {
-        const email = decodeURIComponent(req.params.email);
+        const { email } = req.params;
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(404).json({ error: "User not found" });

@@ -20,7 +20,7 @@ import {
     Space,
     Typography,
 } from "antd";
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useContext } from "react";
 import { CloseOutlined, PlusOutlined } from "@ant-design/icons";
 import { Pie } from "@ant-design/plots";
 import dayjs from "dayjs";
@@ -30,6 +30,7 @@ dayjs.extend(customParseFormat);
 import { jwtDecode } from "jwt-decode";
 import { getAccessToken } from "../utils/tokenUtils";
 import { getUserByEmail } from "../utils/userUtils";
+import { ScheduleContext } from "../context/ScheduleContext";
 
 const { Content } = Layout;
 const { RangePicker } = DatePicker;
@@ -98,6 +99,8 @@ export default function ManagementPage() {
     const [userData, setUserData] = useState([]);
     const [userForm] = Form.useForm();
 
+    const { selectedSchedule, scheduleRole } = useContext(ScheduleContext);
+
     const [isTaskModalOpen, setTaskModalOpen] = useState(false);
     const [taskForm] = Form.useForm();
 
@@ -109,6 +112,13 @@ export default function ManagementPage() {
 
     const [editingCatKey, setCatEditingKey] = useState(null);
     const isCatTask = editingCatKey != null;
+
+    // contains information of logged in user
+    const token = getAccessToken();
+    if (token) {
+        const decoded = jwtDecode(token);
+    }
+    let roles = [scheduleRole];
 
     const [taskData, setTaskData] = useState([
         {
@@ -178,32 +188,56 @@ export default function ManagementPage() {
     const UserFormComplete = async (values) => {
         try {
             const res = await getUserByEmail(values.email);
-
-            const userToAdd = res.data;
-            if (!userToAdd || !userToAdd._id) {
-                return console.error("No user found");
+            if (!res || !res.data || !res.data._id) {
+                console.error("No user found");
+                return;
             }
+            const userToAdd = res.data._id;
 
-            const updated = await axios.patch(
-                `http://localhost:3000/users/${userToAdd._id}`,
+            const updated = await axios.post(
+                `http://localhost:3000/schedule/${selectedSchedule}/add-user`,
                 {
+                    userId: userToAdd._id,
                     role: values.userType,
-                    isAdmin: values.admin,
                 },
                 { headers: { Authorization: `Bearer ${getAccessToken()}` } },
             );
+            if (!updated) {
+                message.error("Cannot add user");
+                return;
+            }
             const updatedUser = updated.data;
-            const user = `${updatedUser.firstName} ${updatedUser.lastName} · ${updatedUser.role} · Admin Status: ${updatedUser.isAdmin}`;
 
-            setUserData((prevData) => [...prevData, user]);
+            setUserData((prevData) => [...prevData, updatedUser]);
             userForm.resetFields();
         } catch (err) {
             console.error("Error fetching user", err);
         }
     };
 
-    const RemoveUser = (idx) => {
-        setUserData((prev) => prev.filter((_, i) => i !== idx));
+    const RemoveUser = async (idx, userId) => {
+        try {
+            await axios.delete(
+                `http://localhost:3000/schedule/${selectedSchedule}/remove-user`,
+                {
+                    data: {
+                        removedUser: userId,
+                    },
+                    headers: { Authorization: `Bearer ${getAccessToken()}` },
+                },
+            );
+            setUserData((prev) => prev.filter((_, i) => i !== idx));
+        } catch (err) {
+            // console.error("Error removing user", err);
+            // message.error("Failed to remove user");
+            console.error(
+                "Error removing user",
+                err.response?.data || err.message,
+            );
+            message.error(
+                err.response?.data?.message || "Failed to remove user",
+            );
+        }
     };
 
     const HandleTaskEdit = (key) => {
@@ -388,14 +422,6 @@ export default function ManagementPage() {
         return data;
     };
 
-    // contains information of logged in user
-    const token = getAccessToken();
-    let roles = [];
-    if (token) {
-        const decoded = jwtDecode(token);
-        roles = decoded.role || [];
-    }
-
     return (
         <Layout>
             <Content className="manageContent" style={{ padding: "10px 15px" }}>
@@ -501,8 +527,7 @@ export default function ManagementPage() {
                                     }
                                     bordered
                                     dataSource={userData}
-                                    rowKey={(_, itemId) => itemId}
-                                    renderItem={(item, itemId) => (
+                                    renderItem={(scheduleUser, idx) => (
                                         <List.Item
                                             actions={[
                                                 <Button
@@ -510,12 +535,15 @@ export default function ManagementPage() {
                                                     shape="circle"
                                                     icon={<CloseOutlined />}
                                                     onClick={() =>
-                                                        RemoveUser(itemId)
+                                                        RemoveUser(
+                                                            idx,
+                                                            scheduleUser.user,
+                                                        )
                                                     }
                                                 />,
                                             ]}
                                         >
-                                            {item}
+                                            {`${scheduleUser.user.firstName} ${scheduleUser.user.lastName} · ${scheduleUser.role} · Admin Status: ${scheduleUser.isAdmin}`}
                                         </List.Item>
                                     )}
                                 />

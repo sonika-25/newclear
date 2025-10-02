@@ -15,10 +15,26 @@ const {
 } = require("./permission.js");
 
 // Find all schedules associated with the current user
-router.get("/", authenticateToken, async (req, res) => {
+router.get("/schedules", authenticateToken, async (req, res) => {
     try {
-        const scheduleUsers = await ScheduleUser.find({ user: req.user });
-        return res.status(200).json(scheduleUsers);
+        const schedules = await ScheduleUser.find({ user: req.user })
+            .populate("schedule")
+            .exec();
+        return res.status(200).json(schedules);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Find the schedule-user relationship information
+router.get("/:scheduleId/:userId", authenticateToken, async (req, res) => {
+    const { scheduleId, userId } = req.params;
+    try {
+        const scheduleUser = await ScheduleUser.findOne({
+            user: userId,
+            schedule: scheduleId,
+        });
+        return res.status(200).json(scheduleUser);
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }
@@ -66,11 +82,13 @@ router.post("/create", authenticateToken, async (req, res) => {
 
         // Link the creator to the schedule as a family member
         const scheduleUser = new ScheduleUser({
-            user: currentUser,
-            schedule: schedule,
+            user: currentUser._id,
+            schedule: schedule._id,
             role: "family",
         });
         await scheduleUser.save();
+        await scheduleUser.populate("user");
+        await scheduleUser.populate("schedule");
 
         await session.commitTransaction();
         const inviteLink = `/schedules/join/${inviteToken}`;
@@ -212,6 +230,7 @@ router.post("/:scheduleId/add-user", authenticateToken, async (req, res) => {
         // Check that the user to be added exists
         const userExists = await User.findById(userId);
         if (!userExists) {
+            console.log("User does not exist:", userId);
             return res
                 .status(400)
                 .json({ message: "User to be added does not exist!" });
@@ -222,10 +241,12 @@ router.post("/:scheduleId/add-user", authenticateToken, async (req, res) => {
             user: userId,
             schedule: scheduleId,
         });
-        if (userExistsInSchedule)
+        if (userExistsInSchedule) {
+            console.log("User already in schedule:", userId);
             return res
                 .status(400)
                 .json({ message: "User is already added to this schedule!" });
+        }
 
         // Add the new relationship between user and schedule
         const newScheduleUser = new ScheduleUser({
@@ -234,6 +255,8 @@ router.post("/:scheduleId/add-user", authenticateToken, async (req, res) => {
             role,
         });
         await newScheduleUser.save();
+        await newScheduleUser.populate("user");
+        await newScheduleUser.populate("schedule");
         res.status(201).json(newScheduleUser);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -331,12 +354,12 @@ router.delete(
                     message: "Cannot remove this role",
                 });
             }
+
             // Remove the link between the user and the schedule
             const removedScheduleUser = await ScheduleUser.findOneAndDelete({
                 user: removedUser,
                 schedule: scheduleId,
             });
-
             if (!removedScheduleUser) {
                 return res
                     .status(400)
