@@ -4,25 +4,25 @@ export const ScheduleContext = createContext();
 
 export function ScheduleProvider({ children }) {
     const [selectedSchedule, setSelectedSchedule] = useState(
-        () => localStorage.getItem("selectedSchedule") || null,
+        () => sessionStorage.getItem("selectedSchedule") || null,
     );
     const [scheduleRole, setScheduleRole] = useState(
-        () => localStorage.getItem("scheduleRole") || null,
+        () => sessionStorage.getItem("scheduleRole") || null,
     );
 
-    // Store schedule in localStorage so refresh doesn’t lose it
+    // Store schedule in session storage so refresh doesn’t lose it
     useEffect(() => {
         if (selectedSchedule) {
-            localStorage.setItem("selectedSchedule", selectedSchedule);
+            sessionStorage.setItem("selectedSchedule", selectedSchedule);
         }
     }, [selectedSchedule]);
 
-    // Store role in localStorage so refresh doesn’t lose it
+    // Store role in session storage so refresh doesn’t lose it
     useEffect(() => {
         if (scheduleRole) {
-            localStorage.setItem("scheduleRole", scheduleRole);
+            sessionStorage.setItem("scheduleRole", scheduleRole);
         } else {
-            localStorage.removeItem("scheduleRole");
+            sessionStorage.removeItem("scheduleRole");
         }
     }, [scheduleRole]);
 

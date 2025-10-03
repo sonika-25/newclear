@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import LogoReact from "/src/assets/react.svg";
 import {
@@ -79,7 +79,12 @@ export default function LoginPage() {
     const { message } = AntApp.useApp();
     const navigate = useNavigate();
     const [openRegister, setOpenRegister] = useState(false);
-    const { login } = useAuth();
+    const { login, logout } = useAuth();
+
+    useEffect(() => {
+        clearTokens();
+        logout();
+    }, []);
 
     //register user
     async function registerUser(values) {

@@ -1,19 +1,19 @@
 import axios from "axios";
 
-// get access token from localStorage
+// get access token from session storage
 export function getAccessToken() {
-    return localStorage.getItem("accessToken");
+    return sessionStorage.getItem("accessToken");
 }
 
-// store access and refresh tokens in localStorage
+// store access and refresh tokens in session storage
 export function storeTokens(accessToken, refreshToken) {
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
+    sessionStorage.setItem("accessToken", accessToken);
+    sessionStorage.setItem("refreshToken", refreshToken);
 }
 
 export function clearTokens() {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
+    sessionStorage.removeItem("accessToken");
+    sessionStorage.removeItem("refreshToken");
 }
 
 // get authorisation headers
@@ -24,7 +24,7 @@ export function getAuthHeaders() {
 
 // refresh the access token using the refresh token
 export async function refreshAccessToken() {
-    const refreshToken = localStorage.getItem("refreshToken");
+    const refreshToken = sessionStorage.getItem("refreshToken");
 
     if (!refreshToken) {
         throw new Error("No refresh token found.");
