@@ -19,8 +19,9 @@ import {
     message,
     Space,
     Typography,
+    App,
 } from "antd";
-import React, { useState, useRef, useMemo, useContext } from "react";
+import React, { useState, useRef, useMemo, useContext, useEffect } from "react";
 import { CloseOutlined, PlusOutlined } from "@ant-design/icons";
 import { Pie } from "@ant-design/plots";
 import dayjs from "dayjs";
@@ -96,6 +97,8 @@ const CatPie = ({ data }) => {
 };
 
 export default function ManagementPage() {
+    const { message } = App.useApp();
+
     const [userData, setUserData] = useState([]);
     const [userForm] = Form.useForm();
 
@@ -185,14 +188,50 @@ export default function ManagementPage() {
         },
     ];
 
+    const fetchUsers = async () => {
+        try {
+            const res = await axios.get(
+                `http://localhost:3000/schedule/${selectedSchedule}/users`,
+                { headers: { Authorization: `Bearer ${getAccessToken()}` } },
+            );
+            setUserData(res.data);
+        } catch (err) {
+            console.error("Failed to load users", err);
+            message.error("Failed to load users");
+        }
+    };
+
+    useEffect(() => {
+        if (!selectedSchedule) {
+            return;
+        }
+        fetchUsers();
+    }, [selectedSchedule]);
+
     const UserFormComplete = async (values) => {
         try {
             const res = await getUserByEmail(values.email);
             if (!res || !res.data || !res.data._id) {
                 console.error("No user found");
+                message.error("No user found");
+                return;
+            }
+            if (!values.userType) {
+                console.error("Select a User Type");
+                message.error("Select a User Type");
                 return;
             }
             const userToAdd = res.data;
+
+            // Use an optimistic user to emulate fast addition into UI
+            // Rollback to database state if addition fails
+            const optimisticUser = {
+                user: userToAdd,
+                role: values.userType,
+                isAdmin: values.admin || false,
+                optimistic: true,
+            };
+            setUserData((prev) => [...prev, optimisticUser]);
 
             const updated = await axios.post(
                 `http://localhost:3000/schedule/${selectedSchedule}/add-user`,
@@ -206,16 +245,26 @@ export default function ManagementPage() {
                 message.error("Cannot add user");
                 return;
             }
-            const updatedUser = updated.data;
 
-            setUserData((prevData) => [...prevData, updatedUser]);
             userForm.resetFields();
         } catch (err) {
-            console.error("Error fetching user", err);
+            console.error(
+                "Error adding user",
+                err.response?.data || err.message,
+            );
+            message.error("Failed to add user", 3);
+        } finally {
+            // Fetch from database again to ensure it matches with the UI
+            await fetchUsers();
         }
     };
 
     const RemoveUser = async (idx, userId) => {
+        // Optimistic user removal to emulate fast deletion on UI
+        // Will rollback if deletion fails
+        const prevUsers = [...userData];
+        setUserData((prev) => prev.filter((_, i) => i !== idx));
+
         try {
             await axios.delete(
                 `http://localhost:3000/schedule/${selectedSchedule}/remove-user`,
@@ -226,17 +275,17 @@ export default function ManagementPage() {
                     headers: { Authorization: `Bearer ${getAccessToken()}` },
                 },
             );
-            setUserData((prev) => prev.filter((_, i) => i !== idx));
+            await fetchUsers();
         } catch (err) {
-            // console.error("Error removing user", err);
-            // message.error("Failed to remove user");
             console.error(
                 "Error removing user",
                 err.response?.data || err.message,
             );
             message.error(
                 err.response?.data?.message || "Failed to remove user",
+                3,
             );
+            setUserData(prevUsers);
         }
     };
 

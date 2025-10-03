@@ -26,6 +26,19 @@ router.get("/schedules", authenticateToken, async (req, res) => {
     }
 });
 
+// Find all users associated with the given schedule
+router.get("/:scheduleId/users", authenticateToken, async (req, res) => {
+    const { scheduleId } = req.params;
+    try {
+        const users = await ScheduleUser.find({ schedule: scheduleId })
+            .populate("user")
+            .exec();
+        return res.status(200).json(users);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+});
+
 // Find the schedule-user relationship information
 router.get("/:scheduleId/:userId", authenticateToken, async (req, res) => {
     const { scheduleId, userId } = req.params;
@@ -341,7 +354,7 @@ router.delete(
             if (!requiredPermission) {
                 return res
                     .status(403)
-                    .json({ message: "Cannot remove this role" });
+                    .json({ message: "Cannot remove with this role" });
             }
 
             const canDelete = await hasPermission(
@@ -349,9 +362,9 @@ router.delete(
                 scheduleId,
                 requiredPermission,
             );
-            if (!canDelete) {
+            if (!canDelete || currentUser === tobeRemovedScheduleUser.user) {
                 return res.status(403).json({
-                    message: "Cannot remove this role",
+                    message: "Cannot remove with this role",
                 });
             }
 
