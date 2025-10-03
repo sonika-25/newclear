@@ -106,7 +106,7 @@ export default function LoginPage() {
         try {
             const result = await tempAuth(values);
             axios
-                .post("http://localhost:4000/users/signin", {
+                .post("http://localhost:3000/users/signin", {
                     email: result.user.email,
                     password: result.user.password,
                 })

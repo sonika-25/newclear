@@ -31,7 +31,7 @@ export async function refreshAccessToken() {
     }
 
     try {
-        const res = await axios.post("http://localhost:4000/users/token", {
+        const res = await axios.post("http://localhost:3000/users/token", {
             token: refreshToken,
         });
         storeTokens(res.data.accessToken, refreshToken);
