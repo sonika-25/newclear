@@ -71,16 +71,6 @@ router.post("/create", authenticateToken, async (req, res) => {
         return res.status(400).json({ message: "User is not logged in" });
     }
 
-    // Only one created schedule per user at this stage
-    const authorExists = await Schedule.findOne({
-        scheduleAuthor: scheduleAuthor,
-    });
-    if (authorExists) {
-        return res
-            .status(400)
-            .json({ message: "User has already created a schedule." });
-    }
-
     try {
         // Create an invite token
         const inviteToken = crypto.randomBytes(16).toString("hex");
