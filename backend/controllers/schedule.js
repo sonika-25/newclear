@@ -357,6 +357,12 @@ router.delete(
                     .json({ message: "Cannot remove with this role" });
             }
 
+            if (String(currentUser._id) === String(removedUser._id)) {
+                return res.status(403).json({
+                    message: "Cannot remove yourself from the schedule",
+                });
+            }
+
             const canDelete = await hasPermission(
                 currentUser,
                 scheduleId,
