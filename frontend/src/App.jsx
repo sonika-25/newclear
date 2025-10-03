@@ -11,15 +11,15 @@ export default function App() {
     return (
         <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route
+                path="/select-schedule"
+                element={
+                    <ProtectedRoute>
+                        <SelectSchedulePage />
+                    </ProtectedRoute>
+                }
+            />
             <Route element={<UILayout />}>
-                <Route
-                    path="/select-schedule"
-                    element={
-                        <ProtectedRoute>
-                            <SelectSchedulePage />
-                        </ProtectedRoute>
-                    }
-                />
                 <Route
                     path="/home"
                     element={

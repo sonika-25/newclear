@@ -192,7 +192,7 @@ export default function ManagementPage() {
                 console.error("No user found");
                 return;
             }
-            const userToAdd = res.data._id;
+            const userToAdd = res.data;
 
             const updated = await axios.post(
                 `http://localhost:3000/schedule/${selectedSchedule}/add-user`,

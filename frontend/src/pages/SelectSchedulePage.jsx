@@ -51,7 +51,8 @@ export default function SelectSchedule() {
                         block
                         onClick={() => handleSelect(s.schedule._id, s.role)}
                     >
-                        {s.schedule.residentName || "Unnamed Schedule"}
+                        {`${s.schedule.residentName}'s Schedule` ||
+                            "Unnamed Schedule"}
                     </Button>
                 ))}
             </Space>
