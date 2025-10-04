@@ -59,8 +59,8 @@ router.post("/create", authenticateToken, async (req, res) => {
     const session = await Schedule.startSession();
     session.startTransaction();
 
-    let { scheduleAuthor, residentName } = req.body;
-    if (!scheduleAuthor || !residentName) {
+    let { scheduleOwner, residentName } = req.body;
+    if (!scheduleOwner || !residentName) {
         return res
             .status(400)
             .json({ message: "Please fill in all the fields!" });
@@ -77,7 +77,7 @@ router.post("/create", authenticateToken, async (req, res) => {
 
         // Create a new schedule entry
         const schedule = new Schedule({
-            scheduleAuthor,
+            scheduleOwner,
             residentName,
             inviteToken,
         });
@@ -105,11 +105,11 @@ router.post("/create", authenticateToken, async (req, res) => {
 });
 
 router.get("/schedule-info", async (req, res) => {
-    const inputAuthor = req.body.scheduleAuthor;
+    const inputAuthor = req.body.scheduleOwner;
     const inputResident = req.body.resident_name;
 
     Schedule.findOne({
-        scheduleAuthor: inputAuthor,
+        scheduleOwner: inputAuthor,
         resident_name: inputResident,
     }).then((data) => {
         res.json(data);
@@ -128,9 +128,9 @@ async function findSchedule(scheduleId, res) {
     return await givenSchedule;
 }
 
-async function verifyScheduleAuthor(givenSchedule, authorId, res) {
-    // Check that author is really the author of the given schedule
-    if (authorId != givenSchedule.scheduleAuthor.toString()) {
+async function verifyScheduleOwner(givenSchedule, authorId, res) {
+    // Check that author is really the owner of the given schedule
+    if (authorId != givenSchedule.scheduleOwner.toString()) {
         res.status(400).json({
             message: "You do not have access to perform this action!",
         });
@@ -153,8 +153,8 @@ router.post("/:scheduleId/add-task", async (req, res) => {
 
     console.log(givenSchedule);
 
-    // Check that author is really the author of the given schedule
-    if (!verifyScheduleAuthor(givenSchedule, authorId, res)) {
+    // Check that author is really the owner of the given schedule
+    if (!verifyScheduleOwner(givenSchedule, authorId, res)) {
         return;
     }
 
@@ -268,7 +268,7 @@ router.post("/:scheduleId/add-user", authenticateToken, async (req, res) => {
 
 router.delete("/:scheduleId/remove-task", async (req, res) => {
     const { scheduleId } = req.params;
-    const { authorId, removedTask } = req.body;
+    const { ownerId, removedTask } = req.body;
 
     let givenSchedule = await findSchedule(scheduleId, res);
     if (!givenSchedule) {
@@ -276,7 +276,7 @@ router.delete("/:scheduleId/remove-task", async (req, res) => {
     }
 
     // Check that author is really the author of the given schedule
-    if (!(await verifyScheduleAuthor(givenSchedule, authorId, res))) {
+    if (!(await verifyScheduleOwner(givenSchedule, ownerId, res))) {
         return;
     }
 
@@ -312,13 +312,20 @@ router.delete(
         const { removedUser } = req.body;
         const currentUser = req.user;
 
-        let givenSchedule = await findSchedule(scheduleId, res);
-        if (!givenSchedule) {
-            return;
-        }
-
         // Try to remove the user
         try {
+            let givenSchedule = await findSchedule(scheduleId, res);
+            if (!givenSchedule) {
+                return;
+            }
+
+            // cannot delete schedule owner
+            if (String(removedUser) === String(givenSchedule.scheduleOwner)) {
+                return res
+                    .status(403)
+                    .json({ message: "Cannot remove the schedule owner" });
+            }
+
             // schedule-user relationship of current user
             const currentScheduleUser = await ScheduleUser.findOne({
                 user: currentUser,
@@ -396,18 +403,18 @@ router.delete(
     checkPermission("delete:schedule"),
     async (req, res) => {
         const { scheduleId } = req.params;
-        const { authorId } = req.body;
+        const { ownerId } = req.body;
         let givenSchedule = await findSchedule(scheduleId, res);
         if (!givenSchedule) {
             console.log("No schedule found");
             return;
         }
 
-        // Check that author is really the author of the given schedule
+        // Check that owner is really the author of the given schedule
         if (
             !req.user ||
-            !givenSchedule.scheduleAuthor ||
-            req.user !== givenSchedule.scheduleAuthor
+            !givenSchedule.scheduleOwner ||
+            req.user !== givenSchedule.scheduleOwner
         ) {
             console.log("No author");
             return;

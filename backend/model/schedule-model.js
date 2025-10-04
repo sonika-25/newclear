@@ -1,7 +1,7 @@
 // placeholder schedule
 const mongoose = require("mongoose");
 const scheduleSchema = new mongoose.Schema({
-    scheduleAuthor: {
+    scheduleOwner: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true,

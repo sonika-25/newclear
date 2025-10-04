@@ -4,30 +4,18 @@ const ScheduleUser = require("../model/schedule-user-model.js");
 const ROLES = {
     family: [
         "manage:ownUser",
-        "create:patient",
-        "update:patient",
-        "delete:patient",
-        "view:patient",
         "manage:organisation",
         "manage:family",
         "delete:schedule",
     ],
     POA: [
         "manage:ownUser",
-        "create:patient",
-        "update:patient",
-        "delete:patient",
-        "view:patient",
         "manage:organisation",
         "manage:family",
+        "delete:schedule",
     ],
-    organisation: [
-        "manage:ownUser",
-        "update:patient",
-        "view:patient",
-        "manage:carer",
-    ],
-    carer: ["manage:ownUser", "view:patient", "upload:file"],
+    organisation: ["manage:ownUser", "manage:carer"],
+    carer: ["manage:ownUser", "upload:file"],
 };
 
 // check if the given user can perform an action

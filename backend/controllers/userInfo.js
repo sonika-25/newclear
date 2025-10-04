@@ -1,4 +1,3 @@
-const Patient = require("../model/patient-model");
 const express = require("express");
 const User = require("../model/user-model");
 const app = express();
