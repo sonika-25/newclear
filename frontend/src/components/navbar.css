@@ -1,0 +1,96 @@
+.menuCSS .navItem {
+  display: flex;
+  height: 30px;
+  flex-direction:column;
+  align-items: center;
+  justify-content: center;
+  color: #49454f !important;
+  text-align: center !important;
+  margin-top: 5px;
+}
+.menuCSSBottom .navItemBottom {
+  display: flex;
+  height: 20px;
+  flex-direction:column;
+  align-items: center;
+  justify-content: center;
+  color: #49454f !important;
+  text-align: center !important;
+  margin-top: 0px;
+}
+.navLogo{
+  padding: 10px;
+  height:50px;
+  display: block;
+  margin:auto;
+}
+.navProfile{
+  padding: 0px;
+  height:55px;
+  display: block;
+  margin:auto;
+  margin-top: 30px;
+  margin-left: 27px;
+  font-size: 28px;
+  opacity: calc(80%);
+  transition: opacity 1s ease;
+}
+.navProfile:hover
+{
+  opacity: calc(100%);
+}
+
+.menuCSS .navTitle{
+ display: flex;
+ flex-direction:column;
+  align-items: center;
+  color: #49454f;
+  padding: 2px;
+  font-size: small;
+}
+
+.menuCSS .navIcon
+{
+  font-size: 28px !important;
+}
+
+.menuCSSBottom .navIconBottom
+{
+  font-size: 20px !important;
+}
+.menuCSS .ant-menu-item {
+  padding: 0 !important;
+  height: 70px !important;
+  margin-top: 0px;
+  margin-bottom: 30px;
+  line-height: normal !important;
+  display: flex;
+}
+.menuCSSBottom .ant-menu-item {
+  padding: 0 !important;
+  height: 50px !important;
+  margin-top: 0px;
+  margin-bottom: 50px;
+  line-height: normal !important;
+  display: flex;
+}
+.menuCSS .ant-menu-item-selected {
+  background-color: #dbd2eb;
+}
+.menuCSSBottom .ant-menu-item-selected {
+  border-radius: 15%;
+  background-color: #dbd2eb;
+}
+.menuCSSBottom .ant-menu-item:hover {
+    border-radius: 15%;
+  background-color: #dbd2eb;
+}
+.siderDisplay .ant-layout-sider-children {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100%;
+}
+.menuCSS .ant-menu-item .anticon + span,
+.menuCSS .ant-menu-item .ant-menu-item-icon + span {
+  margin-left: 0 !important;
+}
