@@ -404,21 +404,22 @@ router.delete(
     checkPermission("delete:schedule"),
     async (req, res) => {
         const { scheduleId } = req.params;
-        const { ownerId } = req.body;
+        const userId = req.user._id || req.user;
+
         let givenSchedule = await findSchedule(scheduleId, res);
         if (!givenSchedule) {
-            console.log("No schedule found");
-            return;
+            return res.status(404).json({ message: "No schedule found" });
         }
 
-        // Check that owner is really the author of the given schedule
+        // Check that the user is really the owner of the given schedule
         if (
             !req.user ||
             !givenSchedule.scheduleOwner ||
-            req.user !== givenSchedule.scheduleOwner
+            String(userId) !== String(givenSchedule.scheduleOwner)
         ) {
-            console.log("No author");
-            return;
+            return res
+                .status(400)
+                .json({ message: "User is not the owner of the schedule" });
         }
 
         // Makes sure that the deletion of schedule and scheduleUser are atomic,
