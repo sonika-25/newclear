@@ -310,7 +310,8 @@ router.delete(
     async (req, res) => {
         const { scheduleId } = req.params;
         const { removedUser } = req.body;
-        const currentUser = req.user;
+        const currentUserId = req.user._id || req.user;
+        const removedUserId = removedUser._id || removedUser;
 
         // Try to remove the user
         try {
@@ -320,7 +321,7 @@ router.delete(
             }
 
             // cannot delete schedule owner
-            if (String(removedUser) === String(givenSchedule.scheduleOwner)) {
+            if (String(removedUserId) === String(givenSchedule.scheduleOwner)) {
                 return res
                     .status(403)
                     .json({ message: "Cannot remove the schedule owner" });
@@ -328,13 +329,13 @@ router.delete(
 
             // schedule-user relationship of current user
             const currentScheduleUser = await ScheduleUser.findOne({
-                user: currentUser,
+                user: currentUserId,
                 schedule: scheduleId,
             });
 
             // schedule-user relationship of user we want to remove
             const tobeRemovedScheduleUser = await ScheduleUser.findOne({
-                user: removedUser,
+                user: removedUserId,
                 schedule: scheduleId,
             });
 
@@ -361,14 +362,14 @@ router.delete(
                     .json({ message: "Cannot remove with this role" });
             }
 
-            if (String(currentUser._id) === String(removedUser._id)) {
+            if (String(currentUserId) === String(removedUserId)) {
                 return res.status(403).json({
                     message: "Cannot remove yourself from the schedule",
                 });
             }
 
             const canDelete = await hasPermission(
-                currentUser,
+                currentUserId,
                 scheduleId,
                 requiredPermission,
             );
@@ -380,7 +381,7 @@ router.delete(
 
             // Remove the link between the user and the schedule
             const removedScheduleUser = await ScheduleUser.findOneAndDelete({
-                user: removedUser,
+                user: removedUserId,
                 schedule: scheduleId,
             });
             if (!removedScheduleUser) {
