@@ -5,12 +5,12 @@ const taskSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    descriptiom: {
+    description: {
         type: String,
         required: true,
     },
     frequency: {
-        type: Number,
+        type: String,
          enum: ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'],
         required: true,
     },
