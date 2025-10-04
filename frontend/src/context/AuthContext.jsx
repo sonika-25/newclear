@@ -123,15 +123,19 @@ export const AuthProvider = ({ children }) => {
             return;
         }
 
-        const interval = setInterval(async () => {
-            try {
-                await refreshAccessToken();
-                console.log("Access token refreshed proactively");
-            } catch (err) {
-                console.error("Failed to refresh proactively", err);
-                logout();
-            }
-        }, 5000);
+        // give a new access token every 14 mins
+        const interval = setInterval(
+            async () => {
+                try {
+                    await refreshAccessToken();
+                    console.log("Access token refreshed proactively");
+                } catch (err) {
+                    console.error("Failed to refresh proactively", err);
+                    logout();
+                }
+            },
+            14 * 60 * 1000,
+        );
 
         return () => clearInterval(interval);
     }, [user]);

@@ -65,6 +65,7 @@ const ProtectedRoute = ({ children }) => {
         };
         checkMembership();
 
+        // check that the user is still in the schedule every 30 seconds
         const interval = setInterval(async () => {
             try {
                 const res = await axios.get(
@@ -84,7 +85,7 @@ const ProtectedRoute = ({ children }) => {
                 console.error("Schedule membership check failed", err);
                 clearInterval(interval);
             }
-        }, 5000); // every 5s
+        }, 30 * 1000);
 
         return () => clearInterval(interval);
     }, [user, selectedSchedule, loading, location.pathname]);

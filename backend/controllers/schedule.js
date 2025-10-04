@@ -331,9 +331,16 @@ router.delete(
                 schedule: scheduleId,
             });
 
-            if (!currentScheduleUser || !tobeRemovedScheduleUser) {
+            if (!currentScheduleUser) {
                 return res.status(404).json({
-                    message: "Users cannot not be found in the schedule",
+                    message:
+                        "You are not in the schedule, and will be redirected soon...",
+                });
+            }
+
+            if (!tobeRemovedScheduleUser) {
+                return res.status(404).json({
+                    message: "User cannot not be found in the schedule",
                 });
             }
 
@@ -358,7 +365,7 @@ router.delete(
                 scheduleId,
                 requiredPermission,
             );
-            if (!canDelete || currentUser === tobeRemovedScheduleUser.user) {
+            if (!canDelete) {
                 return res.status(403).json({
                     message: "Cannot remove with this role",
                 });
