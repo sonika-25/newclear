@@ -171,8 +171,50 @@ const CatPie = ({data}) => {
       setTaskModalOpen(true);
     };
      
-    const HandleTaskOk = (values) => {
-      if(editingTaskKey){
+    const HandleTaskOk = async (values) => {
+        try {
+          const [start, end] = values.dateRange ?? [];
+          const payload = {
+            name: values.task.trim(),
+            description: values.description || '',
+            startDate: start?.toDate?.() ?? new Date(),
+            endDate: end?.toDate?.(),
+            every: Number(values.frequency),
+            unit: 'day', // simple default
+            budget: Number(values.budget),
+            category: activeKey,
+            patientId: PATIENT_ID,
+          };
+
+          const { data } = await axios.post(`http://localhost:3000/trial/tasks/${activeKey}/${PATIENT_ID}`, payload);
+
+          // add new task to table
+          setTaskData(prev => [
+            ...prev,
+            {
+              key: data._id,
+              task: data.name,
+              categoryId: activeKey,
+              budget: Number(data.budget) || 0,
+              frequency: data.every ? `${data.every} ${data.unit}${data.every > 1 ? 's' : ''}` : '',
+              description: data.description || '',
+              dateRange: [
+                dayjs(data.startDate),
+                data.endDate ? dayjs(data.endDate) : dayjs(data.startDate),
+              ],
+            },
+          ]);
+
+          taskForm.resetFields();
+          setTaskModalOpen(false);
+          message.success('Task added');
+        } catch (err) {
+          console.error(err);
+          message.error(err?.response?.data?.message || 'Failed to add task');
+        }
+
+      /*old frontend: -*/
+      /*if(editingTaskKey){
           setTaskData(prev =>  prev.map(task => {
           if (task.key !== editingTaskKey) 
             {
@@ -207,7 +249,8 @@ const CatPie = ({data}) => {
         
       taskForm.resetFields();
       setEditingTaskKey(null);
-      setTaskModalOpen(false);
+      setTaskModalOpen(false);*/
+
     };
  /*********************END TAB BOILIER PLATE FROM ANTD WITH SLIGHT EDITS**************************** */   
   
@@ -221,51 +264,50 @@ const CatPie = ({data}) => {
   const [catLoading, setCatLoading] = useState(true);               
   const [catError, setCatError]     = useState(null); 
   const tabItems = useMemo(() => categories.map(c => ({ label: c.name, key: c.id })),[categories]);
-
   //loads tasks
   useEffect(() => {
     if (!activeKey) return;
-
     let ignore = false;
     (async () => {
       try {
-        // 🔁 call whichever route you have; two common patterns:
-        // const { data } = await axios.get(`http://localhost:3000/categories/${activeKey}/tasks?patientId=${PATIENT_ID}`);
         const { data } = await axios.get(
-           `http://localhost:3000/trial/categories/tasks/${activeKey}`
+          `http://localhost:3000/trial/categories/tasks/${activeKey}`
         );
 
-        // Expecting an array of Task docs (your Task schema fields)
-        // Map them to your table row shape
         const mapped = (Array.isArray(data) ? data : data.tasks || []).map(t => ({
           key: t._id,
-          task: t.name,                                    // UI "Task"
-          categoryId: t.category || activeKey,            // ensure present
+          task: t.name,
+          categoryId: activeKey, // we know which category we fetched
           budget: Number(t.budget) || 0,
-          frequency: t.every ? `${t.every} ${t.unit}${t.every > 1 ? 's' : ''}` : '', // e.g., "2 weeks"
+          frequency: t.every ? `${t.every} ${t.unit}${t.every > 1 ? 's' : ''}` : '',
           description: t.description || '',
           dateRange: [
-            dayjs(t.startDate), 
+            dayjs(t.startDate),
             t.endDate ? dayjs(t.endDate) : dayjs(t.startDate)
           ],
-          // keep raw in case you need later
           __raw: t
         }));
 
-        if (!ignore) setTaskData(prev => {
-          // Replace/merge only items for this category to avoid nuking other tabs’ local edits
-          const others = prev.filter(x => x.categoryId !== activeKey);
-          return [...others, ...mapped];
-        });
+        if (!ignore) {
+          // replace rows for this category only
+          setTaskData(prev => {
+            const others = prev.filter(x => x.categoryId !== activeKey);
+            return [...others, ...mapped];
+          });
+        }
       } catch (err) {
         console.error('load tasks failed', err);
         message.error(err?.response?.data?.message || 'Failed to load tasks');
       }
-    })();
+  })();
 
-    return () => { ignore = true; };
-``}, [activeKey, PATIENT_ID]);
+  return () => { ignore = true; };
+}, [activeKey]);
 
+
+    async function getActiveKey (){
+      console.log(activeKey)
+    }
   // === NEW === Load categories for this patient on mount
   useEffect(() => {
     let ignore = false;
@@ -663,6 +705,9 @@ const CatPie = ({data}) => {
            
           </div>
         </Content>
+        <button onClick={getActiveKey}>
+          CLICK
+        </button>
       </Layout>
 
     );
