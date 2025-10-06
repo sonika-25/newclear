@@ -16,6 +16,10 @@ async function createTask(req, res) {
       startDate, endDate: endDate || null,
       unit,every, budget
     });
+    await Category.updateOne(
+      { _id: categoryId },
+      {$addToSet: { tasks: task._id }}
+    );
 
     // seed first year of runs (2 occurrences for 6-month cycle)
     await seedRuns(task, 20); // monthsAhead = 12
@@ -73,6 +77,41 @@ async function listRuns(req, res) {
   }
 }
 
+async function listTasksByCategory (req,res) {
+ // controllers/categoryController.js
+
+  try {
+    const { categoryId } = req.params;
+    const { fields } = req.query;
+
+    if (!(categoryId)) {
+      return res.status(400).json({ message: 'Invalid categoryId' });
+    }
+
+    // Build projection string
+    const selectFields = fields ? fields.split(',').join(' ') : 'name description budget startDate endDate every unit patientId';
+
+    // Populate tasks from Category model
+    const category = await Category.findById(categoryId)
+      .populate({
+        path: 'tasks',
+        select: selectFields,
+        options: { sort: { startDate: 1 } },
+      })
+      .lean();
+
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    // Return just the populated tasks array
+    res.json(category.tasks || []);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to load tasks for category' });
+  }
+
+}
 // mark a run done and deduct budget
 async function completeRun(req, res) {
   try {
@@ -112,5 +151,6 @@ module.exports = {
   createTask,
   listRuns,
   completeRun,
-  seedRuns, // export if you want a daily job to top-up future runs
+  seedRuns,
+  listTasksByCategory // export if you want a daily job to top-up future runs
 };

@@ -12,7 +12,7 @@ const patientSchema = new mongoose.Schema({
         unique: true,
     },
     phone: {
-        type: Number,
+        type: String,
         required: true,
     },
     password: {

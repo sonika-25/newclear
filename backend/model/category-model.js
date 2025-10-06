@@ -8,7 +8,11 @@ const categorySchema = new mongoose.Schema({
     budget: {
         type: Number,
         required: true,
-    }
+    },
+    tasks: [{
+        type : mongoose.Schema.Types.ObjectId,
+        ref : 'Task' 
+    }]
     
 });
 

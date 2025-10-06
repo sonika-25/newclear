@@ -15,7 +15,7 @@ dayjs.extend(customParseFormat);
 const { Content } = Layout;
 const {RangePicker} = DatePicker;
 const{TextArea } = Input;
-const PATIENT_ID = "68dcdc74014b5dce70f92e40";
+const PATIENT_ID = "68e392ceaa1d2a361e81c56e";
 /*Elements of this code utilise basic boiler plate code from AntD.*/
 
 
@@ -86,12 +86,13 @@ const CatPie = ({data}) => {
 
 
 
-  const [taskData, setTaskData] = useState([
+  /*const [taskData, setTaskData] = useState([
     { key: '0', task: 'New Toothpaste', categoryId: "1", budget: 100, frequency: 30, description: 'Uses protective enamel paste only',
     dateRange: [dayjs('01-01-2025','DD-MM-YYYY'), dayjs('01-01-2025','DD-MM-YYYY')],},
     { key: '1', task: 'New Toothbrush',  categoryId: "1", budget: 100, frequency: 30, description: 'Requires a soft bristle brush due to sensitivity',
     dateRange: [dayjs('01-01-2025','DD-MM-YYYY'), dayjs('01-01-2025','DD-MM-YYYY')]},
-  ]);
+  ]);*/
+  const [taskData,setTaskData] =useState([])
 
   
   const columns = [
@@ -179,13 +180,13 @@ const CatPie = ({data}) => {
             }
             else{
               return {
-            ...task,
-            task: values.task.trim(),
-            budget: Number(values.budget),
-            frequency: Number(values.frequency),
-            description: values.description || '',
-            dateRange: values.dateRange,
-            };
+                ...task,
+                task: values.task.trim(),
+                budget: Number(values.budget),
+                frequency: Number(values.frequency),
+                description: values.description || '',
+                dateRange: values.dateRange,
+              };
             }
           })
         );
@@ -221,6 +222,49 @@ const CatPie = ({data}) => {
   const [catError, setCatError]     = useState(null); 
   const tabItems = useMemo(() => categories.map(c => ({ label: c.name, key: c.id })),[categories]);
 
+  //loads tasks
+  useEffect(() => {
+    if (!activeKey) return;
+
+    let ignore = false;
+    (async () => {
+      try {
+        // 🔁 call whichever route you have; two common patterns:
+        // const { data } = await axios.get(`http://localhost:3000/categories/${activeKey}/tasks?patientId=${PATIENT_ID}`);
+        const { data } = await axios.get(
+           `http://localhost:3000/trial/categories/tasks/${activeKey}`
+        );
+
+        // Expecting an array of Task docs (your Task schema fields)
+        // Map them to your table row shape
+        const mapped = (Array.isArray(data) ? data : data.tasks || []).map(t => ({
+          key: t._id,
+          task: t.name,                                    // UI "Task"
+          categoryId: t.category || activeKey,            // ensure present
+          budget: Number(t.budget) || 0,
+          frequency: t.every ? `${t.every} ${t.unit}${t.every > 1 ? 's' : ''}` : '', // e.g., "2 weeks"
+          description: t.description || '',
+          dateRange: [
+            dayjs(t.startDate), 
+            t.endDate ? dayjs(t.endDate) : dayjs(t.startDate)
+          ],
+          // keep raw in case you need later
+          __raw: t
+        }));
+
+        if (!ignore) setTaskData(prev => {
+          // Replace/merge only items for this category to avoid nuking other tabs’ local edits
+          const others = prev.filter(x => x.categoryId !== activeKey);
+          return [...others, ...mapped];
+        });
+      } catch (err) {
+        console.error('load tasks failed', err);
+        message.error(err?.response?.data?.message || 'Failed to load tasks');
+      }
+    })();
+
+    return () => { ignore = true; };
+``}, [activeKey, PATIENT_ID]);
 
   // === NEW === Load categories for this patient on mount
   useEffect(() => {
