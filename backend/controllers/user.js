@@ -27,6 +27,7 @@ router.get("/:email", async (req, res) => {
     }
 });
 
+// creates an account for a user
 router.post("/signup", async (req, res) => {
     isAdmin = false;
     let {
@@ -71,6 +72,7 @@ router.post("/signup", async (req, res) => {
     }
 });
 
+// updates the details of the user
 router.patch("/:id", authenticateToken, getUser, async (req, res) => {
     const userEditId = req.params.id;
     const currentUser = req.user;
@@ -80,6 +82,7 @@ router.patch("/:id", authenticateToken, getUser, async (req, res) => {
     }
 });
 
+// deletes the user account
 router.delete("/:id", authenticateToken, getUser, async (req, res) => {
     const userEditId = req.params.id;
     const currentUser = req.user;

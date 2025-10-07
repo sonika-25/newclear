@@ -53,6 +53,7 @@ router.get("/:scheduleId/:userId", authenticateToken, async (req, res) => {
     }
 });
 
+// Creates a schedule for the client/PWSN, with the creator becoming the client's family/POA
 router.post("/create", authenticateToken, async (req, res) => {
     // Makes sure that the creation of schedule and scheduleUser is atomic,
     // if one fails, they both fail
@@ -104,18 +105,20 @@ router.post("/create", authenticateToken, async (req, res) => {
     }
 });
 
+// Returns the information of a schedule belonging to a given owner and client/PWSN
 router.get("/schedule-info", async (req, res) => {
-    const inputAuthor = req.body.scheduleOwner;
+    const inputOwner = req.body.scheduleOwner;
     const inputResident = req.body.resident_name;
 
     Schedule.findOne({
-        scheduleOwner: inputAuthor,
+        scheduleOwner: inputOwner,
         resident_name: inputResident,
     }).then((data) => {
         res.json(data);
     });
 });
 
+// Fetches the schedule with a given id
 async function findSchedule(scheduleId, res) {
     const givenSchedule = await Schedule.findById(scheduleId);
     if (!givenSchedule) {
@@ -128,8 +131,9 @@ async function findSchedule(scheduleId, res) {
     return await givenSchedule;
 }
 
+
+// Check that author is really the owner of the given schedule
 async function verifyScheduleOwner(givenSchedule, authorId, res) {
-    // Check that author is really the owner of the given schedule
     if (authorId != givenSchedule.scheduleOwner.toString()) {
         res.status(400).json({
             message: "You do not have access to perform this action!",
@@ -174,6 +178,7 @@ router.post("/:scheduleId/add-task", async (req, res) => {
     }
 });
 
+// Creates a specific task and adds it to the schedule
 async function createTask(req) {
     let { task, description, frequency, interval, budget, isCompleted } =
         req.body;
@@ -266,6 +271,7 @@ router.post("/:scheduleId/add-user", authenticateToken, async (req, res) => {
     }
 });
 
+// Removes a specific task from the schedule
 router.delete("/:scheduleId/remove-task", async (req, res) => {
     const { scheduleId } = req.params;
     const { ownerId, removedTask } = req.body;
@@ -304,6 +310,7 @@ router.delete("/:scheduleId/remove-task", async (req, res) => {
     }
 });
 
+// Removes a user from the schedule if the user has permission
 router.delete(
     "/:scheduleId/remove-user",
     authenticateToken,
