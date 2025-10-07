@@ -1,98 +1,201 @@
 import './css/schedule.css';
-import { useState } from "react"
-import { Modal, Layout, Button, Typography, Table, InputNumber } from 'antd';
-import { LeftOutlined, RightOutlined } from '@ant-design/icons';
-const { Content } = Layout;
-const { Title } = Typography;
+import React, { useState, useMemo } from "react"
+import { Layout, Typography, Calendar, Table, Tag, Button, Modal, Form, Input, DatePicker, Select, Space } from 'antd';
+import { CheckCircleTwoTone, ClockCircleTwoTone } from "@ant-design/icons";
+import dayjs from "dayjs";
 
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const { Content } = Layout;
+const { Title, Text } = Typography;
+
+const MOCK_ITEMS = [
+    { id: "aaa", name: "AAA", schedules: [{ year: 2025, month: 0, status: "completed", completedOn: "2025-01-18" }, { year: 2025, month: 8, status: "pending" }] },
+    { id: "bbb", name: "BBB", schedules: [{ year: 2025, month: 1, status: "pending" }, { year: 2025, month: 5, status: "pending" }] },
+    { id: "ccc", name: "CCC", schedules: [{ year: 2025, month: 8, status: "completed", completedOn: "2025-09-05" }] },
+];
+
+function getMonthlyTasks(items, year, month) {
+    return items.flatMap(it => {
+        const s = it.schedules.find(x => x.year === year && x.month === month);
+         return s ? [{
+            key: `${it.id}-${year}-${month}`,
+            id: it.id,
+            name: it.name,
+            status: s.status,
+            completedOn: s.completedOn,
+            _scheduleRef: s,
+        }] : [];
+    });
+};
 
 export default function SchedulePage() {
-    const [year, setYear] = useState(new Date().getFullYear());
+    const today = dayjs();
+    const [selectedYear, setSelectedYear] = useState(today.year());
+    const [selectedMonth, setSelectedMonth] = useState(today.month());
+    const [items, setItems] = useState(MOCK_ITEMS);
+    const monthData = useMemo(
+        () => getMonthlyTasks(items, selectedYear, selectedMonth),
+        [items, selectedYear, selectedMonth]
+    );
 
-    // collumns for schedule
     const cols = [
         {
-            title: "TASK",
-            dataIndex: "item",
-            key: "item",
-            width: "13%",
-            render: (val) => (
-                <div className="taskCell">{val}</div>
-            ),
+            title: "Item",
+            dataIndex: "name",
+            key: "name",
+            render: (text, record) => (
+                <Button type="link" onClick={() => onOpenModal(record)}>
+                    {text}
+                </Button>
+            )
         },
-        // month columns
-        ...MONTHS.map((m, idx) => ({
-            title: m,
-            dataIndex: `m${idx+1}`,
-            key: `m${idx+1}`,
-            width: "7.25%",
-            align: "center",
-            render: (cell) => cell ?? null,
-        })),
+        {
+            title: "Status",
+            dataIndex: "status",
+            key: "status",
+            width: 140,
+            render: (val) =>
+                val === "completed" ? (
+                    <Tag icon={<CheckCircleTwoTone twoToneColor="#52c41a" />} color="success">Completed</Tag>
+                ) : (
+                    <Tag icon={<CheckCircleTwoTone twoToneColor="#faad14" />} color="warning">Pending</Tag>   
+                )
+        },
+        {
+            title: "Completed On",
+            dataIndex: "completedOn",
+            key: "completedOn",
+            width: 160,
+            render: (val) => (val ? dayjs(val).format("DD MMM YYYY") : "-"),
+        },
     ];
 
-    // test data
-    const data = [
-        { key: "A", item: "AAA" },
-        { key: "B", item: "BBB" },
-        { key: "C", item: "CCC" },
-    ];
+    const [openModal, setOpenModal] = useState(false);
+    const [activeRow, setActiveRow] = useState(null);
+    const [form] = Form.useForm();
+
+    function onOpenModal(record) {
+        setActiveRow(record);
+        form.setFieldsValue({
+            status: record.status || "pending",
+            completedOn: record.completedOn ? dayjs(record.completedOn) : null,
+            notes: "",
+        });
+        setOpenModal(true);
+    }
+
+    function handleSave(values) {
+        setItems(prev =>
+            prev.map(it => {
+                if (it.id !== activeRow.id) return it;
+                const nextSchedules = it.schedules.map(s => {
+                    if (s === activeRow._scheduleRef) {
+                        const next = { ...s, status: values.status };
+                        next.completedOn =
+                            values.status === "completed" && values.completedOn
+                                ? values.completedOn.toISOString()
+                                : undefined;
+                        return next;
+                    }
+                    return s;
+                });
+                return { ...it, schedules: nextSchedules };
+            })
+        );
+        setOpenModal(false);
+        form.resetFields();
+    }
 
     return (
-        <Layout>
-            <Content className='schedule' style={{ padding: '10px 15px' }}>
+        <Layout style={{ minHeight: "100vh" }}>
+            <Content className="schedule" style={{ padding: "10px 15px" }}>
                 <div
                     style={{
-                        background: "#FFFFFF",
+                        background: "#fff",
                         padding: 20,
-                        minHeight: "calc(100vh - 20px",
+                        minHeight: "calc(100vh - 20px)",
                         borderRadius: 20,
-                        display: "flex",
-                        flexDirection: "column"
                     }}
                 >
-                    <div
-                        style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            marginBottom: 12,
-                        }}
-                    >
-                        <Title level={4} style={{ margin: 0 }}>
-                            Schedule
-                        </Title>
+                    <Title level={4} style={ {marginTop: 0 }}>Schedule</Title>
+                
+                    <div style={{ display: "grid", gridTemplateColumns: "420px 1fr", gap: 16 }}>
+                        
+                        {/* Calendar component (left side) */}
+                        <Calendar
+                            fullscreen={false}
+                            mode="year"
+                            value={dayjs().year(selectedYear).month(selectedMonth).date(1)}
+                            onSelect={(d) => {
+                                setSelectedYear(d.year());
+                                setSelectedMonth(d.month());
+                            }}
+                            onPanelChange={(d) => setSelectedYear(d.year())}
+                            style={{ border: "1px solid #f0f0f0", borderRadius: 12, background: "#fff" }}
+                        />
 
-                        {/* year selector */}
-                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            <Button 
-                                icon={<LeftOutlined />}
-                                onClick={() => setYear((y) => y - 1)}
-                            />
-                            <InputNumber
-                                value={year}
-                                onChange={(val) => val && setYear(val)}
-                                controls={false}
-                                style={{ width: 100, textAlign: "center" }}
-                            />
-                            <Button 
-                                icon={<RightOutlined/>}
-                                onClick={() => setYear((y) => y + 1)}
+                        {/* Table component (right side) */}
+                        <div style={{ border: "1px solid #f0f0f0", borderRadius: 12, padding: 12 }}>
+                            <div style={{ marginBottom: 8}}>
+                                <Text strong>{dayjs().month(selectedMonth).format("MMMM")} {selectedYear}</Text>
+                                <Text type="secondary" style={{ marginLeft: 8}}>
+                                    • {monthData.length} task{monthData.length !== 1 ? "s" : ""}
+                                </Text>
+                            </div>
+
+                            <Table
+                                size="middle"
+                                columns={cols}
+                                dataSource={monthData}
+                                rowKey="key"
+                                pagination={false}
                             />
                         </div>
                     </div>
-
-                    {/* schedule component */}
-                    <Table
-                        bordered
-                        columns={cols}
-                        dataSource={data}
-                        pagination={false}
-                        tableLayout="fixed"
-                    />
                 </div>
             </Content>
+            <Modal
+                title={activeRow ? `Update: ${activeRow.name}` : "Update"}
+                open={openModal}
+                onCancel={() => { form.resetFields(); setOpenModal(false); }}
+                okText="Save"
+                onOk={() => form.submit()}
+                destroyOnHidden
+            >
+                <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ status: "pending" }}>
+                    {/* item status */}
+                    <Form.Item name="status" label="Status" rules={[{ required: true }]}>
+                        <Select
+                            options={[
+                                { value: "pending", label: "Pending" },
+                                { value: "completed", label: "Completed"},
+                            ]}
+                        />
+                    </Form.Item>
+
+                    {/* date completed */}
+                    <Form.Item
+                        name="completedOn"
+                        label="Completed On"
+                        dependencies={["status"]}
+                        rules={[
+                            ({ getFieldValue }) => ({
+                                validator(_, value) {
+                                    if (getFieldValue("status") !== "completed") return Promise.resolve();
+                                    if (value) return Promise.resolve();
+                                    return Promise.reject(new Error("Please pick a completion date"));
+                                },
+                            }),
+                        ]}
+                    >
+                        <DatePicker style={{ width: "100%" }}/>
+                    </Form.Item>
+
+                    {/* comments */}
+                    <Form.Item name="comments" label="Comments">
+                        <Input.TextArea rows={3} placeholder="Optional Comments"/>
+                    </Form.Item>
+                </Form>
+            </Modal>
         </Layout>
     )
 }
