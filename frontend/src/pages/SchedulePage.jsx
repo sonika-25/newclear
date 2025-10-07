@@ -57,7 +57,7 @@ export default function SchedulePage() {
                 val === "completed" ? (
                     <Tag icon={<CheckCircleTwoTone twoToneColor="#52c41a" />} color="success">Completed</Tag>
                 ) : (
-                    <Tag icon={<CheckCircleTwoTone twoToneColor="#faad14" />} color="warning">Upcoming</Tag>   
+                    <Tag icon={<ClockCircleTwoTone twoToneColor="#faad14" />} color="warning">Upcoming</Tag>   
                 )
         },
         {
