@@ -8,8 +8,8 @@ const { Content } = Layout;
 const { Title, Text } = Typography;
 
 const MOCK_ITEMS = [
-    { id: "aaa", name: "AAA", schedules: [{ year: 2025, month: 0, status: "completed", completedOn: "2025-01-18" }, { year: 2025, month: 8, status: "pending" }] },
-    { id: "bbb", name: "BBB", schedules: [{ year: 2025, month: 1, status: "pending" }, { year: 2025, month: 5, status: "pending" }] },
+    { id: "aaa", name: "AAA", schedules: [{ year: 2025, month: 0, status: "completed", completedOn: "2025-01-18" }, { year: 2025, month: 8, status: "upcoming" }] },
+    { id: "bbb", name: "BBB", schedules: [{ year: 2025, month: 1, status: "upcoming" }, { year: 2025, month: 5, status: "upcoming" }] },
     { id: "ccc", name: "CCC", schedules: [{ year: 2025, month: 8, status: "completed", completedOn: "2025-09-05" }] },
 ];
 
@@ -57,7 +57,7 @@ export default function SchedulePage() {
                 val === "completed" ? (
                     <Tag icon={<CheckCircleTwoTone twoToneColor="#52c41a" />} color="success">Completed</Tag>
                 ) : (
-                    <Tag icon={<CheckCircleTwoTone twoToneColor="#faad14" />} color="warning">Pending</Tag>   
+                    <Tag icon={<CheckCircleTwoTone twoToneColor="#faad14" />} color="warning">Upcoming</Tag>   
                 )
         },
         {
@@ -76,7 +76,7 @@ export default function SchedulePage() {
     function onOpenModal(record) {
         setActiveRow(record);
         form.setFieldsValue({
-            status: record.status || "pending",
+            status: record.status || "upcoming",
             completedOn: record.completedOn ? dayjs(record.completedOn) : null,
             notes: "",
         });
@@ -153,6 +153,7 @@ export default function SchedulePage() {
                     </div>
                 </div>
             </Content>
+            {/* modal form for task updates */}
             <Modal
                 title={activeRow ? `Update: ${activeRow.name}` : "Update"}
                 open={openModal}
@@ -161,12 +162,12 @@ export default function SchedulePage() {
                 onOk={() => form.submit()}
                 destroyOnHidden
             >
-                <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ status: "pending" }}>
+                <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ status: "upcoming" }}>
                     {/* item status */}
                     <Form.Item name="status" label="Status" rules={[{ required: true }]}>
                         <Select
                             options={[
-                                { value: "pending", label: "Pending" },
+                                { value: "upcoming", label: "Upcoming" },
                                 { value: "completed", label: "Completed"},
                             ]}
                         />
