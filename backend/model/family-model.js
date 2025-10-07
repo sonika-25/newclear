@@ -10,7 +10,7 @@ const familySchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    role : {
+    firstName: {
         type: String,
         enum: ['family', 'POA'],
         required: false,

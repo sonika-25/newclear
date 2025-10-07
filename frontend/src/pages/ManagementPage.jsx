@@ -20,14 +20,18 @@ import {
     Space,
     Typography,
 } from "antd";
-import React, { useState, useEffect, useRef, useMemo } from "react";
+
+import React, { useState, useRef, useMemo, useContext, useEffect } from "react";
 import { CloseOutlined, PlusOutlined } from "@ant-design/icons";
 import { Pie } from "@ant-design/plots";
 import dayjs from "dayjs";
-import customParseFormat from "dayjs/plugin/customParseFormat";
 import axios from "axios";
-
+import customParseFormat from "dayjs/plugin/customParseFormat";
 dayjs.extend(customParseFormat);
+import { jwtDecode } from "jwt-decode";
+import { getAccessToken } from "../utils/tokenUtils";
+import { getUserByEmail } from "../utils/userUtils";
+import { ScheduleContext } from "../context/ScheduleContext";
 
 const { Content } = Layout;
 const { RangePicker } = DatePicker;
@@ -93,8 +97,12 @@ const CatPie = ({ data }) => {
 };
 
 export default function ManagementPage() {
+    const { message } = App.useApp();
+
     const [userData, setUserData] = useState([]);
     const [userForm] = Form.useForm();
+
+    const { selectedSchedule, scheduleRole } = useContext(ScheduleContext);
 
     const [isTaskModalOpen, setTaskModalOpen] = useState(false);
     const [taskForm] = Form.useForm();
@@ -115,6 +123,12 @@ export default function ManagementPage() {
     dateRange: [dayjs('01-01-2025','DD-MM-YYYY'), dayjs('01-01-2025','DD-MM-YYYY')]},
   ]);*/
     const [taskData, setTaskData] = useState([]);
+    // contains information of logged in user
+    const token = getAccessToken();
+    if (token) {
+        const decoded = jwtDecode(token);
+    }
+    let roles = [scheduleRole];
 
     const columns = [
         { title: "Task", dataIndex: "task", key: "task" },
@@ -154,24 +168,105 @@ export default function ManagementPage() {
         },
     ];
 
-    const UserFormComplete = (values) => {
-        const user = `${values.firstName} ${values.lastName} · ${values.userType} · Admin Status: ${values.admin}`;
-        console.log(user);
-        axios
-            .post("http://localhost:3000/family/addOrg", {
-                orgEmail: values.email,
-                patientId: "68e49fee3b13709c94e4f138", //need a way to get patient id from code
-            })
-            .then((res) => {
-                console.log(res.data);
-            })
-            .catch(console.err);
-        setUserData((prevData) => [...prevData, user]);
-        userForm.resetFields();
+    const fetchUsers = async () => {
+        try {
+            const res = await axios.get(
+                `http://localhost:3000/schedule/${selectedSchedule}/users`,
+                { headers: { Authorization: `Bearer ${getAccessToken()}` } },
+            );
+            setUserData(res.data);
+        } catch (err) {
+            console.error("Failed to load users", err);
+            message.error("Failed to load users");
+        }
     };
 
-    const RemoveUser = (idx) => {
+    useEffect(() => {
+        if (!selectedSchedule) {
+            return;
+        }
+        fetchUsers();
+    }, [selectedSchedule]);
+
+    const UserFormComplete = async (values) => {
+        try {
+            const res = await getUserByEmail(values.email);
+            if (!res || !res.data || !res.data._id) {
+                console.error("No user found");
+                message.error("No user found");
+                return;
+            }
+            if (!values.userType) {
+                console.error("Select a User Type");
+                message.error("Select a User Type");
+                return;
+            }
+            const userToAdd = res.data;
+
+            // Use an optimistic user to emulate fast addition into UI
+            // Rollback to database state if addition fails
+            const optimisticUser = {
+                user: userToAdd,
+                role: values.userType,
+                isAdmin: values.admin || false,
+                optimistic: true,
+            };
+            setUserData((prev) => [...prev, optimisticUser]);
+
+            const updated = await axios.post(
+                `http://localhost:3000/schedule/${selectedSchedule}/add-user`,
+                {
+                    userId: userToAdd._id,
+                    role: values.userType,
+                },
+                { headers: { Authorization: `Bearer ${getAccessToken()}` } },
+            );
+            if (!updated) {
+                message.error("Cannot add user");
+                return;
+            }
+
+            userForm.resetFields();
+        } catch (err) {
+            console.error(
+                "Error adding user",
+                err.response?.data || err.message,
+            );
+            message.error("Failed to add user", 3);
+        } finally {
+            // Fetch from database again to ensure it matches with the UI
+            await fetchUsers();
+        }
+    };
+
+    const RemoveUser = async (idx, userId) => {
+        // Optimistic user removal to emulate fast deletion on UI
+        // Will rollback if deletion fails
+        const prevUsers = [...userData];
         setUserData((prev) => prev.filter((_, i) => i !== idx));
+
+        try {
+            await axios.delete(
+                `http://localhost:3000/schedule/${selectedSchedule}/remove-user`,
+                {
+                    data: {
+                        removedUser: userId,
+                    },
+                    headers: { Authorization: `Bearer ${getAccessToken()}` },
+                },
+            );
+            await fetchUsers();
+        } catch (err) {
+            console.error(
+                "Error removing user",
+                err.response?.data || err.message,
+            );
+            message.error(
+                err.response?.data?.message || "Failed to remove user",
+                3,
+            );
+            setUserData(prevUsers);
+        }
     };
 
     const HandleTaskEdit = (key) => {
@@ -594,22 +689,6 @@ export default function ManagementPage() {
                                     <Input placeholder="Enter user email" />
                                 </Form.Item>
                                 <Form.Item
-                                    style={{ marginRight: 20 }}
-                                    name="firstName"
-                                    label="Enter User First Name"
-                                    rules={[{ required: true }]}
-                                >
-                                    <Input placeholder="Enter user first name" />
-                                </Form.Item>
-                                <Form.Item
-                                    style={{ marginRight: 20 }}
-                                    name="lastName"
-                                    label="Enter User Last Name"
-                                    rules={[{ required: true }]}
-                                >
-                                    <Input placeholder="Enter user last name" />
-                                </Form.Item>
-                                <Form.Item
                                     name="admin"
                                     label="Enable Admin"
                                     valuePropName="checked"
@@ -620,18 +699,33 @@ export default function ManagementPage() {
 
                                 <Form.Item label="User Type" name="userType">
                                     <Radio.Group>
-                                        <Radio.Button value="Family">
-                                            Family
-                                        </Radio.Button>
-                                        <Radio.Button value="Carer">
-                                            Carer
-                                        </Radio.Button>
-                                        <Radio.Button value="Manager">
-                                            Manager
-                                        </Radio.Button>
-                                        <Radio.Button value="POA">
-                                            Power of Attorney
-                                        </Radio.Button>
+                                        {/* family member view */}
+                                        {(roles.includes("family") ||
+                                            roles.includes("POA")) && (
+                                            <>
+                                                <Radio.Button value="organisation">
+                                                    Service Provider
+                                                </Radio.Button>
+                                                <Radio.Button value="family">
+                                                    Family
+                                                </Radio.Button>
+                                                <Radio.Button value="POA">
+                                                    Power of Attorney
+                                                </Radio.Button>
+                                            </>
+                                        )}
+                                        {/* carer view */}
+                                        {roles.includes("carer") && (
+                                            <>Cannot add users</>
+                                        )}
+                                        {/* organisation view */}
+                                        {roles.includes("organisation") && (
+                                            <>
+                                                <Radio.Button value="carer">
+                                                    Carer
+                                                </Radio.Button>
+                                            </>
+                                        )}
                                     </Radio.Group>
                                 </Form.Item>
 
@@ -657,8 +751,7 @@ export default function ManagementPage() {
                                     }
                                     bordered
                                     dataSource={userData}
-                                    rowKey={(_, itemId) => itemId}
-                                    renderItem={(item, itemId) => (
+                                    renderItem={(scheduleUser, idx) => (
                                         <List.Item
                                             actions={[
                                                 <Button
@@ -666,12 +759,15 @@ export default function ManagementPage() {
                                                     shape="circle"
                                                     icon={<CloseOutlined />}
                                                     onClick={() =>
-                                                        RemoveUser(itemId)
+                                                        RemoveUser(
+                                                            idx,
+                                                            scheduleUser.user,
+                                                        )
                                                     }
                                                 />,
                                             ]}
                                         >
-                                            {item}
+                                            {`${scheduleUser.user.firstName} ${scheduleUser.user.lastName} · ${scheduleUser.role} · Admin Status: ${scheduleUser.isAdmin}`}
                                         </List.Item>
                                     )}
                                 />
@@ -758,7 +854,7 @@ export default function ManagementPage() {
                                     ),
                                 }}
                                 dataSource={taskData.filter(
-                                    (r) => r.categoryId === activeKey
+                                    (r) => r.categoryId === activeKey,
                                 )}
                                 footer={() => ""}
                             />
