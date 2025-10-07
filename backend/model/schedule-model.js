@@ -1,33 +1,25 @@
 const mongoose = require("mongoose");
 const scheduleSchema = new mongoose.Schema({
-    scheduleAuthor: {
+    scheduleOwner: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: "User",
         required: true,
-        unique: true,
     },
-    resident_name : {
+    residentName: {
         type: String,
         required: true,
     },
-    schedule_id: {
-        type: String,
-        required: true,
-        unique: true,
-    },
-    tasks: [{
-        type : mongoose.Schema.Types.ObjectId,
-        ref : 'Task'
-    }],
-    schedule_users: [{
-        type : mongoose.Schema.Types.ObjectId,
-        ref : 'User'
-    }],
+    tasks: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Task",
+        },
+    ],
     inviteToken: {
         type: String,
         unique: true,
-        required: true
-    }
+        required: true,
+    },
 });
 
 const Schedule = mongoose.model("Schedule", scheduleSchema);
