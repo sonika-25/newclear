@@ -19,6 +19,7 @@ import {
     message,
     Space,
     Typography,
+    App,
 } from "antd";
 
 import React, { useState, useRef, useMemo, useContext, useEffect } from "react";
@@ -306,7 +307,7 @@ export default function ManagementPage() {
 
             const { data } = await axios.post(
                 `http://localhost:3000/trial/tasks/${activeKey}/${PATIENT_ID}`,
-                payload
+                payload,
             );
 
             // add new task to table
@@ -389,7 +390,7 @@ export default function ManagementPage() {
     const [catError, setCatError] = useState(null);
     const tabItems = useMemo(
         () => categories.map((c) => ({ label: c.name, key: c.id })),
-        [categories]
+        [categories],
     );
     //loads tasks
     useEffect(() => {
@@ -398,7 +399,7 @@ export default function ManagementPage() {
         (async () => {
             try {
                 const { data } = await axios.get(
-                    `http://localhost:3000/trial/categories/tasks/${activeKey}`
+                    `http://localhost:3000/trial/categories/tasks/${activeKey}`,
                 );
 
                 const mapped = (
@@ -423,7 +424,7 @@ export default function ManagementPage() {
                     // replace rows for this category only
                     setTaskData((prev) => {
                         const others = prev.filter(
-                            (x) => x.categoryId !== activeKey
+                            (x) => x.categoryId !== activeKey,
                         );
                         return [...others, ...mapped];
                     });
@@ -431,7 +432,7 @@ export default function ManagementPage() {
             } catch (err) {
                 console.error("load tasks failed", err);
                 message.error(
-                    err?.response?.data?.message || "Failed to load tasks"
+                    err?.response?.data?.message || "Failed to load tasks",
                 );
             }
         })();
@@ -452,7 +453,7 @@ export default function ManagementPage() {
                 setCatLoading(true);
                 setCatError(null);
                 const { data } = await axios.get(
-                    `http://localhost:3000/patients/getCategories/${PATIENT_ID}`
+                    `http://localhost:3000/patients/getCategories/${PATIENT_ID}`,
                 );
                 // normalize: id, name, budget
                 const normalized = (
@@ -472,7 +473,7 @@ export default function ManagementPage() {
                     setCatError(
                         err?.response?.data?.message ||
                             err.message ||
-                            "Failed to load categories"
+                            "Failed to load categories",
                     );
             } finally {
                 if (!ignore) setCatLoading(false);
@@ -492,7 +493,7 @@ export default function ManagementPage() {
                         //need way to get patientID from code
                         name: values.name,
                         budget: values.budget,
-                    }
+                    },
                 )
                 .then(({ data }) => {
                     // expect either { id, name, budget } or { _id, name, budget } or { category: { ... } }
@@ -506,8 +507,8 @@ export default function ManagementPage() {
                             prev.map((cat) =>
                                 cat.id !== editingCatKey
                                     ? cat
-                                    : { ...cat, budget, name }
-                            )
+                                    : { ...cat, budget, name },
+                            ),
                         );
                     } else {
                         setCategories((prev) => [
@@ -536,7 +537,7 @@ export default function ManagementPage() {
                             name: `Category: ${values.name}`,
                         };
                     }
-                })
+                }),
             );
         } else {
             const id = crypto.randomUUID();
@@ -569,7 +570,7 @@ export default function ManagementPage() {
     const removeTab = (categoryId) => {
         axios
             .delete(
-                `http://localhost:3000/patients/categories/${PATIENT_ID}/${categoryId}`
+                `http://localhost:3000/patients/categories/${PATIENT_ID}/${categoryId}`,
             )
             .then(() => {
                 message.success("Category deleted");
@@ -577,19 +578,19 @@ export default function ManagementPage() {
             .catch((err) => {
                 console.error(err);
                 message.error(
-                    err?.response?.data?.message || "Failed to delete category"
+                    err?.response?.data?.message || "Failed to delete category",
                 );
             });
         setCategories((prev) => {
             const newList = prev.filter((c) => c.id !== categoryId);
             setTaskData((tasks) =>
-                tasks.filter((t) => t.categoryId !== categoryId)
+                tasks.filter((t) => t.categoryId !== categoryId),
             );
 
             setActiveKey((prevActive) =>
                 prevActive === categoryId
                     ? (newList[0]?.id ?? null)
-                    : prevActive
+                    : prevActive,
             );
 
             return newList;
@@ -599,7 +600,7 @@ export default function ManagementPage() {
     const onEdit = (targetKey) => {
         if (
             window.confirm(
-                "you sure? this will permananetly delete all the tasks in this category"
+                "you sure? this will permananetly delete all the tasks in this category",
             )
         ) {
             removeTab(targetKey);
