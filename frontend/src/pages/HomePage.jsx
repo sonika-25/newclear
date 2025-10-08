@@ -9,7 +9,7 @@ const { Content } = Layout;
 const tempCatData = [{ labelName: "Cat1",  value: 210, budget: 200 },
 { labelName: "Cat5",  value: 110, budget: 150 },
   { labelName: "Cat10", value: 110, budget: 1000 },
-  { labelName: "Cat20", value: 110, budget: 2000 },
+  { labelName: "Cadsadasdsadat20", value: 110, budget: 2000 },
   { labelName: "Cat21",  value: 220, budget: 300 },
   { labelName: "Cat3",  value: 330, budget: 600 },
   { labelName: "Cat4",  value: 440, budget: 900 },
@@ -194,8 +194,9 @@ const TaskBudgetBar = ({data}) => {
     markBackground: {
       label: {
         text: ({ originData }) => {
-          const {budget} = originData;
-          return `\$${budget}`;
+           const { value, budget, used } = originData;
+          const pct = Math.round(used * 100);
+          return `${pct}% of \$${budget}`;
         },
         position: "right",
         dy: 0,
