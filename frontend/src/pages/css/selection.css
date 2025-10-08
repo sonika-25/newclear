@@ -1,8 +1,8 @@
 
 .bgLogo {
   position: absolute;
-  transform: translate(-25%, 0);
-  width: 1400px;
+  transform: translate(-30%, 0);
+  width: 1200px;
   opacity: .4;   
   pointer-events: none;
   user-select: none;

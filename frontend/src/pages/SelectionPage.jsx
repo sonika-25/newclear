@@ -21,12 +21,12 @@ export default function SchedulePage() {
         >
               <img src={logo} className="bgLogo"/>
             
-            <Card style={{background:"#ffffffcc", width: 800, boxShadow: "0 4px 20px rgba(0, 0, 0, 0.03)",borderRadius: 20,}} variant={false}>
+            <Card style={{background:"#ffffffd6", width: 600,borderRadius: 20,}} variant={false}>
                 <Flex vertical gap="small" align="center" justify="center" style={{ width: '100%' }}>
-                    <Button block onClick={() => nav("/home")}  color="pink" variant="outlined" type="primary" style={{ fontSize: "20px",height: "60px",width: "500px",marginTop: 50,marginBottom:80, width:500,height:100}}>
+                    <Button block onClick={() => nav("/home")}  color="pink" variant="filled" type="primary" style={{boxShadow: "0 0px 8px rgba(0, 0, 0, 0.2)", fontSize: "20px",marginTop: 50,marginBottom:80, width:500,height:100}}>
                         MAKE A NEW SCHEDULE
                     </Button>
-                    <Button onClick={() => nav("/home")} type="primary" block color="danger" variant="outlined" style={{fontSize: "20px",marginBottom:50,width:500,height:100}}>
+                    <Button onClick={() => nav("/home")} type="primary" block color="danger" variant="filled" style={{boxShadow: "0 0px 8px rgba(0, 0, 0, 0.2)",fontSize: "20px",marginBottom:50,width:500,height:100}}>
                         ACCESS CURRENT SCHEDULES
                     </Button>
                 </Flex>
