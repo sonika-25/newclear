@@ -562,7 +562,7 @@ export default function ManagementPage() {
     const removeTab = (categoryId) => {
         axios
             .delete(
-                `http://localhost:3000/schedule/categories/${selectedSchedule}/${categoryId}`,
+                `http://localhost:3000/schedule/${selectedSchedule}/categories/${categoryId}`,
                 {
                     headers: { Authorization: `Bearer ${getAccessToken()}` },
                 },

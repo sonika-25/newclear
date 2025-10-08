@@ -1,5 +1,5 @@
 const express = require("express");
-const router = require("express").Router();
+const router = express.Router();
 const scheduleCtrl = require("../controllers/schedule.js");
 const { authenticateToken } = require("../controllers/authentication.js");
 const {
@@ -16,6 +16,13 @@ router.get(
     "/:scheduleId/users",
     authenticateToken,
     scheduleCtrl.fetchScheduleUsers,
+);
+
+// Fetches all the categories belong to a specific schedule
+router.get(
+    "/:scheduleId/getCategories",
+    authenticateToken,
+    scheduleCtrl.getCategory,
 );
 
 // Find the schedule-user relationship information
@@ -47,12 +54,6 @@ router.delete(
     authenticateToken,
     checkPermission("delete:schedule"),
     scheduleCtrl.deleteSchedule,
-);
-
-router.get(
-    "/:scheduleId/getCategories",
-    authenticateToken,
-    scheduleCtrl.getCategory,
 );
 
 router.delete(

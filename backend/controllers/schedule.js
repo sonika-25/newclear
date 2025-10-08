@@ -3,10 +3,7 @@ const Schedule = require("../model/schedule-model");
 const ScheduleUser = require("../model/schedule-user-model");
 const Task = require("../model/task-model");
 const Category = require("../model/category-model");
-const express = require("express");
 const bcrypt = require("bcrypt");
-const app = express();
-const router = require("express").Router();
 const crypto = require("crypto");
 const { authenticateToken } = require("./authentication.js");
 const {
@@ -363,17 +360,18 @@ async function deleteSchedule(req, res) {
 async function getCategory(req, res) {
     try {
         const scheduleId = req.params.scheduleId;
-        const schedule =
-            await Schedule.findById(scheduleId).populate("categories"); // populate Category documents
+        const schedule = await Schedule.findById(scheduleId)
+            .populate("categories")
+            .exec(); // populate Category documents
 
         if (!schedule) {
             return res.status(404).json({ error: "Schedule not found" });
         }
 
-        res.json(schedule.categories);
+        res.json(schedule.categories || []);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Server error" });
+        res.status(500).json({ error: err.message });
     }
 }
 
