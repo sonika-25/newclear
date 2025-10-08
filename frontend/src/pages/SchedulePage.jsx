@@ -1,27 +1,61 @@
 import './css/schedule.css';
 import React, { useState, useMemo } from "react"
-import { Layout, Typography, Calendar, Table, Tag, Button, Modal, Form, Input, DatePicker, Select, Space } from 'antd';
-import { CheckCircleTwoTone, ClockCircleTwoTone } from "@ant-design/icons";
-import dayjs from "dayjs";
+import { Layout, Typography, Calendar, Table, Tag, Button, Modal, Form, Input, DatePicker, Select, Tooltip, Upload } from 'antd';
+import { CheckCircleTwoTone, ClockCircleTwoTone, InboxOutlined } from "@ant-design/icons";
+import dayjs from 'dayjs';
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
+const DATE_OPTIONS = { day: "numeric",  month: "long", year: "numeric" };
 
 const MOCK_ITEMS = [
-    { id: "aaa", name: "AAA", schedules: [{ year: 2025, month: 0, status: "completed", completedOn: "2025-01-18" }, { year: 2025, month: 8, status: "upcoming" }] },
-    { id: "bbb", name: "BBB", schedules: [{ year: 2025, month: 1, status: "upcoming" }, { year: 2025, month: 5, status: "upcoming" }] },
-    { id: "ccc", name: "CCC", schedules: [{ year: 2025, month: 8, status: "completed", completedOn: "2025-09-05" }] },
+    {
+        id: "aaa",
+        name: "AAA",
+        schedules: [
+            { year: 2025, month: 0, status: "completed", completionDate: "2025-01-18", dueDate: "2025-01-20", comments: ""},
+            { year: 2025, month: 8, status: "pending", dueDate: "2025-09-10", comments: "" },
+        ]
+    },
+    {
+        id: "bbb",
+        name: "BBB",
+        schedules: [
+            { year: 2025, month: 1, status: "pending", dueDate: "2025-02-15", comments: "" },
+            { year: 2025, month: 5, status: "pending", dueDate: "2025-06-12", comments: "" },
+        ]
+    },
+    {
+        id: "ccc",
+        name: "CCC",
+        schedules: [
+            { year: 2025, month: 8, status: "completed", completionDate: "2025-09-05", dueDate: "2025-09-01", comments: "" },
+            { year: 2026, month: 1, status: "pending", dueDate: "2026-02-03", comments: "" },
+        ]
+    }
 ];
+
+const formatISO = (iso) => {
+    if (!iso) return "-";
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+    if (!m) return "-";
+    const dt = new Date(+m[1], +m[2] - 1, +m[3]);
+    return dt.toLocaleDateString(undefined, DATE_OPTIONS);
+};
 
 function getMonthlyTasks(items, year, month) {
     return items.flatMap(it => {
         const s = it.schedules.find(x => x.year === year && x.month === month);
-         return s ? [{
+        return s ? [{
             key: `${it.id}-${year}-${month}`,
             id: it.id,
             name: it.name,
             status: s.status,
-            completedOn: s.completedOn,
+            completionDate: s.completionDate,
+            dueDate: s.dueDate,
+            comments: s.comments,
+            amountSpent: s.amountSpent,
+            documents: s.documents,
             _scheduleRef: s,
         }] : [];
     });
@@ -61,12 +95,32 @@ export default function SchedulePage() {
                 )
         },
         {
-            title: "Completed On",
-            dataIndex: "completedOn",
-            key: "completedOn",
-            width: 160,
-            render: (val) => (val ? dayjs(val).format("DD MMM YYYY") : "-"),
+            title: "Due Date",
+            dateIndex: "dueDate",
+            key: "dueDate",
+            width: 260, 
+            render: (_, record) => formatISO(record.dueDate),
         },
+        {
+            title: "Completion Date",
+            dataIndex: "completionDate",
+            key: "completionDate",
+            width: 260,
+            render: (_, record) => formatISO(record.completionDate),
+        },
+        {
+            title: "Comments",
+            dataIndex: "comments",
+            key: "comments",
+            ellipsis: true,
+            render: (val) => val
+                ? <Tooltip title={val}>
+                    <span>
+                        {val}
+                    </span>
+                </Tooltip>
+                : <span style={{ opacity: 0.6 }}></span>
+        }
     ];
 
     const [openModal, setOpenModal] = useState(false);
@@ -77,9 +131,16 @@ export default function SchedulePage() {
         setActiveRow(record);
         form.setFieldsValue({
             status: record.status || "upcoming",
-            completedOn: record.completedOn ? dayjs(record.completedOn) : null,
-            notes: "",
+            completionDate: record.completionDate ? dayjs(record.completionDate, "YYYY-MM-DD") : null,
+            amountSpent: record.amountSpent ?? null,
+            documents: (record.documents || []).map((name, i) => ({
+                uid: `${record.key}-doc${i}`,
+                name,
+                status: "done"
+            })),
+            comments: record.comments || "",
         });
+
         setOpenModal(true);
     }
 
@@ -87,17 +148,26 @@ export default function SchedulePage() {
         setItems(prev =>
             prev.map(it => {
                 if (it.id !== activeRow.id) return it;
-                const nextSchedules = it.schedules.map(s => {
-                    if (s === activeRow._scheduleRef) {
-                        const next = { ...s, status: values.status };
-                        next.completedOn =
-                            values.status === "completed" && values.completedOn
-                                ? values.completedOn.toISOString()
-                                : undefined;
-                        return next;
+                
+                const nextSchedules = it.schedules.map(sched => {
+                    if (sched !== activeRow._scheduleRef) return sched;
+
+                    const next = { ...sched, status: values.status };
+                    
+                    if (values.status === "completed" && values.completionDate) {
+                        next.completionDate = values.completionDate.format("YYYY-MM-DD");
                     }
-                    return s;
+
+                    else {
+                        next.completionDate = undefined;
+                    }
+
+                    next.amountSpent = values.amountSpent ?? undefined;
+                    next.documents = (values.documents || []).map(f => f.name);
+                    next.comments = values.comments || "";
+                    return next;
                 });
+
                 return { ...it, schedules: nextSchedules };
             })
         );
@@ -175,8 +245,8 @@ export default function SchedulePage() {
 
                     {/* date completed */}
                     <Form.Item
-                        name="completedOn"
-                        label="Completed On"
+                        name="completionDate"
+                        label="Completion Date"
                         dependencies={["status"]}
                         rules={[
                             ({ getFieldValue }) => ({
@@ -189,6 +259,33 @@ export default function SchedulePage() {
                         ]}
                     >
                         <DatePicker style={{ width: "100%" }}/>
+                    </Form.Item>
+
+                    {/* upload documents */}
+
+                    <Form.Item
+                        name="documents"
+                        label="Upload receipt/invoice/proof of purchase"
+                        valuePropName="fileList"
+                        getValueFromEvent={(e) => (Array.isArray(e) ? e : e?.fileList)}
+                    >
+                        <Upload.Dragger
+                            beforeUpload={() => false}
+                            multiple
+                            accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                            listType="text"
+                            maxCount={5}
+                        >
+                            <p className="ant-upload-drag-icon">
+                                <InboxOutlined />
+                            </p>
+                            <p className="ant-upload-text">
+                                Click or drag files to this area to upload
+                            </p>
+                            <p className="ant-upload-hint">
+                                Supports up to 5 files.
+                            </p>
+                        </Upload.Dragger>
                     </Form.Item>
 
                     {/* comments */}
