@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import LogoReact from "/src/assets/react.svg";
 import { ConfigProvider, theme, Card, Typography, Form, Input, Button, Checkbox, Modal } from "antd";
 import { App as AntApp } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";

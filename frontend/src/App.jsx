@@ -4,11 +4,13 @@ import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import SchedulePage from "./pages/SchedulePage";
 import ManagementPage from "./pages/ManagementPage";
+import SelectionPage from "./pages/SelectionPage";
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LoginPage />}/>
+      <Route path="/select" element={<SelectionPage/>}/>
       <Route element={<UILayout/>}>
         <Route path="/home" element={<HomePage />}/>
         <Route path="/schedule" element={<SchedulePage/>}/>

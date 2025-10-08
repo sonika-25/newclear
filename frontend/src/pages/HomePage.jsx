@@ -9,7 +9,7 @@ const { Content } = Layout;
 const tempCatData = [{ labelName: "Cat1",  value: 210, budget: 200 },
 { labelName: "Cat5",  value: 110, budget: 150 },
   { labelName: "Cat10", value: 110, budget: 1000 },
-  { labelName: "Cat20", value: 110, budget: 2000 },
+  { labelName: "Cdw", value: 110, budget: 2000 },
   { labelName: "Cat21",  value: 220, budget: 300 },
   { labelName: "Cat3",  value: 330, budget: 600 },
   { labelName: "Cat4",  value: 440, budget: 900 },
@@ -41,7 +41,7 @@ export default function HomePage() {
                      <Row>
                     <Col md={16}>
                      
-                      <Card style={{ background:"#6262620a",height: 455, display: "flex", flexDirection: "column" }}styles={{ body: { flex: 1, overflowY: "auto", overflowX:"auto"} }}
+                      <Card style={{ background:"#6262620a",height: 455, display: "flex", flexDirection: "column" }}styles={{ body: { flex: 1, overflowY: "auto"} }}
                       type="inner" title= {<Typography.Title level={4} style={{textAlign:"center"}}>Category Budgets</Typography.Title>}>
                        
                         <BudgetBar data={tempCatData} />
@@ -109,6 +109,7 @@ const BudgetBar = ({data}) => {
     xField: "labelName",
     yField: "overflow",
     height:400,
+    width:1000,
     style: { maxWidth: 25 },
 
     colorField: "ranges",
