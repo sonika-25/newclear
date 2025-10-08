@@ -5,13 +5,13 @@ const taskSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    descriptiom: {
+    description: {
         type: String,
         required: true,
     },
     frequency: {
         type: Number,
-         enum: ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'],
+        enum: ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'],
         required: true,
     },
     interval : {
@@ -22,13 +22,17 @@ const taskSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    category : {
+        type : mongoose.Schema.Types.ObjectId,
+        ref : 'Category'
+    },
     isCompleted : {
         type: Boolean,
         required: true,
     },
-    assignedTo : {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
+    assignedToCarer : {
+        type : String,
+		required : false,
     }
 });
 
