@@ -1,12 +1,67 @@
 import './css/schedule.css';
 import React, { useState, useMemo } from "react"
 import { Layout, Typography, Calendar, Table, Tag, Button, Modal, Form, Input, DatePicker, Select, Tooltip, Upload } from 'antd';
-import { CheckCircleTwoTone, ClockCircleTwoTone, InboxOutlined } from "@ant-design/icons";
+import { CheckCircleTwoTone, ClockCircleTwoTone, ExclamationCircleTwoTone, InboxOutlined } from "@ant-design/icons";
 import dayjs from 'dayjs';
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
 const DATE_OPTIONS = { day: "numeric",  month: "long", year: "numeric" };
+const TODAY = () => new Date();
+
+function isISO(s) {
+    return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+
+function toLocalDate(iso) {
+    if (!isISO(iso)) return null;
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(y, m - 1, d);
+}
+
+function deriveStatus(entry) {
+    if (entry.status === "completed") return "completed";
+    const due = toLocalDate(entry.dueDate);
+    if (!due) return "upcoming";
+    const now = TODAY();
+    due.setHours(0,0,0,0);
+    now.setHours(0,0,0,0);
+    return due < now ? "overdue" : "upcoming";
+}
+
+function statusTagProps(status) {
+    switch (status) {
+        case "completed": 
+            return { 
+                color: "success",
+                label: "Completed",
+                icon: <CheckCircleTwoTone twoToneColor="#52c41a" />
+            };
+        case "overdue": 
+            return { 
+                color: "error", 
+                label: "Overdue",
+                icon: <ExclamationCircleTwoTone twoToneColor="#ff4d4f" />
+            };
+        default: 
+            return { 
+                color: "processing", 
+                label: "Upcoming",
+                icon: <ClockCircleTwoTone twoToneColor="#1677ff" />
+            };
+    }
+}
+
+const dotStyle = (bg) => ({
+    width: 8, height: 8, borderRadius: 9999, background: bg,
+    display: "inline-block",
+});
+
+function statusColor(status) {
+    if (status === "completed") return "#52c41a";
+    if (status === "overdue") return "#ff4d4f";
+    return "#1677ff";
+}
 
 const MOCK_ITEMS = [
     {
@@ -30,12 +85,13 @@ const MOCK_ITEMS = [
         name: "CCC",
         schedules: [
             { year: 2025, month: 8, status: "completed", completionDate: "2025-09-05", dueDate: "2025-09-01", comments: "" },
+            { year: 2025, month: 9, status: "pending", dueDate: "2025-10-20", comments: "" },
             { year: 2026, month: 1, status: "pending", dueDate: "2026-02-03", comments: "" },
         ]
     }
 ];
 
-const formatISO = (iso) => {
+function formatISO(iso) {
     if (!iso) return "-";
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
     if (!m) return "-";
@@ -84,42 +140,39 @@ export default function SchedulePage() {
         },
         {
             title: "Status",
-            dataIndex: "status",
-            key: "status",
+            key: "derivedStatus",
             width: 140,
-            render: (val) =>
-                val === "completed" ? (
-                    <Tag icon={<CheckCircleTwoTone twoToneColor="#52c41a" />} color="success">Completed</Tag>
-                ) : (
-                    <Tag icon={<ClockCircleTwoTone twoToneColor="#faad14" />} color="warning">Upcoming</Tag>   
-                )
+            render: (_, record) => {
+                const st = deriveStatus(record);
+                const { color, label, icon } = statusTagProps(st);
+                return <Tag 
+                        color={color}
+                        icon={icon}
+                        style={{ display: "inline-flex", alignItems: "center" }}
+                    >
+                        {label}
+                    </Tag>;
+            }
         },
         {
             title: "Due Date",
-            dateIndex: "dueDate",
             key: "dueDate",
             width: 260, 
-            render: (_, record) => formatISO(record.dueDate),
+            render: (_, r) => formatISO(r.dueDate),
         },
         {
             title: "Completion Date",
-            dataIndex: "completionDate",
             key: "completionDate",
             width: 260,
-            render: (_, record) => formatISO(record.completionDate),
+            render: (_, r) => formatISO(r.completionDate),
         },
         {
             title: "Comments",
             dataIndex: "comments",
             key: "comments",
             ellipsis: true,
-            render: (val) => val
-                ? <Tooltip title={val}>
-                    <span>
-                        {val}
-                    </span>
-                </Tooltip>
-                : <span style={{ opacity: 0.6 }}></span>
+            render: (val) =>
+                val ? <Tooltip title={val}>{val}</Tooltip> : <span style={{ opacity: 0.6 }}></span>
         }
     ];
 
@@ -175,6 +228,43 @@ export default function SchedulePage() {
         form.resetFields();
     }
 
+    function cellRender(current, info) {
+        if (info.type !== "month") return info.originNode;
+
+        const y = current.year();
+        const m = current.month();
+        const tasks = getMonthlyTasks(items, y, m);
+        
+        const dots = tasks.map((t) => statusColor(deriveStatus(t)));
+        const MAX_DOTS = 8;
+        const shown = dots.slice(0, MAX_DOTS);
+        const extra = dots.length - shown.length;
+
+        return (
+            <div style={{ textAlign: "center", padding: "6px 0"}}>
+                {dots.length > 0 && (
+                    <div>
+                        {shown.map((c, i) => (
+                            <span
+                                key={i}
+                                style={{
+                                    width: 8,
+                                    height: 8,
+                                    borderRadius: "50%",
+                                    background: c,
+                                    display: "inline-block",
+                                }}
+                            />
+                        ))}
+                        {extra > 0 && (
+                            <span style={{ fontSize: 12, opacity: 0.7 }}>+{extra}</span>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     return (
         <Layout style={{ minHeight: "100vh" }}>
             <Content className="schedule" style={{ padding: "10px 15px" }}>
@@ -195,6 +285,7 @@ export default function SchedulePage() {
                             fullscreen={false}
                             mode="year"
                             value={dayjs().year(selectedYear).month(selectedMonth).date(1)}
+                            cellRender={cellRender}
                             onSelect={(d) => {
                                 setSelectedYear(d.year());
                                 setSelectedMonth(d.month());
