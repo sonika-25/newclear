@@ -7,15 +7,23 @@ const ROLES = {
         "manage:organisation",
         "manage:family",
         "delete:schedule",
+        "create:task",
     ],
     POA: [
         "manage:ownUser",
         "manage:organisation",
         "manage:family",
         "delete:schedule",
+        "create:task",
     ],
-    organisation: ["manage:ownUser", "manage:carer"],
-    carer: ["manage:ownUser", "upload:file"],
+    organisation: [
+        "manage:ownUser",
+        "manage:carer",
+        "create:task",
+        "delete:category",
+        "create:category",
+    ],
+    carer: ["manage:ownUser", "upload:file", "complete:task"],
 };
 
 // check if the given user can perform an action

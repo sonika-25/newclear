@@ -19,9 +19,9 @@ const taskSchema = new mongoose.Schema(
         every: { type: Number, min: 1, default: 1 },
         budget: { type: Number, required: true },
         category: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
-        patientId: {
+        scheduleId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Patient",
+            ref: "Schedule",
             required: true,
         },
 

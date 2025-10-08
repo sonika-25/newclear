@@ -5,8 +5,13 @@ const scheduleSchema = new mongoose.Schema({
         ref: "User",
         required: true,
     },
-    residentName: {
+    pwsnName: {
         type: String,
+        required: true,
+    },
+    inviteToken: {
+        type: String,
+        unique: true,
         required: true,
     },
     tasks: [
@@ -15,10 +20,15 @@ const scheduleSchema = new mongoose.Schema({
             ref: "Task",
         },
     ],
-    inviteToken: {
-        type: String,
-        unique: true,
-        required: true,
+    categories: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Category",
+        },
+    ],
+    budget: {
+        type: Number,
+        required: false,
     },
 });
 

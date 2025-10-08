@@ -37,7 +37,6 @@ import { ScheduleContext } from "../context/ScheduleContext";
 const { Content } = Layout;
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
-const PATIENT_ID = "68e49fee3b13709c94e4f138";
 /*Elements of this code utilise basic boiler plate code from AntD.*/
 
 //This defines the budget pie configuration as well as determining if budget is exceeded
@@ -302,12 +301,13 @@ export default function ManagementPage() {
                 unit: "day", // simple default
                 budget: Number(values.budget),
                 category: activeKey,
-                patientId: PATIENT_ID,
+                scheduleId: `${selectedSchedule}`,
             };
 
             const { data } = await axios.post(
-                `http://localhost:3000/trial/tasks/${activeKey}/${PATIENT_ID}`,
+                `http://localhost:3000/trial/tasks/${selectedSchedule}/${activeKey}`,
                 payload,
+                { headers: { Authorization: `Bearer ${getAccessToken()}` } },
             );
 
             // add new task to table
@@ -400,6 +400,11 @@ export default function ManagementPage() {
             try {
                 const { data } = await axios.get(
                     `http://localhost:3000/trial/categories/tasks/${activeKey}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${getAccessToken()}`,
+                        },
+                    },
                 );
 
                 const mapped = (
@@ -445,7 +450,7 @@ export default function ManagementPage() {
     async function getActiveKey() {
         console.log(activeKey);
     }
-    // === NEW === Load categories for this patient on mount
+    // === NEW === Load categories for this schedule on mount
     useEffect(() => {
         let ignore = false;
         (async () => {
@@ -453,7 +458,12 @@ export default function ManagementPage() {
                 setCatLoading(true);
                 setCatError(null);
                 const { data } = await axios.get(
-                    `http://localhost:3000/patients/getCategories/${PATIENT_ID}`,
+                    `http://localhost:3000/schedule/${selectedSchedule}/getCategories`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${getAccessToken()}`,
+                        },
+                    },
                 );
                 // normalize: id, name, budget
                 const normalized = (
@@ -482,23 +492,27 @@ export default function ManagementPage() {
         return () => {
             ignore = true;
         };
-    }, [PATIENT_ID]);
+    }, [selectedSchedule]);
 
     const addCategoryData = (values) => {
         try {
             axios
                 .post(
-                    `http://localhost:3000/patients/add-category/${PATIENT_ID}`,
+                    `http://localhost:3000/schedule/${selectedSchedule}/add-category`,
                     {
-                        //need way to get patientID from code
                         name: values.name,
                         budget: values.budget,
+                    },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${getAccessToken()}`,
+                        },
                     },
                 )
                 .then(({ data }) => {
                     // expect either { id, name, budget } or { _id, name, budget } or { category: { ... } }
                     const c = data.category || data;
-                    const id = c.id || c._id;
+                    const id = typeof c === "object" ? c._id : c;
                     const budget = Number(c.budget) || 0;
                     const name = c.name;
 
@@ -524,28 +538,6 @@ export default function ManagementPage() {
             console.log(err);
         }
 
-        //not sure what this code is doing will not touch it
-        if (editingCatKey) {
-            setCategories((prev) =>
-                prev.map((cat) => {
-                    if (cat.id != editingCatKey) {
-                        return cat;
-                    } else {
-                        return {
-                            ...cat,
-                            budget: Number(values.budget),
-                            name: `Category: ${values.name}`,
-                        };
-                    }
-                }),
-            );
-        } else {
-            const id = crypto.randomUUID();
-            const budget = Number(values.budget) || 0;
-            const name = `Category: ${values.name}`;
-            setCategories((prev) => [...prev, { id, name, budget }]);
-            setActiveKey(id);
-        }
         setCategoryModalOpen(false);
         categoryForm.resetFields();
         setCatEditingKey(null);
@@ -570,7 +562,10 @@ export default function ManagementPage() {
     const removeTab = (categoryId) => {
         axios
             .delete(
-                `http://localhost:3000/patients/categories/${PATIENT_ID}/${categoryId}`,
+                `http://localhost:3000/schedule/categories/${selectedSchedule}/${categoryId}`,
+                {
+                    headers: { Authorization: `Bearer ${getAccessToken()}` },
+                },
             )
             .then(() => {
                 message.success("Category deleted");

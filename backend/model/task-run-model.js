@@ -8,9 +8,9 @@ const TaskRunSchema = new mongoose.Schema(
             ref: "Task",
             required: true,
         },
-        patientId: {
+        scheduleId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Patient",
+            ref: "Schedule",
             required: true,
         },
         categoryId: {
