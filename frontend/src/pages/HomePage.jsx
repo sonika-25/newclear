@@ -1,5 +1,5 @@
 import React from "react";
-import {Typography, Layout, Row, Tabs, Col,Button, Dropdown, message, Space, Divider, Tooltip} from 'antd';
+import {Typography, Layout, Row, Card, Tabs, Col,Button, Dropdown, message, Space, Divider, Tooltip} from 'antd';
 import { DownOutlined, UserOutlined } from '@ant-design/icons';
 import { Bar, Pie, Column} from '@ant-design/plots';
 const { Content } = Layout;
@@ -10,7 +10,7 @@ const tempCatData = [{ labelName: "Cat1",  value: 210, budget: 200 },
 { labelName: "Cat5",  value: 110, budget: 150 },
   { labelName: "Cat10", value: 110, budget: 1000 },
   { labelName: "Cat20", value: 110, budget: 2000 },
-  { labelName: "Cat2",  value: 220, budget: 300 },
+  { labelName: "Cat21",  value: 220, budget: 300 },
   { labelName: "Cat3",  value: 330, budget: 600 },
   { labelName: "Cat4",  value: 440, budget: 900 },
 ];
@@ -24,7 +24,7 @@ const tempTaskData = [{catId: "Cat1", name: "test", budget: 100, actuals: 80},
   {catId: "Cat1", name: "tes321312wtt", budget: 50, actuals: 20},
   {catId: "Cat1", name: "td3121st", budget: 30, actuals: 80},
   {catId: "Cat1", name: "zz312312", budget: 200, actuals: 100},
-  {catId: "Cat1", name: "te12312sw12tt", budget: 150, actuals: 125}]
+  {catId: "Cat1", name: "te1231as2tt", budget: 150, actuals: 125}]
 
 export default function HomePage() {
     return (
@@ -39,36 +39,50 @@ export default function HomePage() {
                     }}
                   >
                      <Row>
-                    <Col xs={24} md={16}>
-                     <Typography.Title level={4} style={{marginRight:"80px", textAlign:"center"}}>Category Budgets</Typography.Title>
-                      <BudgetBar data={tempCatData}/>
+                    <Col md={16}>
+                     
+                      <Card style={{ background:"#6262620a",height: 455, display: "flex", flexDirection: "column" }}styles={{ body: { flex: 1, overflowY: "auto", overflowX:"auto"} }}
+                      type="inner" title= {<Typography.Title level={4} style={{textAlign:"center"}}>Category Budgets</Typography.Title>}>
+                       
+                        <BudgetBar data={tempCatData} />
+                      </Card>
                     </Col>
-                    <Col>
-                    <Typography.Title level={4} style={{textAlign:"center"}}>Total Budget Summary</Typography.Title>
-                      <CatPie data={tempCatData} />
+                    <Col md={8}>
+                    
+                    <Card   style={{  background:"#6262620a", height: 455, display: "flex", flexDirection: "column" }} styles={{ body: { flex: 1, overflow: "hidden"} }}
+                    type="inner" title={<Typography.Title level={4} style={{textAlign:"center"}}>Total Budget Summary</Typography.Title>}>
+                       <CatPie data={tempCatData} />
+                    </Card>
+                     
                     </Col>
                   </Row> 
-                   <Col>
-                   <Typography.Title level={4} style={{marginBottom:"10px",marginLeft:"275px", textAlign:"left"}}>View Sub Element Budgets</Typography.Title>
+                  <Row>
+                     <Col md={15}> 
+                 
+                     <Card   style={{ background:"#6262620a", height: 420, display: "flex", flexDirection: "column" }}
+                      styles={{ body: { flex: 1, overflowY: "auto", padding: 12 } }}   
+                      type= "inner" title={ <Typography.Title level={4} style={{textAlign:"center"}}>View Sub Element Budgets</Typography.Title>}>
+                       
                      <Tabs
                       tabPosition="left"
-                      style={{ height: 400 }}
+                      style={{ height: 300 }}
                       items={tempCatData.map(cat => ({
+                        //this should be changed to id when fetching from db
                         key: cat.labelName,
                         label: `${cat.labelName}`,
-                        children: <TaskBudgetBar data={cat} />,
+                        children:<div style={{ height: 320, overflowY: "auto" }}><TaskBudgetBar data={cat} chartHeight={520} /></div>,
                       }))}  
                       />
+                      </Card>
                       </Col>
-                      <Col>
-        
-
-                      </Col>
-                    
+                      <Col md={9}>
+                      <Card   style={{  background:"#6262620a", height: 420, display: "flex", flexDirection: "column" }} styles={{ body: { flex: 1, overflow: "hidden"} }}
+                    type="inner" title={<Typography.Title level={4} style={{textAlign:"center"}}>Upcoming Tasks</Typography.Title>}>
                       
-                  <Row>
-                  
+                    </Card>
+                    </Col>
                   </Row>
+                
                  </div>
                 </Content>
         </Layout>
@@ -94,10 +108,7 @@ const BudgetBar = ({data}) => {
     data: rows,
     xField: "labelName",
     yField: "overflow",
-    paddingRight: 80,
-    autoFit: false,
-    height: 400,
-    width: 1000,
+    height:400,
     style: { maxWidth: 25 },
 
     colorField: "ranges",
@@ -117,8 +128,8 @@ const BudgetBar = ({data}) => {
           return `${pct}% of \$${budget}`;
         },
         position: "right",
-        dx: 90,
-        style: {fill: "#595959ff", fillOpacity: 1, fontSize: 14 },
+        dx: -20,
+        style: {fill: "#040404ff", fillOpacity: 1, fontSize: 12 },
       },
       style: { fill: "#eeeeee89" },
     },
@@ -158,10 +169,18 @@ const TaskBudgetBar = ({data}) => {
     xField: "name",
     yField: "overflow",
     paddingRight: 80,
-    autoFit: false,
       style: { maxWidth: 50 },
-    width: 700,
-    height: 400,
+    height: 330,
+    appendPadding: [8, 12, 20, 8],
+
+    legend: {
+      color:{
+          position:'top',
+          layout: 'horizontal',
+          offsetY: 100,
+      },
+     
+    },
 
     colorField: "ranges",
     scale: {
@@ -175,17 +194,17 @@ const TaskBudgetBar = ({data}) => {
     markBackground: {
       label: {
         text: ({ originData }) => {
-          const { actuals, budget, used } = originData;
-          const pct = Math.round(used * 100);
-          return ``;
+          const {budget} = originData;
+          return `\$${budget}`;
         },
-        position: "bottom",
-        dy: 40,
-        style: {fill: "#595959ff", fillOpacity: 1, fontSize: 14 },
+        position: "right",
+        dy: 0,
+        style: {fill: "#040404ff", fillOpacity: 1, fontSize: 12 },
       },
       style: { fill: "#eeeeee89" },
-    },
 
+    },
+    
     axis: {
       x: { 
         tick: false,
@@ -199,7 +218,7 @@ const TaskBudgetBar = ({data}) => {
     },
   };
 
-  return <Column {...config} />;
+  return <Bar {...config} />;
 };
 
 
