@@ -9,11 +9,16 @@ const categorySchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
-    tasks: [{
-        type : mongoose.Schema.Types.ObjectId,
-        ref : 'Task' 
-    }]
-    
+    tasks: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Task",
+        },
+    ],
+    scheduleId: {
+        type: String,
+        required: true,
+    },
 });
 
 const Category = mongoose.model("Category", categorySchema);

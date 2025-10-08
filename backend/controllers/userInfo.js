@@ -1,7 +1,7 @@
 const express = require("express");
 const User = require("../model/user-model");
 const app = express();
-const router = require("express").Router();
+const router = express.Router();
 
 router.get("/users/:email/patients", async(req,res) => {
     try {

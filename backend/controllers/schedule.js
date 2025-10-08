@@ -334,7 +334,7 @@ async function deleteSchedule(req, res) {
                 );
             }
 
-            // 4️⃣ Delete all categories linked to this schedule
+            // Delete all categories linked to this schedule
             await Category.deleteMany({ _id: { $in: categoryIds } }).session(
                 session,
             );
@@ -404,14 +404,11 @@ async function addCategory(req, res) {
             return;
         }
         const category = await Category.findOne({ name });
-        if (category) {
-            return "Category Exists";
-            res.send("Category exists");
-        }
 
         let cat = new Category({
             name: name,
             budget: budget,
+            scheduleId: scheduleId,
         });
         const newCat = await cat.save();
 
@@ -475,7 +472,7 @@ async function addTask(req, res) {
 
         if (!resolvedCategoryId && categoryName) {
             // find-or-create category by name (global or you can scope per-org/family later)
-            let category = await Category.findOne({ name: categoryName });
+            let category = await Category.findOne({ name: categoryName, scheduleId });
             //if (!category) {
             //    category = await Category.create({ name: categoryName, budget: 0 }); // or require budget in request
             //}
@@ -499,6 +496,16 @@ async function addTask(req, res) {
             { _id: scheduleId },
             { $addToSet: { tasks: newTask._id } },
         );
+
+        // Add task to category in this schedule
+        if (resolvedCategoryId) {
+            await Category.updateOne(
+                { _id: resolvedCategoryId },
+                { $addToSet: { tasks: newTask._id } },
+            );
+        }
+
+        return res.status(201).json(newTask);
     } catch (e) {
         next(e);
     }
