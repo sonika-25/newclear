@@ -7,16 +7,19 @@ import "./index.css";
 import { App as AntApp } from "antd";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { ScheduleProvider } from "./context/ScheduleContext.jsx";
+import { SocketProvider } from "./context/SocketContext.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
     <React.StrictMode>
         <AntApp>
             <BrowserRouter>
-                <ScheduleProvider>
-                    <AuthProvider>
-                        <App />
-                    </AuthProvider>
-                </ScheduleProvider>
+                <SocketProvider>
+                    <ScheduleProvider>
+                        <AuthProvider>
+                            <App />
+                        </AuthProvider>
+                    </ScheduleProvider>
+                </SocketProvider>
             </BrowserRouter>
         </AntApp>
     </React.StrictMode>,

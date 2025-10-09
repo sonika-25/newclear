@@ -196,6 +196,11 @@ async function addUser(req, res) {
         await newScheduleUser.save();
         await newScheduleUser.populate("user");
         await newScheduleUser.populate("schedule");
+
+        // live update everyone in the schedule when user is added
+        const io = req.app.get("io");
+        io.to(scheduleId).emit("userAdded", newScheduleUser);
+
         res.status(201).json(newScheduleUser);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -282,7 +287,7 @@ async function removeUser(req, res) {
 
         const removedRole = tobeRemovedScheduleUser.role;
         if (removedRole === "serviceProvider") {
-            await removeOrgEmployees(scheduleId, session);
+            await removeOrgEmployees(scheduleId, session, req);
         }
 
         // Remove the link between the user and the schedule
@@ -297,6 +302,12 @@ async function removeUser(req, res) {
         }
 
         await session.commitTransaction();
+
+        // live update everyone in the schedule when user is removed
+        const io = req.app.get("io");
+        await removedScheduleUser.populate("user");
+        io.to(scheduleId).emit("userRemoved", removedScheduleUser);
+
         res.status(200).json({ message: "User removed successfully." });
     } catch (error) {
         if (session) {
@@ -310,16 +321,29 @@ async function removeUser(req, res) {
     }
 }
 
-async function removeOrgEmployees(scheduleId, session) {
-    const removedEmployees = await ScheduleUser.deleteMany({
+// Removes all managers and carers when an org is removed
+async function removeOrgEmployees(scheduleId, session, req) {
+    const removedEmployees = await ScheduleUser.find({
+        schedule: scheduleId,
+        role: { $in: ["manager", "carer"] },
+    })
+        .populate("user")
+        .session(session);
+
+    if (!removedEmployees.length) return;
+
+    // Delete all managers and carers
+    await ScheduleUser.deleteMany({
         schedule: scheduleId,
         role: { $in: ["manager", "carer"] },
     }).session(session);
-    if (!removedEmployees) {
-        res.status(500).json({
-            message: "Failed to remove service provider and employees",
-        });
+
+    const io = req.app.get("io");
+    // Live updates for each removed employee
+    for (const employee of removedEmployees) {
+        io.to(scheduleId).emit("userRemoved", employee);
     }
+
     return;
 }
 

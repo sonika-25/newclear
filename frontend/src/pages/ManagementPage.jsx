@@ -30,9 +30,11 @@ import axios from "axios";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 dayjs.extend(customParseFormat);
 import { jwtDecode } from "jwt-decode";
+import { io } from "socket.io-client";
 import { getAccessToken } from "../utils/tokenUtils";
 import { getUserByEmail } from "../utils/userUtils";
 import { ScheduleContext } from "../context/ScheduleContext";
+import { useSocket } from "../context/SocketContext";
 
 const { Content } = Layout;
 const { RangePicker } = DatePicker;
@@ -97,6 +99,7 @@ const CatPie = ({ data }) => {
 };
 
 export default function ManagementPage() {
+    const socket = useSocket();
     const { message } = App.useApp();
 
     const [userData, setUserData] = useState([]);
@@ -121,7 +124,7 @@ export default function ManagementPage() {
     dateRange: [dayjs('01-01-2025','DD-MM-YYYY'), dayjs('01-01-2025','DD-MM-YYYY')],},
     { key: '1', task: 'New Toothbrush',  categoryId: "1", budget: 100, frequency: 30, description: 'Requires a soft bristle brush due to sensitivity',
     dateRange: [dayjs('01-01-2025','DD-MM-YYYY'), dayjs('01-01-2025','DD-MM-YYYY')]},
-  ]);*/
+    ]);*/
     const [taskData, setTaskData] = useState([]);
     // contains information of logged in user
     const token = getAccessToken();
@@ -238,6 +241,19 @@ export default function ManagementPage() {
         }
     };
 
+    useEffect(() => {
+        if (!selectedSchedule) return;
+
+        socket.emit("joinSchedule", selectedSchedule);
+
+        socket.on("userAdded", (newUser) => {
+            setUserData((prev) => [...prev, newUser]);
+            message.success(`${newUser.user.firstName} added to schedule`);
+        });
+
+        return () => socket.off("userAdded");
+    }, [selectedSchedule, socket]);
+
     const RemoveUser = async (idx, userId) => {
         // Optimistic user removal to emulate fast deletion on UI
         // Will rollback if deletion fails
@@ -267,6 +283,23 @@ export default function ManagementPage() {
             setUserData(prevUsers);
         }
     };
+
+    useEffect(() => {
+        if (!selectedSchedule) return;
+
+        socket.emit("joinSchedule", selectedSchedule);
+
+        socket.on("userRemoved", (removedUser) => {
+            setUserData((prev) =>
+                prev.filter((u) => u.user._id != removedUser.user._id),
+            );
+            message.success(
+                `${removedUser.user.firstName} removed from schedule`,
+            );
+        });
+
+        return () => socket.off("userRemoved");
+    }, [selectedSchedule, socket]);
 
     const HandleTaskEdit = (key) => {
         setEditingTaskKey(key.key);
@@ -462,7 +495,7 @@ export default function ManagementPage() {
             );
             return;
         }
-        
+
         let ignore = false;
         (async () => {
             try {
