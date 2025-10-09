@@ -1,7 +1,7 @@
 import './css/schedule.css';
 import React, { useState, useMemo } from "react"
 import { Layout, Typography, Calendar, Table, Tag, Button, Modal, Form, Input, DatePicker, Select, Tooltip, Upload } from 'antd';
-import { CheckCircleTwoTone, ClockCircleTwoTone, ExclamationCircleTwoTone, InboxOutlined } from "@ant-design/icons";
+import { CheckCircleTwoTone, ClockCircleTwoTone, ExclamationCircleTwoTone, InboxOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs from 'dayjs';
 
 const { Content } = Layout;
@@ -265,6 +265,45 @@ export default function SchedulePage() {
         );
     }
 
+    function calendarHeaderRender({ value, onChange }) {
+        const currentYear = value.year();
+
+        const years = Array.from({ length: 21 }, (_, i) => currentYear - 10 + i).map((y) => ({
+            value: y,
+            label: y.toString(),
+        }));
+
+        const handleChange = (year) => onChange(value.clone().year(year));
+        const go = (delta) => onChange(value.clone().year(currentYear + delta));
+
+        return (
+            <div 
+                style={{ 
+                    position: "relative",
+                    display: "flex", 
+                    gap: 8, 
+                    alignItems: "center", 
+                    justifyContent: "flex-start", 
+                    padding: 8 
+                }}
+            >
+                <Button size="small" icon={<LeftOutlined />} onClick={() => go(-1)} />
+
+                <Select
+                    size="small"
+                    value={currentYear}
+                    onChange={handleChange}
+                    options={years}
+                    style={{ width: 100, textAlign: "center" }}
+                    popupMatchSelectWidth={false}
+                />
+                
+                <Button size="small" icon={<RightOutlined />} onClick={() => go(1)}/>
+            </div>
+        )
+
+    }
+
     return (
         <Layout style={{ minHeight: "100vh" }}>
             <Content className="schedule" style={{ padding: "10px 15px" }}>
@@ -284,6 +323,7 @@ export default function SchedulePage() {
                         <Calendar
                             fullscreen={false}
                             mode="year"
+                            headerRender={calendarHeaderRender}
                             value={dayjs().year(selectedYear).month(selectedMonth).date(1)}
                             cellRender={cellRender}
                             onSelect={(d) => {
