@@ -228,11 +228,10 @@ export default function ManagementPage() {
 
             userForm.resetFields();
         } catch (err) {
-            console.error(
-                "Error adding user",
-                err.response?.data || err.message,
-            );
-            message.error("Failed to add user", 3);
+            const backendMsg =
+                err.response?.data?.message || "Failed to add user";
+            console.error("Error adding user:", backendMsg);
+            message.error(backendMsg, 3);
         } finally {
             // Fetch from database again to ensure it matches with the UI
             await fetchUsers();
@@ -699,7 +698,7 @@ export default function ManagementPage() {
                                         {(roles.includes("family") ||
                                             roles.includes("POA")) && (
                                             <>
-                                                <Radio.Button value="organisation">
+                                                <Radio.Button value="serviceProvider">
                                                     Service Provider
                                                 </Radio.Button>
                                                 <Radio.Button value="family">
@@ -710,17 +709,28 @@ export default function ManagementPage() {
                                                 </Radio.Button>
                                             </>
                                         )}
-                                        {/* carer view */}
-                                        {roles.includes("carer") && (
-                                            <>Cannot add users</>
+                                        {/* service provider view */}
+                                        {roles.includes("serviceProvider") && (
+                                            <>
+                                                <Radio.Button value="manager">
+                                                    Manager
+                                                </Radio.Button>
+                                                <Radio.Button value="carer">
+                                                    Carer
+                                                </Radio.Button>
+                                            </>
                                         )}
-                                        {/* organisation view */}
-                                        {roles.includes("organisation") && (
+                                        {/* manager view */}
+                                        {roles.includes("manager") && (
                                             <>
                                                 <Radio.Button value="carer">
                                                     Carer
                                                 </Radio.Button>
                                             </>
+                                        )}
+                                        {/* carer view */}
+                                        {roles.includes("carer") && (
+                                            <>Cannot add users</>
                                         )}
                                     </Radio.Group>
                                 </Form.Item>

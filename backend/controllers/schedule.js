@@ -275,21 +275,44 @@ async function removeUser(req, res) {
             });
         }
 
+        const session = await ScheduleUser.startSession();
+        session.startTransaction();
+        const removedRole = tobeRemovedScheduleUser.role;
+        if (removedRole === "serviceProvider") {
+            await removeOrgEmployees(scheduleId, session);
+        }
+
         // Remove the link between the user and the schedule
         const removedScheduleUser = await ScheduleUser.findOneAndDelete({
             user: removedUserId,
             schedule: scheduleId,
-        });
+        }).session(session);
         if (!removedScheduleUser) {
             return res
                 .status(400)
                 .json({ message: "User is already not in this schedule!" });
         }
 
+        await session.commitTransaction();
         res.status(200).json({ message: "User removed successfully." });
     } catch (error) {
         res.status(500).json({ error: error.message });
+    } finally {
+        session.endSession();
     }
+}
+
+async function removeOrgEmployees(scheduleId, session) {
+    const removedEmployees = await ScheduleUser.deleteMany({
+        schedule: scheduleId,
+        role: { $in: ["manager", "carer"]},
+    }).session(session);
+    if (!removedEmployees) {
+        res.status(500).json({
+            message: "Failed to remove service provider and employees",
+        });
+    }
+    return;
 }
 
 // Delete a schedule from the system and database
@@ -472,7 +495,10 @@ async function addTask(req, res) {
 
         if (!resolvedCategoryId && categoryName) {
             // find-or-create category by name (global or you can scope per-org/family later)
-            let category = await Category.findOne({ name: categoryName, scheduleId });
+            let category = await Category.findOne({
+                name: categoryName,
+                scheduleId,
+            });
             //if (!category) {
             //    category = await Category.create({ name: categoryName, budget: 0 }); // or require budget in request
             //}

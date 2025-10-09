@@ -2,7 +2,6 @@
 const Task = require("../model/task-model");
 const TaskRun = require("../model/task-run-model");
 const Category = require("../model/category-model");
-const Patient = require("../model/patient-model"); // if you want to deduct patient budget too
 const { addByUnit } = require("../utils/dates");
 
 // create a task that repeats every N months (default 6)
