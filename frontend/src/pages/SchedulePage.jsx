@@ -338,27 +338,58 @@ export default function SchedulePage() {
                 >
                     <Title level={4} style={ {marginTop: 0 }}>Schedule</Title>
                 
-                    <div style={{ display: "grid", gridTemplateColumns: "420px 1fr", gap: 16 }}>
+                    <div
+                        style={{ 
+                            display: "grid", 
+                            gridTemplateRows: "3fr 2fr", 
+                            gap: 16,
+                            height: "90vh"
+                        }
+                    }>
                         
-                        {/* Calendar component (left side) */}
-                        <Calendar
-                            fullscreen={false}
-                            mode="year"
-                            headerRender={calendarHeaderRender}
-                            value={dayjs().year(selectedYear).month(selectedMonth).date(1)}
-                            cellRender={cellRender}
-                            onSelect={(d) => {
-                                setSelectedYear(d.year());
-                                setSelectedMonth(d.month());
+                        {/* Calendar component (top) */}
+                        <div 
+                            style={{ 
+                                border: "1px solid #f0f0f0", 
+                                borderRadius: 12, 
+                                background: "#fff", 
+                                padding: 12 
                             }}
-                            onPanelChange={(d) => setSelectedYear(d.year())}
-                            style={{ border: "1px solid #f0f0f0", borderRadius: 12, background: "#fff" }}
-                        />
+                        >
+                            <Calendar
+                                className="sched-cal"
+                                fullscreen={false}
+                                mode="year"
+                                headerRender={calendarHeaderRender}
+                                value={dayjs().year(selectedYear).month(selectedMonth).date(1)}
+                                cellRender={cellRender}
+                                onSelect={(d) => {
+                                    setSelectedYear(d.year());
+                                    setSelectedMonth(d.month());
+                                }}
+                                onPanelChange={(d) => setSelectedYear(d.year())}
+                                style={{
+                                    border: "none",
+                                    background: "transparent",
+                                }}
+                            />
+                        </div>
 
                         {/* Table component (right side) */}
-                        <div style={{ border: "1px solid #f0f0f0", borderRadius: 12, padding: 12 }}>
-                            <div style={{ marginBottom: 8}}>
-                                <Text strong>{dayjs().month(selectedMonth).format("MMMM")} {selectedYear}</Text>
+                        <div 
+                            style={{ 
+                                border: "1px solid #f0f0f0", 
+                                borderRadius: 12, 
+                                padding: 12, 
+                                background: "#fff",
+                                overflow: "auto",
+                            }}
+                        >
+                            <div style={{ marginBottom: 8 }}>
+                                <Text strong>
+                                    {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+                                </Text>
+                                
                                 <Text type="secondary" style={{ marginLeft: 8}}>
                                     • {monthData.length} task{monthData.length !== 1 ? "s" : ""}
                                 </Text>

@@ -8,3 +8,13 @@
     line-height: 1.2;
     padding-right: 8px;
 }
+
+.ant-picker-calendar .ant-picker-cell {
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ant-picker-calendar .ant-picker-cell-inner {
+    padding: 8px 0;
+}
