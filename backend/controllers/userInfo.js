@@ -1,5 +1,5 @@
-const Patient = require("../model/patient-model");
 const express = require("express");
+const User = require("../model/user-model");
 const app = express();
 const router = require("express").Router();
 
@@ -44,6 +44,30 @@ router.get("/patient/tasks/:patientId", async (req, res) => {
     }
 });
 
-
+router.post("/patient/add-patient/:userId" , async(req,res) => {
+    try {
+        let {username, email,phone,password} = req.body
+        let userId = req.params.userId
+        const patient = new Patient({
+            "username": username,
+            "email" : email,
+            "phone": phone,
+            "password" : password
+        })
+        const newPatient = await patient.save();
+        const patid = await newPatient._id
+        const fam = await User.findOne({ "_id" : userId})
+        console.log (fam)
+        await User.updateOne (
+            {"_id" : userId},
+            { $push: { "patients": patid }}
+        )
+        res.status(201).json(newPatient);
+    }
+    catch (err){
+        console.log(err)
+    }
+})
 
 module.exports = router;
+ 
