@@ -242,25 +242,46 @@ export default function SchedulePage() {
 
         return (
             <div style={{ textAlign: "center", padding: "6px 0"}}>
-                {dots.length > 0 && (
-                    <div>
-                        {shown.map((c, i) => (
-                            <span
-                                key={i}
-                                style={{
-                                    width: 8,
-                                    height: 8,
-                                    borderRadius: "50%",
-                                    background: c,
-                                    display: "inline-block",
-                                }}
-                            />
-                        ))}
-                        {extra > 0 && (
-                            <span style={{ fontSize: 12, opacity: 0.7 }}>+{extra}</span>
-                        )}
-                    </div>
-                )}
+                <div
+                    style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        gap: 4,
+                        height: 12,
+                    }}
+                >
+                    {shown.length === 0 ? (
+                        <span
+                            style={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: "50%",
+                                background: "#fff",
+                                border: "none",
+                                display: "inline-block"
+                            }}
+                        />
+                    ) : (
+                        <>
+                            {shown.map((c, i) => (
+                                <span
+                                    key={i}
+                                    style={{
+                                        width: 8, 
+                                        height: 8,
+                                        borderRadius: "50%",
+                                        background: c,
+                                        display: "inline-block"
+                                    }}
+                                />
+                            ))}
+                            {extra > 0 && (
+                                <span style={{ fontSize: 12, opacity: 0.7 }}>+{extra}</span>
+                            )}
+                        </>
+                    )}
+                </div>
             </div>
         );
     }
