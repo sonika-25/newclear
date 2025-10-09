@@ -451,6 +451,18 @@ export default function ManagementPage() {
     }
     // === NEW === Load categories for this schedule on mount
     useEffect(() => {
+        if (
+            !selectedSchedule ||
+            selectedSchedule === "null" ||
+            selectedSchedule === "undefined"
+        ) {
+            console.warn(
+                "Skipping category fetch — invalid selectedSchedule:",
+                selectedSchedule,
+            );
+            return;
+        }
+        
         let ignore = false;
         (async () => {
             try {

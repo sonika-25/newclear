@@ -209,6 +209,7 @@ async function removeUser(req, res) {
     const currentUserId = req.user._id || req.user;
     const removedUserId = removedUser._id || removedUser;
 
+    let session;
     // Try to remove the user
     try {
         let givenSchedule = await findSchedule(scheduleId, res);
@@ -275,8 +276,10 @@ async function removeUser(req, res) {
             });
         }
 
-        const session = await ScheduleUser.startSession();
+        // Makes sure that nothing is deleted if a single deletion fails
+        session = await ScheduleUser.startSession();
         session.startTransaction();
+
         const removedRole = tobeRemovedScheduleUser.role;
         if (removedRole === "serviceProvider") {
             await removeOrgEmployees(scheduleId, session);
@@ -296,16 +299,21 @@ async function removeUser(req, res) {
         await session.commitTransaction();
         res.status(200).json({ message: "User removed successfully." });
     } catch (error) {
+        if (session) {
+            await session.abortTransaction();
+        }
         res.status(500).json({ error: error.message });
     } finally {
-        session.endSession();
+        if (session) {
+            session.endSession();
+        }
     }
 }
 
 async function removeOrgEmployees(scheduleId, session) {
     const removedEmployees = await ScheduleUser.deleteMany({
         schedule: scheduleId,
-        role: { $in: ["manager", "carer"]},
+        role: { $in: ["manager", "carer"] },
     }).session(session);
     if (!removedEmployees) {
         res.status(500).json({
@@ -383,6 +391,17 @@ async function deleteSchedule(req, res) {
 async function getCategory(req, res) {
     try {
         const scheduleId = req.params.scheduleId;
+
+        if (
+            !scheduleId ||
+            scheduleId === "null" ||
+            scheduleId === "undefined"
+        ) {
+            console.error("Invalid scheduleId received:", scheduleId);
+            return res
+                .status(400)
+                .json({ error: "Invalid or missing scheduleId" });
+        }
         const schedule = await Schedule.findById(scheduleId)
             .populate("categories")
             .exec(); // populate Category documents
