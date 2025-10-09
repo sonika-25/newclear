@@ -52,11 +52,6 @@ function statusTagProps(status) {
     }
 }
 
-const dotStyle = (bg) => ({
-    width: 8, height: 8, borderRadius: 9999, background: bg,
-    display: "inline-block",
-});
-
 function statusColor(status) {
     if (status === "completed") return "#52c41a";
     if (status === "overdue") return "#ff4d4f";
