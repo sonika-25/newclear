@@ -25,8 +25,6 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
-    console.log("Socket connected:", socket.id);
-
     socket.on("joinSchedule", (scheduleId) => {
         socket.join(scheduleId);
     });
@@ -36,7 +34,13 @@ io.on("connection", (socket) => {
     });
 
     socket.on("disconnect", () => {
-        console.log("Socket disconnected:", socket.id);
+        // clean up socket
+        if (socket.data.scheduleId) {
+            socket.leave(socket.data.scheduleId);
+        }
+        if (socket.data.userId) {
+            socket.leave(socket.data.userId);
+        }
     });
 });
 
