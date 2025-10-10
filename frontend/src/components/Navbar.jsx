@@ -1,6 +1,6 @@
 import { Layout, Menu } from 'antd';
 import { Link } from 'react-router-dom';
-import {AreaChartOutlined, ScheduleOutlined, EditOutlined, SettingOutlined, QuestionCircleOutlined} from '@ant-design/icons';
+import {AreaChartOutlined, LogoutOutlined, RollbackOutlined, ScheduleOutlined, EditOutlined, SettingOutlined, QuestionCircleOutlined, LoginOutlined} from '@ant-design/icons';
 import {Typography} from 'antd';
 import './navbar.css';
 import logo from '../assets/importedlogotest.svg';
@@ -63,25 +63,28 @@ const Navbar = () => {
              <div style={{ flex: 1}} />
          <Menu mode="inline"
          className="menuCSSBottom" items = {[
-                {
-                key: '/home',
+         
+            {
+                key: '/select',
+                label: (
+                <div> <Link to="/select" className="navItemBottom">
+                    <RollbackOutlined className="navIconBottom" />
+                </Link>
+                <Typography.Title level={5} style={{margin:0}} className="navTitle">Schedule Select</Typography.Title>
+                </div>
+                ),
+            },
+                   {
+                key: '/login',
                 label: (
                 <div>
-                    <Link to="/home" className="navItemBottom">
-                    <SettingOutlined className="navIconBottom" />
+                    <Link to="/login" className="navItemBottom">
+                    <LoginOutlined className="navIconBottom" />
                 </Link>
+                <Typography.Title level={5} style={{margin:0}} className="navTitle">Logout</Typography.Title>
                 </div> ),
                 
             },
-            {
-                key: '/home',
-                label: (
-                <div> <Link to="/home" className="navItemBottom">
-                    <QuestionCircleOutlined className="navIconBottom" />
-                </Link>
-                </div>
-                ),
-            }
             ]}
             
             style={{ background: 'transparent' }}/>

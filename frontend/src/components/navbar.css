@@ -48,7 +48,14 @@
   padding: 2px;
   font-size: small;
 }
-
+.menuCSSBottom .navTitle{
+ display: flex;
+ flex-direction:column;
+  align-items: center;
+  color: #49454f;
+  padding: 2px;
+  font-size: small;
+}
 .menuCSS .navIcon
 {
   font-size: 28px !important;
