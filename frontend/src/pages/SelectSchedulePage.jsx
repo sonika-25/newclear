@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Button, Space, Typography, message } from "antd";
+import { Button, Space, Typography, App } from "antd";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { ScheduleContext } from "../context/ScheduleContext";
@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
 
 export default function SelectSchedule() {
+    const socket = useSocket();
     const { user, loading } = useAuth();
     const {
         selectedSchedule,
@@ -18,7 +19,7 @@ export default function SelectSchedule() {
     const [scheduleUser, setScheduleUser] = useState([]);
     const [pageLoading, setPageLoading] = useState(true);
     const navigate = useNavigate();
-    const socket = useSocket();
+    const { message } = App.useApp();
 
     // Load all the user's schedules
     useEffect(() => {
@@ -66,6 +67,8 @@ export default function SelectSchedule() {
     const handleSelect = (scheduleId, role) => {
         setSelectedSchedule(scheduleId);
         setScheduleRole(role);
+        localStorage.setItem("selectedSchedule", scheduleId);
+        localStorage.setItem("scheduleRole", role);
         navigate("/home");
         message.success("Schedule selected!");
     };

@@ -152,21 +152,17 @@ export const AuthProvider = ({ children }) => {
 
     // logout function
     const logout = (reason) => {
-        console.warn("Logging out:", reason);
+        if (reason) {
+            console.warn("Logging out:", reason);
+        }
         clearTokens();
         setUser(null);
+        sessionStorage.removeItem("selectedSchedule");
         navigate("/login", { replace: true });
     };
 
-    // go to the select schedule screen
-    const selectSchedule = () => {
-        navigate("/select-schedule", { replace: true });
-    };
-
     return (
-        <AuthContext.Provider
-            value={{ user, loading, login, logout, selectSchedule }}
-        >
+        <AuthContext.Provider value={{ user, loading, login, logout }}>
             {children}
         </AuthContext.Provider>
     );

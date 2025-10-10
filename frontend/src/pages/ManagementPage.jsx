@@ -105,7 +105,8 @@ export default function ManagementPage() {
     const [userData, setUserData] = useState([]);
     const [userForm] = Form.useForm();
 
-    const { selectedSchedule, scheduleRole } = useContext(ScheduleContext);
+    const { selectedSchedule, scheduleRole, initialised } =
+        useContext(ScheduleContext);
 
     const [isTaskModalOpen, setTaskModalOpen] = useState(false);
     const [taskForm] = Form.useForm();
@@ -126,6 +127,11 @@ export default function ManagementPage() {
     dateRange: [dayjs('01-01-2025','DD-MM-YYYY'), dayjs('01-01-2025','DD-MM-YYYY')]},
     ]);*/
     const [taskData, setTaskData] = useState([]);
+
+    if (!initialised || !selectedSchedule) {
+        return <div>Loading schedule...</div>;
+    }
+
     // contains information of logged in user
     const token = getAccessToken();
     if (token) {
@@ -484,6 +490,10 @@ export default function ManagementPage() {
     }
     // === NEW === Load categories for this schedule on mount
     useEffect(() => {
+        if (!initialised) {
+            return;
+        }
+
         if (
             !selectedSchedule ||
             selectedSchedule === "null" ||
@@ -536,7 +546,7 @@ export default function ManagementPage() {
         return () => {
             ignore = true;
         };
-    }, [selectedSchedule]);
+    }, [selectedSchedule, initialised]);
 
     const addCategoryData = (values) => {
         axios
