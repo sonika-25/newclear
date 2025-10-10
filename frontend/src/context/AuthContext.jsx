@@ -8,7 +8,6 @@ import {
     refreshAccessToken,
     clearTokens,
 } from "../utils/tokenUtils.jsx";
-import { ScheduleContext } from "./ScheduleContext.jsx";
 
 const AuthContext = createContext();
 
@@ -20,8 +19,6 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    const { setSelectedSchedule, setScheduleRole } =
-        useContext(ScheduleContext);
     const navigate = useNavigate();
 
     // check if user is already authenticated by checking access token
@@ -43,6 +40,7 @@ export const AuthProvider = ({ children }) => {
                 );
                 setUser(res.data);
             } catch (err) {
+                console.error("Profile fetch failed:", err);
                 if (err.response?.status === 401) {
                     try {
                         const newAccess = await refreshAccessToken();
@@ -80,7 +78,7 @@ export const AuthProvider = ({ children }) => {
         };
 
         initAuth();
-    }, []);
+    }, [navigate]);
 
     // refresh the access token when needed
     useEffect(() => {
@@ -117,6 +115,7 @@ export const AuthProvider = ({ children }) => {
         };
     }, []);
 
+    // proactive token refresh every 14 mins
     useEffect(() => {
         // do not refresh user does not exist
         if (!user) {
@@ -128,7 +127,6 @@ export const AuthProvider = ({ children }) => {
             async () => {
                 try {
                     await refreshAccessToken();
-                    console.log("Access token refreshed proactively");
                 } catch (err) {
                     console.error("Failed to refresh proactively", err);
                     logout();
@@ -142,25 +140,20 @@ export const AuthProvider = ({ children }) => {
 
     // login function
     const login = (userData, accessToken, refreshToken) => {
-        console.log("Login triggered", userData, accessToken, refreshToken);
         storeTokens(accessToken, refreshToken);
         setUser(userData);
-        navigate("/select-schedule");
+        navigate("/select-schedule", 0);
     };
 
     // logout function
     const logout = () => {
         clearTokens();
         setUser(null);
-        setSelectedSchedule(null);
-        setScheduleRole(null);
         navigate("/login");
     };
 
     // go to the select schedule screen
     const selectSchedule = () => {
-        setSelectedSchedule(null);
-        setScheduleRole(null);
         navigate("/select-schedule", { replace: true });
     };
 

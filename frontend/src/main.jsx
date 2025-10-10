@@ -13,13 +13,13 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <React.StrictMode>
         <AntApp>
             <BrowserRouter>
-                <SocketProvider>
+                <AuthProvider>
                     <ScheduleProvider>
-                        <AuthProvider>
+                        <SocketProvider>
                             <App />
-                        </AuthProvider>
+                        </SocketProvider>
                     </ScheduleProvider>
-                </SocketProvider>
+                </AuthProvider>
             </BrowserRouter>
         </AntApp>
     </React.StrictMode>,

@@ -4,8 +4,10 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { ScheduleContext } from "../context/ScheduleContext";
 import { getAccessToken } from "../utils/tokenUtils";
+import { useAuth } from "../context/AuthContext";
 
 export default function SelectSchedule() {
+    const { user, loading } = useAuth();
     const {
         selectedSchedule,
         setSelectedSchedule,
@@ -13,17 +15,32 @@ export default function SelectSchedule() {
         setScheduleRole,
     } = useContext(ScheduleContext);
     const [scheduleUser, setScheduleUser] = useState([]);
+    const [pageLoading, setPageLoading] = useState(true);
     const navigate = useNavigate();
 
     // Load all the user's schedules
     useEffect(() => {
+        if (loading || !user) {
+            return;
+        }
+
         axios
             .get("http://localhost:3000/schedule/schedules", {
                 headers: { Authorization: `Bearer ${getAccessToken()}` },
             })
-            .then((res) => setScheduleUser(res.data))
-            .catch(() => message.error("Failed to load schedules"));
-    }, []);
+            .then((res) => {
+                setScheduleUser(res.data);
+            })
+            .catch((err) => {
+                console.error("Failed to load schedules:", err);
+                message.error("Failed to load schedules");
+            })
+            .finally(() => setPageLoading(false));
+    }, [loading, user]);
+
+    if (pageLoading) {
+        return <div>Loading schedules...</div>;
+    }
 
     // Select a schedule
     const handleSelect = (scheduleId, role) => {

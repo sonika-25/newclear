@@ -29,7 +29,10 @@ io.on("connection", (socket) => {
 
     socket.on("joinSchedule", (scheduleId) => {
         socket.join(scheduleId);
-        console.log(`Socket ${socket.id} joined schedule ${scheduleId}`);
+    });
+
+    socket.on("joinUserRoom", (userId) => {
+        socket.join(String(userId));
     });
 
     socket.on("disconnect", () => {

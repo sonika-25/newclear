@@ -17,7 +17,7 @@ function authenticateToken(req, res, next) {
             return res.sendStatus(403);
         }
         // valid token
-        req.user = user;
+        req.user = { _id: user._id, ...user };
         next();
     });
 }

@@ -15,7 +15,7 @@ const {
 // Find all schedules associated with the current user
 async function fetchUserSchedules(req, res) {
     try {
-        const schedules = await ScheduleUser.find({ user: req.user })
+        const schedules = await ScheduleUser.find({ user: req.user._id })
             .populate("schedule")
             .exec();
         return res.status(200).json(schedules);
@@ -308,6 +308,11 @@ async function removeUser(req, res) {
         await removedScheduleUser.populate("user");
         io.to(scheduleId).emit("userRemoved", removedScheduleUser);
 
+        // updates on removed user's end
+        io.to(String(removedUserId)).emit("removedFromSchedule", {
+            scheduleId,
+        });
+
         res.status(200).json({ message: "User removed successfully." });
     } catch (error) {
         if (session) {
@@ -330,7 +335,9 @@ async function removeOrgEmployees(scheduleId, session, req) {
         .populate("user")
         .session(session);
 
-    if (!removedEmployees.length) return;
+    if (!removedEmployees.length) {
+        return;
+    }
 
     // Delete all managers and carers
     await ScheduleUser.deleteMany({
@@ -342,6 +349,9 @@ async function removeOrgEmployees(scheduleId, session, req) {
     // Live updates for each removed employee
     for (const employee of removedEmployees) {
         io.to(scheduleId).emit("userRemoved", employee);
+        io.to(String(employee.user._id)).emit("removedFromSchedule", {
+            scheduleId,
+        });
     }
 
     return;

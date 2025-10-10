@@ -6,8 +6,16 @@ import SchedulePage from "./pages/SchedulePage";
 import ManagementPage from "./pages/ManagementPage";
 import SelectSchedulePage from "./pages/SelectSchedulePage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { useAuth } from "./context/AuthContext";
 
 export default function App() {
+    const { user, loading } = useAuth();
+
+    if (loading) {
+        // Temporary global loading screen
+        return <div>Loading app...</div>;
+    }
+
     return (
         <Routes>
             <Route path="/login" element={<LoginPage />} />
