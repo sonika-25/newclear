@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { ScheduleContext } from "../context/ScheduleContext";
 import { getAccessToken } from "../utils/tokenUtils";
 import { useAuth } from "../context/AuthContext";
+import { useSocket } from "../context/SocketContext";
 
 export default function SelectSchedule() {
     const { user, loading } = useAuth();
@@ -17,6 +18,7 @@ export default function SelectSchedule() {
     const [scheduleUser, setScheduleUser] = useState([]);
     const [pageLoading, setPageLoading] = useState(true);
     const navigate = useNavigate();
+    const socket = useSocket();
 
     // Load all the user's schedules
     useEffect(() => {
@@ -38,9 +40,27 @@ export default function SelectSchedule() {
             .finally(() => setPageLoading(false));
     }, [loading, user]);
 
-    if (pageLoading) {
-        return <div>Loading schedules...</div>;
-    }
+    // live update of the schedule selection page of the user being added to the schedule
+    useEffect(() => {
+        if (!socket || !user?._id) return;
+
+        const handleAdded = (newScheduleUser) => {
+            message.success(
+                `You've been added to ${newScheduleUser.schedule.pwsnName}'s schedule`,
+            );
+            axios
+                .get("http://localhost:3000/schedule/schedules", {
+                    headers: { Authorization: `Bearer ${getAccessToken()}` },
+                })
+                .then((res) => setScheduleUser(res.data))
+                .catch((err) =>
+                    console.error("Failed to refresh schedules:", err),
+                );
+        };
+
+        socket.on("addedToSchedule", handleAdded);
+        return () => socket.off("addedToSchedule", handleAdded);
+    }, [socket, user]);
 
     // Select a schedule
     const handleSelect = (scheduleId, role) => {
@@ -49,6 +69,10 @@ export default function SelectSchedule() {
         navigate("/home");
         message.success("Schedule selected!");
     };
+
+    if (pageLoading) {
+        return <div>Loading schedules...</div>;
+    }
 
     return (
         <div style={{ padding: 24, maxWidth: 500, margin: "0 auto" }}>

@@ -201,6 +201,9 @@ async function addUser(req, res) {
         const io = req.app.get("io");
         io.to(scheduleId).emit("userAdded", newScheduleUser);
 
+        // live update for the schedule page of the user added
+        io.to(String(userId)).emit("addedToSchedule", newScheduleUser);
+
         res.status(201).json(newScheduleUser);
     } catch (error) {
         res.status(400).json({ error: error.message });
