@@ -64,13 +64,13 @@ export const AuthProvider = ({ children }) => {
                             );
                             setUser(res2.data);
                         } else {
-                            logout();
+                            logout("Token refresh failed on init");
                         }
-                    } catch {
-                        logout();
+                    } catch (err) {
+                        logout("Refresh threw error on init");
                     }
                 } else {
-                    logout();
+                    logout("Profile load error");
                 }
             } finally {
                 setLoading(false);
@@ -87,24 +87,29 @@ export const AuthProvider = ({ children }) => {
             async (err) => {
                 // try to refresh once upon unauthorised error
                 // kick to login page if unsuccessful
-                if (err.response?.status === 401) {
-                    const newAccess = await refreshAccessToken();
-                    if (newAccess) {
-                        axios.defaults.headers.common["Authorization"] =
-                            `Bearer ${newAccess}`;
-
-                        storeTokens(
-                            newAccess,
-                            sessionStorage.getItem("refreshToken"),
-                        );
-
-                        // update current header
-                        err.config.headers["Authorization"] =
-                            `Bearer ${newAccess}`;
-                        return axios(err.config);
-                    } else {
-                        logout();
+                const originalRequest = err.config;
+                if (err.response?.status === 401 && !originalRequest._retry) {
+                    // do not retry again upon unauthorised error (one refresh only)
+                    originalRequest._retry = true;
+                    try {
+                        const newAccess = await refreshAccessToken();
+                        if (newAccess) {
+                            axios.defaults.headers.common["Authorization"] =
+                                `Bearer ${newAccess}`;
+                            storeTokens(
+                                newAccess,
+                                sessionStorage.getItem("refreshToken"),
+                            );
+                            // update current header
+                            originalRequest.headers["Authorization"] =
+                                `Bearer ${newAccess}`;
+                            // try to refresh once
+                            return axios(originalRequest);
+                        }
+                    } catch (e) {
+                        console.error("Auto-refresh failed:", e);
                     }
+                    logout("Failed to regain access");
                 }
                 return Promise.reject(err);
             },
@@ -129,7 +134,7 @@ export const AuthProvider = ({ children }) => {
                     await refreshAccessToken();
                 } catch (err) {
                     console.error("Failed to refresh proactively", err);
-                    logout();
+                    logout("Periodic refresh failed");
                 }
             },
             14 * 60 * 1000,
@@ -146,10 +151,11 @@ export const AuthProvider = ({ children }) => {
     };
 
     // logout function
-    const logout = () => {
+    const logout = (reason) => {
+        console.warn("Logging out:", reason);
         clearTokens();
         setUser(null);
-        navigate("/login");
+        navigate("/login", { replace: true });
     };
 
     // go to the select schedule screen

@@ -539,53 +539,62 @@ export default function ManagementPage() {
     }, [selectedSchedule]);
 
     const addCategoryData = (values) => {
-        try {
-            axios
-                .post(
-                    `http://localhost:3000/schedule/${selectedSchedule}/add-category`,
-                    {
-                        name: values.name,
-                        budget: values.budget,
+        axios
+            .post(
+                `http://localhost:3000/schedule/${selectedSchedule}/add-category`,
+                {
+                    name: values.name,
+                    budget: values.budget,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${getAccessToken()}`,
                     },
-                    {
-                        headers: {
-                            Authorization: `Bearer ${getAccessToken()}`,
-                        },
-                    },
-                )
-                .then(({ data }) => {
-                    // expect either { id, name, budget } or { _id, name, budget } or { category: { ... } }
-                    const c = data.category || data;
-                    const id = typeof c === "object" ? c._id : c;
-                    const budget = Number(c.budget) || 0;
-                    const name = c.name;
+                },
+            )
+            .then(({ data }) => {
+                // expect either { id, name, budget } or { _id, name, budget } or { category: { ... } }
+                const c = data.category || data;
+                const id = typeof c === "object" ? c._id : c;
+                const budget = Number(c.budget) || 0;
+                const name = c.name;
 
-                    if (editingCatKey) {
-                        setCategories((prev) =>
-                            prev.map((cat) =>
-                                cat.id !== editingCatKey
-                                    ? cat
-                                    : { ...cat, budget, name },
-                            ),
-                        );
-                    } else {
-                        setCategories((prev) => [
-                            ...prev,
-                            { id, name, budget },
-                        ]);
-                        setActiveKey(id);
-                    }
-                    message.success("Category saved");
-                })
-                .catch(console.err);
-        } catch (err) {
-            console.log(err);
-        }
-
-        setCategoryModalOpen(false);
-        categoryForm.resetFields();
-        setCatEditingKey(null);
+                if (editingCatKey) {
+                    setCategories((prev) =>
+                        prev.map((cat) =>
+                            cat.id !== editingCatKey
+                                ? cat
+                                : { ...cat, budget, name },
+                        ),
+                    );
+                } else {
+                    setCategories((prev) => [...prev, { id, name, budget }]);
+                    setActiveKey(id);
+                }
+                message.success("Category saved");
+            })
+            .catch((err) => {
+                if (err.response?.status === 403) {
+                    message.error(
+                        "You don't have permission to add a category.",
+                    );
+                } else if (err.response?.status === 401) {
+                    message.error("Session expired. Please log in again.");
+                } else {
+                    message.error(
+                        err.response?.data?.message ||
+                            "Failed to add category.",
+                    );
+                }
+                console.error("Add category failed:", err);
+            })
+            .finally(() => {
+                setCategoryModalOpen(false);
+                categoryForm.resetFields();
+                setCatEditingKey(null);
+            });
     };
+
     const HandleCatEdit = (id) => {
         if (!id) {
             return;
