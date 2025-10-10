@@ -1,8 +1,16 @@
-import React from "react";
-import {Typography, Layout, Row, Card, Tabs, Col,Button, Dropdown, message, Space, Divider, Tooltip} from 'antd';
-import { DownOutlined, UserOutlined } from '@ant-design/icons';
+import React, { useState, useMemo } from "react";
+import {Typography, Layout, Row, Card, Tabs, Col,Table,Tag, Button, Dropdown, message, Space, Divider, Tooltip} from 'antd';
+import {
+  DownOutlined, UserOutlined,
+  CheckCircleTwoTone, ExclamationCircleTwoTone, ClockCircleTwoTone
+} from "@ant-design/icons";
+import dayjs from 'dayjs';
 import { Bar, Pie, Column} from '@ant-design/plots';
+import isBetween from "dayjs/plugin/isBetween";
+dayjs.extend(isBetween);
 const { Content } = Layout;
+const DATE_OPTIONS = { day: "numeric",  month: "long", year: "numeric" };
+const TODAY = () => new Date();
 
 /*Chart code reference: https://ant-design-charts.antgroup.com/en*/
 
@@ -26,7 +34,156 @@ const tempTaskData = [{catId: "Cat1", name: "test", budget: 100, actuals: 80},
   {catId: "Cat1", name: "zz312312", budget: 200, actuals: 100},
   {catId: "Cat1", name: "te1231as2tt", budget: 150, actuals: 125}]
 
+  function isISO(s) {
+    return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  }
+
+  function toLocalDate(iso) {
+      if (!isISO(iso)) return null;
+      const [y, m, d] = iso.split("-").map(Number);
+      return new Date(y, m - 1, d);
+  }
+
+  function deriveStatus(entry) {
+    if (entry.status === "completed") return "completed";
+    const due = toLocalDate(entry.dueDate);
+    if (!due) return "upcoming";
+    const now = TODAY();
+    due.setHours(0,0,0,0);
+    now.setHours(0,0,0,0);
+    return due < now ? "overdue" : "upcoming";
+}
+
+  function statusTagProps(status) {
+      switch (status) {
+          case "completed": 
+              return { 
+                  color: "success",
+                  label: "Completed",
+                  icon: <CheckCircleTwoTone twoToneColor="#52c41a" />
+              };
+          case "overdue": 
+              return { 
+                  color: "error", 
+                  label: "Overdue",
+                  icon: <ExclamationCircleTwoTone twoToneColor="#ff4d4f" />
+              };
+          default: 
+              return { 
+                  color: "processing", 
+                  label: "Upcoming",
+                  icon: <ClockCircleTwoTone twoToneColor="#1677ff" />
+              };
+      }
+  }
+
+  const MOCK_ITEMS = [
+      {
+          id: "aaa",
+          name: "AAA",
+          schedules: [
+              { year: 2025, month: 0, status: "completed", completionDate: "2025-01-18", dueDate: "2025-01-20", comments: ""},
+              { year: 2025, month: 8, status: "pending", dueDate: "2025-09-10", comments: "" },
+          ]
+      },
+      {
+          id: "bbb",
+          name: "BBB",
+          schedules: [
+              { year: 2025, month: 1, status: "pending", dueDate: "2025-02-15", comments: "" },
+              { year: 2025, month: 5, status: "pending", dueDate: "2025-06-12", comments: "" },
+          ]
+      },
+      {
+          id: "ccc",
+          name: "CCC",
+          schedules: [
+              { year: 2025, month: 8, status: "completed", completionDate: "2025-09-05", dueDate: "2025-09-01", comments: "" },
+              { year: 2025, month: 9, status: "pending", dueDate: "2025-10-20", comments: "" },
+              { year: 2026, month: 1, status: "pending", dueDate: "2026-02-03", comments: "" },
+          ]
+      },
+        {
+          id: "zzz",
+          name: "ZZZ",
+          schedules: [
+              { year: 2025, month: 8, status: "completed", completionDate: "2025-09-05", dueDate: "2025-09-01", comments: "" },
+              { year: 2025, month: 9, status: "pending", dueDate: "2025-10-21", comments: "" },
+              { year: 2026, month: 1, status: "pending", dueDate: "2026-02-03", comments: "" },
+          ]
+      },
+        {
+          id: "ttt",
+          name: "TTT",
+          schedules: [
+              { year: 2025, month: 8, status: "completed", completionDate: "2025-09-05", dueDate: "2025-09-01", comments: "" },
+              { year: 2025, month: 9, status: "pending", dueDate: "2025-10-22", comments: "" },
+              { year: 2026, month: 1, status: "pending", dueDate: "2026-02-03", comments: "" },
+          ]
+      },
+      
+        {
+          id: "yyy",
+          name: "YYY",
+          schedules: [
+              { year: 2025, month: 8, status: "completed", completionDate: "2025-09-05", dueDate: "2025-09-01", comments: "" },
+              { year: 2025, month: 9, status: "pending", dueDate: "2025-10-21", comments: "" },
+              { year: 2026, month: 1, status: "pending", dueDate: "2026-02-03", comments: "" },
+          ]
+      },
+        {
+          id: "ooo",
+          name: "OOO",
+          schedules: [
+              { year: 2025, month: 8, status: "completed", completionDate: "2025-09-05", dueDate: "2025-09-01", comments: "" },
+              { year: 2025, month: 9, status: "pending", dueDate: "2025-10-22", comments: "" },
+              { year: 2026, month: 1, status: "pending", dueDate: "2026-02-03", comments: "" },
+          ]
+      },
+  ];
+
 export default function HomePage() {
+
+    const currentDate = dayjs().startOf("day");
+    const endDate = currentDate.add(60, "day");
+    const [items, setItems] = useState(MOCK_ITEMS);
+
+  const upcomingTasks = ((items.flatMap(item => item.schedules.map((task, index)=> 
+    ({taskId: `${item.id}-${index}`,name: item.name, dueDate:dayjs(task.dueDate, "YYYY-MM-DD"),  dStatus: deriveStatus({status: task.status, dueDate: task.dueDate})}))))
+    .filter(task => task.dStatus != "completed"))
+    .filter(task=> {return task.dueDate.isBetween(currentDate, endDate) || task.dStatus == "overdue"});
+
+
+   const cols = [
+        {
+            title: "Item",
+            dataIndex: "name",
+            key: "name",
+        },
+        {
+            title: "Status",
+            key: "derivedStatus",
+            width: 140,
+            render: (_, record) => {
+                const { color, label, icon } = statusTagProps(record.dStatus);
+                return <Tag 
+                        color={color}
+                        icon={icon}
+                        style={{ display: "inline-flex", alignItems: "center" }}
+                    >
+                        {label}
+                    </Tag>;
+            }
+        },
+        {
+            title: "Due Date",
+            key: "dueDate",
+            width: 260, 
+            render: (_, r) => r.dueDate.format("D MMM YYYY"),
+        },
+       
+    ];
+
     return (
          <Layout>
                 <Content className='manageContent' style={{padding: '10px 15px' }}>
@@ -77,8 +234,8 @@ export default function HomePage() {
                       </Col>
                       <Col md={9}>
                       <Card   style={{  background:"#6262620a", height: 420, display: "flex", flexDirection: "column" }} styles={{ body: { flex: 1, overflow: "hidden"} }}
-                    type="inner" title={<Typography.Title level={4} style={{textAlign:"center"}}>Upcoming Tasks</Typography.Title>}>
-                      
+                    type="inner" title={<Typography.Title level={4} style={{textAlign:"center"}}>Upcoming Tasks (~ 2 Months)</Typography.Title>}>
+                        <Table columns={cols} dataSource={upcomingTasks} pagination={{pageSize: 6,}} size="small"></Table>
                     </Card>
                     </Col>
                   </Row>
@@ -89,8 +246,6 @@ export default function HomePage() {
     );
 }
 
-
-/*This code references ant design charts demonstration bar and has been customised from the template*/
 
 /*This code references ant design charts demonstration bar and has been customised from the template*/
 const BudgetBar = ({data}) => {
