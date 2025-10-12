@@ -234,7 +234,7 @@ export default function HomePage() {
                       </Col>
                       <Col md={9}>
                       <Card   style={{  background:"#6262620a", height: 420, display: "flex", flexDirection: "column" }} styles={{ body: { flex: 1, overflow: "hidden"} }}
-                    type="inner" title={<Typography.Title level={4} style={{textAlign:"center"}}>Upcoming Tasks (~ 2 Months)</Typography.Title>}>
+                    type="inner" title={<Typography.Title level={4} style={{textAlign:"center"}}>Upcoming (~ 2 Months) & Overdue Tasks </Typography.Title>}>
                         <Table columns={cols} dataSource={upcomingTasks} pagination={{pageSize: 6,}} size="small"></Table>
                     </Card>
                     </Col>
