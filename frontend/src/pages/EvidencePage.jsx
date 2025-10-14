@@ -11,17 +11,7 @@ const {Dragger} = Upload;
 
 export default function EvidencePage() {
   const [evidence, setEvidence] = useState([
-  {
-    uid: 'image1',
-    name: 'test.png',
-    status: 'uploading',
-    percent: 33,
-  },
-  {
-    uid: 'image2',
-    name: '.png',
-    status: 'error',
-  },
+ 
 ]);
   const isEmpty = evidence.length == 0;
     const showEvidence = ({ fileList }) => setEvidence(fileList);
