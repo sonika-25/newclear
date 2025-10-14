@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import SchedulePage from "./pages/SchedulePage";
 import ManagementPage from "./pages/ManagementPage";
+import SelectionPage from "./pages/SelectionPage";
 import SelectSchedulePage from "./pages/SelectSchedulePage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -11,6 +12,14 @@ export default function App() {
     return (
         <Routes>
             <Route path="/login" element={<LoginPage />} />
+           <Route
+                path="/select"
+                element={
+                    <ProtectedRoute>
+                        <SelectionPage />
+                    </ProtectedRoute>
+                }
+            /> 
             <Route
                 path="/select-schedule"
                 element={

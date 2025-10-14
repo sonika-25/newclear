@@ -5,7 +5,7 @@ const scheduleSchema = new mongoose.Schema({
         ref: "User",
         required: true,
     },
-    residentName: {
+    pwsnName: {
         type: String,
         required: true,
     },

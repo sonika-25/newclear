@@ -48,7 +48,14 @@
   padding: 2px;
   font-size: small;
 }
-
+.menuCSSBottom .navTitle{
+ display: flex;
+ flex-direction:column;
+  align-items: center;
+  color: #49454f;
+  padding: 2px;
+  font-size: small;
+}
 .menuCSS .navIcon
 {
   font-size: 28px !important;
@@ -60,7 +67,7 @@
 }
 .menuCSS .ant-menu-item {
   padding: 0 !important;
-  height: 70px !important;
+  height: 60px !important;
   margin-top: 0px;
   margin-bottom: 30px;
   line-height: normal !important;

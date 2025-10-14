@@ -60,8 +60,8 @@ router.post("/create", authenticateToken, async (req, res) => {
     const session = await Schedule.startSession();
     session.startTransaction();
 
-    let { scheduleOwner, residentName } = req.body;
-    if (!scheduleOwner || !residentName) {
+    let { scheduleOwner, pwsnName } = req.body;
+    if (!scheduleOwner || !pwsnName) {
         return res
             .status(400)
             .json({ message: "Please fill in all the fields!" });
@@ -79,7 +79,7 @@ router.post("/create", authenticateToken, async (req, res) => {
         // Create a new schedule entry
         const schedule = new Schedule({
             scheduleOwner,
-            residentName,
+            pwsnName,
             inviteToken,
         });
         await schedule.save({ session });
@@ -90,13 +90,13 @@ router.post("/create", authenticateToken, async (req, res) => {
             schedule: schedule._id,
             role: "family",
         });
-        await scheduleUser.save();
+        await scheduleUser.save({ session });
         await scheduleUser.populate("user");
         await scheduleUser.populate("schedule");
 
         await session.commitTransaction();
         const inviteLink = `/schedules/join/${inviteToken}`;
-        res.status(201).json(schedule, inviteLink);
+        res.status(201).json({ schedule, inviteLink });
     } catch (error) {
         await session.abortTransaction();
         res.status(500).json({ error: error.message });
@@ -108,11 +108,11 @@ router.post("/create", authenticateToken, async (req, res) => {
 // Returns the information of a schedule belonging to a given owner and client/PWSN
 router.get("/schedule-info", async (req, res) => {
     const inputOwner = req.body.scheduleOwner;
-    const inputResident = req.body.resident_name;
+    const inputPWSN = req.body.pwsnName;
 
     Schedule.findOne({
         scheduleOwner: inputOwner,
-        resident_name: inputResident,
+        pwsnName: inputPWSN,
     }).then((data) => {
         res.json(data);
     });
@@ -130,7 +130,6 @@ async function findSchedule(scheduleId, res) {
 
     return await givenSchedule;
 }
-
 
 // Check that author is really the owner of the given schedule
 async function verifyScheduleOwner(givenSchedule, authorId, res) {
