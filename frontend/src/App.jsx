@@ -3,7 +3,7 @@ import UILayout from "./components/UILayout";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import SchedulePage from "./pages/SchedulePage";
-import SchedulePage from "./pages/EvidencePage";
+import EvidencePage from "./pages/EvidencePage";
 import ManagementPage from "./pages/ManagementPage";
 import SelectionPage from "./pages/SelectionPage";
 import SelectSchedulePage from "./pages/SelectSchedulePage";
