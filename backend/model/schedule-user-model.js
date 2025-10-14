@@ -11,7 +11,7 @@ const scheduleUserSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ["family", "POA", "carer", "organisation"],
+        enum: ["family", "POA", "carer", "serviceProvider", "manager"],
         required: true,
     },
 });

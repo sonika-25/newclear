@@ -6,20 +6,23 @@ import './navbar.css';
 import logo from '../assets/importedlogotest.svg';
 import profile from '../assets/profile-circle-svgrepo-com.svg';
 
-const {Sider} = Layout;
+const { Sider } = Layout;
 const Navbar = () => {
-  return (
-    <Sider width={120} className='siderDisplay' style={{background: '#fff7f7', overflow: "auto"}}>
-        <div>
-            <img src={logo} className="navLogo" />
-        </div>
+    return (
+        <Sider
+            width={120}
+            className="siderDisplay"
+            style={{ background: "#fff7f7", overflow: "auto" }}
+        >
+            <div>
+                <img src={logo} className="navLogo" />
+            </div>
 
-         <div style={{ marginBottom: 150 }}>
-            <Link to="/home">
-             <img src={profile} className="navProfile" />
-            </Link>
-            
-        </div>
+            <div style={{ marginBottom: 150 }}>
+                <Link to="/home">
+                    <img src={profile} className="navProfile" />
+                </Link>
+            </div>
 
         <Menu mode="inline"
          className="menuCSS" items = {[

@@ -1,11 +1,15 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Button, Space, Typography, message } from "antd";
+import { Button, Space, Typography, App } from "antd";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { ScheduleContext } from "../context/ScheduleContext";
 import { getAccessToken } from "../utils/tokenUtils";
+import { useAuth } from "../context/AuthContext";
+import { useSocket } from "../context/SocketContext";
 
 export default function SelectSchedule() {
+    const socket = useSocket();
+    const { user, loading } = useAuth();
     const {
         selectedSchedule,
         setSelectedSchedule,
@@ -13,25 +17,65 @@ export default function SelectSchedule() {
         setScheduleRole,
     } = useContext(ScheduleContext);
     const [scheduleUser, setScheduleUser] = useState([]);
+    const [pageLoading, setPageLoading] = useState(true);
     const navigate = useNavigate();
+    const { message } = App.useApp();
 
     // Load all the user's schedules
     useEffect(() => {
+        if (loading || !user) {
+            return;
+        }
+
         axios
             .get("http://localhost:3000/schedule/schedules", {
                 headers: { Authorization: `Bearer ${getAccessToken()}` },
             })
-            .then((res) => setScheduleUser(res.data))
-            .catch(() => message.error("Failed to load schedules"));
-    }, []);
+            .then((res) => {
+                setScheduleUser(res.data);
+            })
+            .catch((err) => {
+                console.error("Failed to load schedules:", err);
+                message.error("Failed to load schedules");
+            })
+            .finally(() => setPageLoading(false));
+    }, [loading, user]);
+
+    // live update of the schedule selection page of the user being added to the schedule
+    useEffect(() => {
+        if (!socket || !user?._id) return;
+
+        const handleAdded = (newScheduleUser) => {
+            message.success(
+                `You've been added to ${newScheduleUser.schedule.pwsnName}'s schedule`,
+            );
+            axios
+                .get("http://localhost:3000/schedule/schedules", {
+                    headers: { Authorization: `Bearer ${getAccessToken()}` },
+                })
+                .then((res) => setScheduleUser(res.data))
+                .catch((err) =>
+                    console.error("Failed to refresh schedules:", err),
+                );
+        };
+
+        socket.on("addedToSchedule", handleAdded);
+        return () => socket.off("addedToSchedule", handleAdded);
+    }, [socket, user]);
 
     // Select a schedule
     const handleSelect = (scheduleId, role) => {
         setSelectedSchedule(scheduleId);
         setScheduleRole(role);
+        localStorage.setItem("selectedSchedule", scheduleId);
+        localStorage.setItem("scheduleRole", role);
         navigate("/home");
         message.success("Schedule selected!");
     };
+
+    if (pageLoading) {
+        return <div>Loading schedules...</div>;
+    }
 
     return (
         <div style={{ padding: 24, maxWidth: 500, margin: "0 auto" }}>

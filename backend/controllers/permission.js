@@ -4,18 +4,37 @@ const ScheduleUser = require("../model/schedule-user-model.js");
 const ROLES = {
     family: [
         "manage:ownUser",
-        "manage:organisation",
+        "manage:provider",
         "manage:family",
         "delete:schedule",
+        "create:task",
     ],
     POA: [
         "manage:ownUser",
-        "manage:organisation",
+        "manage:provider",
         "manage:family",
         "delete:schedule",
+        "create:task",
     ],
-    organisation: ["manage:ownUser", "manage:carer"],
-    carer: ["manage:ownUser", "upload:file"],
+    serviceProvider: [
+        "manage:ownUser",
+        "manage:manager",
+        "manage:carer",
+        "create:task",
+        "delete:category",
+        "create:category",
+        "edit:category",
+        "remove:org",
+    ],
+    manager: [
+        "manage:ownUser",
+        "manage:carer",
+        "create:task",
+        "delete:category",
+        "create:category",
+        "edit:category",
+    ],
+    carer: ["manage:ownUser", "upload:file", "complete:task"],
 };
 
 // check if the given user can perform an action
@@ -60,8 +79,10 @@ function checkPermission(permission) {
 
 // returns the string of the required permission to interact with the given role
 function getRequiredPerm(role) {
-    if (role === "organisation") {
-        return "manage:organisation";
+    if (role === "serviceProvider") {
+        return "manage:provider";
+    } else if (role === "manager") {
+        return "manage:manager";
     } else if (role === "carer") {
         return "manage:carer";
     } else if (role === "family" || role === "POA") {

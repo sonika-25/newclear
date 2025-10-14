@@ -9,16 +9,26 @@ const scheduleSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    inviteToken: {
+        type: String,
+        unique: true,
+        required: true,
+    },
     tasks: [
         {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Task",
         },
     ],
-    inviteToken: {
-        type: String,
-        unique: true,
-        required: true,
+    categories: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Category",
+        },
+    ],
+    budget: {
+        type: Number,
+        required: false,
     },
 });
 

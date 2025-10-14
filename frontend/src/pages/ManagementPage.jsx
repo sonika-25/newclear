@@ -21,6 +21,7 @@ import {
     Typography,
     App,
 } from "antd";
+
 import React, { useState, useRef, useMemo, useContext, useEffect } from "react";
 import { CloseOutlined, PlusOutlined } from "@ant-design/icons";
 import { Pie } from "@ant-design/plots";
@@ -29,9 +30,11 @@ import axios from "axios";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 dayjs.extend(customParseFormat);
 import { jwtDecode } from "jwt-decode";
+import { io } from "socket.io-client";
 import { getAccessToken } from "../utils/tokenUtils";
 import { getUserByEmail } from "../utils/userUtils";
 import { ScheduleContext } from "../context/ScheduleContext";
+import { useSocket } from "../context/SocketContext";
 
 const { Content } = Layout;
 const { RangePicker } = DatePicker;
@@ -97,12 +100,14 @@ const CatPie = ({ data }) => {
 };
 
 export default function ManagementPage() {
+    const socket = useSocket();
     const { message } = App.useApp();
 
     const [userData, setUserData] = useState([]);
     const [userForm] = Form.useForm();
 
-    const { selectedSchedule, scheduleRole } = useContext(ScheduleContext);
+    const { selectedSchedule, scheduleRole, initialised } =
+        useContext(ScheduleContext);
 
     const [isTaskModalOpen, setTaskModalOpen] = useState(false);
     const [taskForm] = Form.useForm();
@@ -116,39 +121,24 @@ export default function ManagementPage() {
     const [editingCatKey, setCatEditingKey] = useState(null);
     const isCatTask = editingCatKey != null;
 
+    /*const [taskData, setTaskData] = useState([
+    { key: '0', task: 'New Toothpaste', categoryId: "1", budget: 100, frequency: 30, description: 'Uses protective enamel paste only',
+    dateRange: [dayjs('01-01-2025','DD-MM-YYYY'), dayjs('01-01-2025','DD-MM-YYYY')],},
+    { key: '1', task: 'New Toothbrush',  categoryId: "1", budget: 100, frequency: 30, description: 'Requires a soft bristle brush due to sensitivity',
+    dateRange: [dayjs('01-01-2025','DD-MM-YYYY'), dayjs('01-01-2025','DD-MM-YYYY')]},
+    ]);*/
+    const [taskData, setTaskData] = useState([]);
+
+    if (!initialised || !selectedSchedule) {
+        return <div>Loading schedule...</div>;
+    }
+
     // contains information of logged in user
     const token = getAccessToken();
     if (token) {
         const decoded = jwtDecode(token);
     }
     let roles = [scheduleRole];
-
-    const [taskData, setTaskData] = useState([
-        {
-            key: "0",
-            task: "New Toothpaste",
-            categoryId: "1",
-            budget: 100,
-            frequency: 30,
-            description: "Uses protective enamel paste only",
-            dateRange: [
-                dayjs("01-01-2025", "DD-MM-YYYY"),
-                dayjs("01-01-2025", "DD-MM-YYYY"),
-            ],
-        },
-        {
-            key: "1",
-            task: "New Toothbrush",
-            categoryId: "1",
-            budget: 100,
-            frequency: 30,
-            description: "Requires a soft bristle brush due to sensitivity",
-            dateRange: [
-                dayjs("01-01-2025", "DD-MM-YYYY"),
-                dayjs("01-01-2025", "DD-MM-YYYY"),
-            ],
-        },
-    ]);
 
     const columns = [
         { title: "Task", dataIndex: "task", key: "task" },
@@ -248,16 +238,28 @@ export default function ManagementPage() {
 
             userForm.resetFields();
         } catch (err) {
-            console.error(
-                "Error adding user",
-                err.response?.data || err.message,
-            );
-            message.error("Failed to add user", 3);
+            const backendMsg =
+                err.response?.data?.message || "Failed to add user";
+            console.error("Error adding user:", backendMsg);
+            message.error(backendMsg, 3);
         } finally {
             // Fetch from database again to ensure it matches with the UI
             await fetchUsers();
         }
     };
+
+    useEffect(() => {
+        if (!selectedSchedule) return;
+
+        socket.emit("joinSchedule", selectedSchedule);
+
+        socket.on("userAdded", (newUser) => {
+            setUserData((prev) => [...prev, newUser]);
+            message.success(`${newUser.user.firstName} added to schedule`);
+        });
+
+        return () => socket.off("userAdded");
+    }, [selectedSchedule, socket]);
 
     const RemoveUser = async (idx, userId) => {
         // Optimistic user removal to emulate fast deletion on UI
@@ -289,6 +291,23 @@ export default function ManagementPage() {
         }
     };
 
+    useEffect(() => {
+        if (!selectedSchedule) return;
+
+        socket.emit("joinSchedule", selectedSchedule);
+
+        socket.on("userRemoved", (removedUser) => {
+            setUserData((prev) =>
+                prev.filter((u) => u.user._id != removedUser.user._id),
+            );
+            message.success(
+                `${removedUser.user.firstName} removed from schedule`,
+            );
+        });
+
+        return () => socket.off("userRemoved");
+    }, [selectedSchedule, socket]);
+
     const HandleTaskEdit = (key) => {
         setEditingTaskKey(key.key);
         taskForm.setFieldsValue({
@@ -309,81 +328,368 @@ export default function ManagementPage() {
         setTaskModalOpen(true);
     };
 
-    const HandleTaskOk = (values) => {
-        if (editingTaskKey) {
-            setTaskData((prev) =>
-                prev.map((task) => {
-                    if (task.key !== editingTaskKey) {
-                        return task;
-                    } else {
-                        return {
-                            ...task,
-                            task: values.task.trim(),
-                            budget: Number(values.budget),
-                            frequency: Number(values.frequency),
-                            description: values.description || "",
-                            dateRange: values.dateRange,
-                        };
-                    }
-                }),
+    const HandleTaskOk = async (values) => {
+        try {
+            const [start, end] = values.dateRange ?? [];
+            const payload = {
+                name: values.task.trim(),
+                description: values.description || "",
+                startDate: start?.toDate?.() ?? new Date(),
+                endDate: end?.toDate?.(),
+                every: Number(values.frequency),
+                unit: "day", // simple default
+                budget: Number(values.budget),
+                category: activeKey,
+                scheduleId: `${selectedSchedule}`,
+            };
+
+            const { data } = await axios.post(
+                `http://localhost:3000/trial/tasks/${selectedSchedule}/${activeKey}`,
+                payload,
+                { headers: { Authorization: `Bearer ${getAccessToken()}` } },
             );
-        } else {
+
+            // add new task to table
             setTaskData((prev) => [
                 ...prev,
                 {
-                    key: crypto.randomUUID(),
-                    task: values.task.trim(),
+                    key: data._id,
+                    task: data.name,
                     categoryId: activeKey,
-                    budget: Number(values.budget),
-                    frequency: Number(values.frequency),
-                    description: values.description || "",
-                    dateRange: values.dateRange,
+                    budget: Number(data.budget) || 0,
+                    frequency: data.every
+                        ? `${data.every} ${data.unit}${data.every > 1 ? "s" : ""}`
+                        : "",
+                    description: data.description || "",
+                    dateRange: [
+                        dayjs(data.startDate),
+                        data.endDate
+                            ? dayjs(data.endDate)
+                            : dayjs(data.startDate),
+                    ],
                 },
             ]);
+
+            taskForm.resetFields();
+            setTaskModalOpen(false);
+            message.success("Task added");
+        } catch (err) {
+            console.error(err);
+            message.error(err?.response?.data?.message || "Failed to add task");
         }
 
-        taskForm.resetFields();
-        setEditingTaskKey(null);
-        setTaskModalOpen(false);
+        /*old frontend: -*/
+        /*if(editingTaskKey){
+          setTaskData(prev =>  prev.map(task => {
+          if (task.key !== editingTaskKey) 
+            {
+              return task;
+            }
+            else{
+              return {
+                ...task,
+                task: values.task.trim(),
+                budget: Number(values.budget),
+                frequency: Number(values.frequency),
+                description: values.description || '',
+                dateRange: values.dateRange,
+              };
+            }
+          })
+        );
+      }
+      else{
+        setTaskData(prev => [...prev,
+        {
+          key: crypto.randomUUID(),
+          task: values.task.trim(),
+          categoryId: activeKey,
+          budget: Number(values.budget),
+          frequency: Number(values.frequency),
+          description: values.description || '',
+          dateRange: values.dateRange,
+        },
+      ]);
+      }
+        
+      taskForm.resetFields();
+      setEditingTaskKey(null);
+      setTaskModalOpen(false);*/
     };
     /*********************END TAB BOILIER PLATE FROM ANTD WITH SLIGHT EDITS**************************** */
 
-    const [categories, setCategories] = useState([
-        { id: "1", name: "1", budget: 1000 },
-        { id: "2", name: "2", budget: 1000 },
-    ]);
-    const [activeKey, setActiveKey] = useState(categories[0]?.id);
+    const [categories, setCategories] = useState([]);
+    /*const [categories, setCategories] = useState([
+    { id: '1', name: '1', budget: 1000 },
+    { id: '2', name: '2', budget: 1000 },
+    ]);*
+  const [activeKey, setActiveKey] = useState(categories[0]?.id);*/
+    const [activeKey, setActiveKey] = useState(null);
+    const [catLoading, setCatLoading] = useState(true);
+    const [catError, setCatError] = useState(null);
     const tabItems = useMemo(
         () => categories.map((c) => ({ label: c.name, key: c.id })),
         [categories],
     );
+    //loads tasks
+    useEffect(() => {
+        if (!activeKey) return;
+        let ignore = false;
+        (async () => {
+            try {
+                const { data } = await axios.get(
+                    `http://localhost:3000/trial/categories/tasks/${activeKey}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${getAccessToken()}`,
+                        },
+                    },
+                );
 
-    const addCategoryData = (values) => {
-        if (editingCatKey) {
-            setCategories((prev) =>
-                prev.map((cat) => {
-                    if (cat.id != editingCatKey) {
-                        return cat;
-                    } else {
-                        return {
-                            ...cat,
-                            budget: Number(values.budget),
-                            name: `Category: ${values.name}`,
-                        };
-                    }
-                }),
-            );
-        } else {
-            const id = crypto.randomUUID();
-            const budget = Number(values.budget) || 0;
-            const name = `Category: ${values.name}`;
-            setCategories((prev) => [...prev, { id, name, budget }]);
-            setActiveKey(id);
+                const mapped = (
+                    Array.isArray(data) ? data : data.tasks || []
+                ).map((t) => ({
+                    key: t._id,
+                    task: t.name,
+                    categoryId: activeKey, // we know which category we fetched
+                    budget: Number(t.budget) || 0,
+                    frequency: t.every
+                        ? `${t.every} ${t.unit}${t.every > 1 ? "s" : ""}`
+                        : "",
+                    description: t.description || "",
+                    dateRange: [
+                        dayjs(t.startDate),
+                        t.endDate ? dayjs(t.endDate) : dayjs(t.startDate),
+                    ],
+                    __raw: t,
+                }));
+
+                if (!ignore) {
+                    // replace rows for this category only
+                    setTaskData((prev) => {
+                        const others = prev.filter(
+                            (x) => x.categoryId !== activeKey,
+                        );
+                        return [...others, ...mapped];
+                    });
+                }
+            } catch (err) {
+                console.error("load tasks failed", err);
+                message.error(
+                    err?.response?.data?.message || "Failed to load tasks",
+                );
+            }
+        })();
+
+        return () => {
+            ignore = true;
+        };
+    }, [activeKey]);
+
+    async function getActiveKey() {
+        console.log(activeKey);
+    }
+    // === NEW === Load categories for this schedule on mount
+    useEffect(() => {
+        if (!initialised) {
+            return;
         }
-        setCategoryModalOpen(false);
-        categoryForm.resetFields();
-        setCatEditingKey(null);
+
+        if (
+            !selectedSchedule ||
+            selectedSchedule === "null" ||
+            selectedSchedule === "undefined"
+        ) {
+            console.warn(
+                "Skipping category fetch — invalid selectedSchedule:",
+                selectedSchedule,
+            );
+            return;
+        }
+
+        let ignore = false;
+        (async () => {
+            try {
+                setCatLoading(true);
+                setCatError(null);
+                const { data } = await axios.get(
+                    `http://localhost:3000/schedule/${selectedSchedule}/getCategories`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${getAccessToken()}`,
+                        },
+                    },
+                );
+                // normalize: id, name, budget
+                const normalized = (
+                    Array.isArray(data) ? data : data.categories || []
+                ).map((c) => ({
+                    id: c.id || c._id,
+                    name: c.name,
+                    budget: Number(c.budget) || 0,
+                }));
+                if (!ignore) {
+                    setCategories(normalized);
+                    // set first tab active if any
+                    setActiveKey(normalized[0]?.id || null);
+                }
+            } catch (err) {
+                if (!ignore)
+                    setCatError(
+                        err?.response?.data?.message ||
+                            err.message ||
+                            "Failed to load categories",
+                    );
+            } finally {
+                if (!ignore) setCatLoading(false);
+            }
+        })();
+        return () => {
+            ignore = true;
+        };
+    }, [selectedSchedule, initialised]);
+
+    // live updates for manipulating categories
+    useEffect(() => {
+        if (!selectedSchedule) return;
+
+        socket.emit("joinSchedule", selectedSchedule);
+
+        // detects when a category is added
+        socket.on("categoryAdded", (newCat) => {
+            setCategories((prev) => {
+                // avoid duplicates
+                if (
+                    prev.some((c) => c.id === newCat.id || c._id === newCat.id)
+                ) {
+                    return prev;
+                }
+                return [
+                    ...prev,
+                    {
+                        id: newCat.id || newCat._id,
+                        name: newCat.name,
+                        budget: Number(newCat.budget) || 0,
+                    },
+                ];
+            });
+            message.success(`New category "${newCat.name}" added`);
+        });
+
+        // detects when a category is removed
+        socket.on("categoryRemoved", (removedCat) => {
+            setCategories((prev) => {
+                const updated = prev.filter(
+                    (c) => c.id !== removedCat.id && c._id !== removedCat.id,
+                );
+                setTaskData((tasks) =>
+                    tasks.filter((t) => t.categoryId !== removedCat.id),
+                );
+                setActiveKey((prevActive) =>
+                    prevActive === removedCat.id
+                        ? (updated[0]?.id ?? null)
+                        : prevActive,
+                );
+                return updated;
+            });
+            message.info("Category removed");
+        });
+
+        // detects when a category is edited
+        socket.on("categoryEdited", (updatedCat) => {
+            setCategories((prev) =>
+                prev.map((c) =>
+                    c.id === updatedCat.id || c._id === updatedCat.id
+                        ? {
+                              ...c,
+                              name: updatedCat.name,
+                              budget: Number(updatedCat.budget) || 0,
+                          }
+                        : c,
+                ),
+            );
+            message.success(`Category "${updatedCat.name}" updated`);
+        });
+
+        return () => {
+            socket.off("categoryAdded");
+            socket.off("categoryRemoved");
+            socket.off("categoryEdited");
+        };
+    }, [socket, selectedSchedule]);
+
+    const addCategoryData = async (values) => {
+        try {
+            if (editingCatKey) {
+                // Edit the category
+                const { data } = await axios.patch(
+                    `http://localhost:3000/schedule/${selectedSchedule}/categories/${editingCatKey}`,
+                    {
+                        name: values.name,
+                        budget: values.budget,
+                    },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${getAccessToken()}`,
+                        },
+                    },
+                );
+
+                // Update UI
+                setCategories((prev) =>
+                    prev.map((cat) =>
+                        cat.id === editingCatKey
+                            ? { ...cat, name: data.name, budget: data.budget }
+                            : cat,
+                    ),
+                );
+            } else {
+                const { data } = await axios.post(
+                    `http://localhost:3000/schedule/${selectedSchedule}/add-category`,
+                    {
+                        name: values.name,
+                        budget: values.budget,
+                    },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${getAccessToken()}`,
+                        },
+                    },
+                );
+                // expect either { id, name, budget } or { _id, name, budget } or { category: { ... } }
+                const c = data.category || data;
+                const id = typeof c === "object" ? c._id : c;
+                const budget = Number(c.budget) || 0;
+                const name = c.name;
+
+                setCategories((prev) =>
+                    prev.map((cat) =>
+                        cat.id !== editingCatKey
+                            ? cat
+                            : { ...cat, budget, name },
+                    ),
+                );
+                setActiveKey(c._id);
+                message.success(`New category "${name}" added`);
+            }
+        } catch (err) {
+            if (err.response?.status === 403) {
+                message.error("You don't have permission to add a category.");
+            } else if (err.response?.status === 401) {
+                message.error("Session expired. Please log in again.");
+            } else {
+                message.error(
+                    err.response?.data?.message || "Failed to add category.",
+                );
+            }
+            console.error("Add category failed:", err);
+        } finally {
+            setCategoryModalOpen(false);
+            categoryForm.resetFields();
+            setCatEditingKey(null);
+        }
     };
+
     const HandleCatEdit = (id) => {
         if (!id) {
             return;
@@ -401,27 +707,40 @@ export default function ManagementPage() {
         setActiveKey(key ?? null);
     };
 
-    const removeTab = (categoryId) => {
-        setCategories((prev) => {
-            const newList = prev.filter((c) => c.id !== categoryId);
-            setTaskData((tasks) =>
-                tasks.filter((t) => t.categoryId !== categoryId),
+    const removeTab = async (categoryId) => {
+        try {
+            await axios.delete(
+                `http://localhost:3000/schedule/${selectedSchedule}/categories/${categoryId}`,
+                {
+                    headers: { Authorization: `Bearer ${getAccessToken()}` },
+                },
             );
+            setCategories((prev) => {
+                const newList = prev.filter((c) => c.id !== categoryId);
+                setTaskData((tasks) =>
+                    tasks.filter((t) => t.categoryId !== categoryId),
+                );
 
-            setActiveKey((prevActive) =>
-                prevActive === categoryId
-                    ? (newList[0]?.id ?? null)
-                    : prevActive,
+                setActiveKey((prevActive) =>
+                    prevActive === categoryId
+                        ? (newList[0]?.id ?? null)
+                        : prevActive,
+                );
+
+                return newList;
+            });
+        } catch (err) {
+            console.error(err);
+            message.error(
+                err?.response?.data?.message || "Failed to delete category",
             );
-
-            return newList;
-        });
+        }
     };
 
     const onEdit = (targetKey) => {
         if (
             window.confirm(
-                "you sure? this will permananetly delete all the tasks in this category",
+                "Are you sure? This will permananetly delete all the tasks in this category",
             )
         ) {
             removeTab(targetKey);
@@ -505,10 +824,7 @@ export default function ManagementPage() {
                                     label="Enter User Email"
                                     rules={[
                                         { required: true },
-                                        {
-                                            type: "email",
-                                            warningOnly: true,
-                                        },
+                                        { type: "email", warningOnly: true },
                                     ]}
                                 >
                                     <Input placeholder="Enter user email" />
@@ -528,7 +844,7 @@ export default function ManagementPage() {
                                         {(roles.includes("family") ||
                                             roles.includes("POA")) && (
                                             <>
-                                                <Radio.Button value="organisation">
+                                                <Radio.Button value="serviceProvider">
                                                     Service Provider
                                                 </Radio.Button>
                                                 <Radio.Button value="family">
@@ -539,17 +855,28 @@ export default function ManagementPage() {
                                                 </Radio.Button>
                                             </>
                                         )}
-                                        {/* carer view */}
-                                        {roles.includes("carer") && (
-                                            <>Cannot add users</>
+                                        {/* service provider view */}
+                                        {roles.includes("serviceProvider") && (
+                                            <>
+                                                <Radio.Button value="manager">
+                                                    Manager
+                                                </Radio.Button>
+                                                <Radio.Button value="carer">
+                                                    Carer
+                                                </Radio.Button>
+                                            </>
                                         )}
-                                        {/* organisation view */}
-                                        {roles.includes("organisation") && (
+                                        {/* manager view */}
+                                        {roles.includes("manager") && (
                                             <>
                                                 <Radio.Button value="carer">
                                                     Carer
                                                 </Radio.Button>
                                             </>
+                                        )}
+                                        {/* carer view */}
+                                        {roles.includes("carer") && (
+                                            <>Cannot add users</>
                                         )}
                                     </Radio.Group>
                                 </Form.Item>
@@ -834,6 +1161,7 @@ export default function ManagementPage() {
                     </Splitter>
                 </div>
             </Content>
+            <button onClick={getActiveKey}>CLICK</button>
         </Layout>
     );
 }

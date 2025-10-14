@@ -1,102 +1,86 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { ScheduleContext } from "../context/ScheduleContext.jsx";
 import { getAuthHeaders } from "../utils/tokenUtils";
 import axios from "axios";
 import { App } from "antd";
+import { useSocket } from "../context/SocketContext.jsx";
 
 const ProtectedRoute = ({ children }) => {
-    const { user, loading, logout, selectSchedule } = useAuth();
-    const { selectedSchedule } = React.useContext(ScheduleContext);
+    const socket = useSocket();
+    const { user, loading, logout } = useAuth();
+    const { selectedSchedule, setSelectedSchedule, initialised } =
+        useContext(ScheduleContext);
     const { message } = App.useApp();
     const location = useLocation();
     const [checking, setChecking] = useState(true);
-    const [valid, setValid] = useState(true);
+    const [redirectToSelect, setRedirectToSelect] = useState(false);
 
+    // deals with schedule removal
     useEffect(() => {
-        // no need to check if user belongs to schedule in login page
-        if (location.pathname === "/login" || loading) {
+        // wait for authentication to load
+        if (loading) {
             return;
         }
 
-        const checkMembership = async () => {
-            if (!user) {
-                setChecking(false);
-                setValid(false);
-                return;
-            }
+        // no user or socket available
+        if (!user || !socket) {
+            setChecking(false);
+            return;
+        }
 
-            if (!selectedSchedule) {
-                // no schedule selected, just allow access
-                setChecking(false);
-                setValid(true);
-                return;
-            }
+        // join a personal user room on connection
+        socket.emit("joinUserRoom", user._id);
 
-            try {
-                const res = await axios.get(
-                    `http://localhost:3000/schedule/${selectedSchedule}/users`,
-                    { headers: getAuthHeaders() },
-                );
-
-                const stillInSchedule = res.data.some(
-                    (u) => u.user._id === user._id,
-                );
-
-                if (!stillInSchedule) {
-                    message.error("You have been removed from this schedule");
-                    selectSchedule();
-                    return;
-                } else {
-                    setValid(true);
-                }
-            } catch (err) {
-                if (err.response?.status === 403) {
-                    message.error("You no longer have access to this schedule");
-                    selectSchedule();
-                    return;
-                }
-                setValid(false);
-                console.error("Schedule membership check failed", err);
-            } finally {
-                setChecking(false);
+        // handle schedule removal
+        const handleRemoval = ({ scheduleId }) => {
+            if (scheduleId === selectedSchedule) {
+                message.error("You have been removed from this schedule");
+                // reset selected schedule
+                setSelectedSchedule(null);
+                setRedirectToSelect(true);
             }
         };
-        checkMembership();
 
-        // check that the user is still in the schedule every 30 seconds
-        const interval = setInterval(async () => {
-            try {
-                const res = await axios.get(
-                    `http://localhost:3000/schedule/${selectedSchedule}/users`,
-                    { headers: getAuthHeaders() },
-                );
+        socket.on("removedFromSchedule", handleRemoval);
 
-                const stillInSchedule = res.data.some(
-                    (u) => u.user._id === user._id,
-                );
-                if (!stillInSchedule) {
-                    message.error("You have been removed from this schedule");
-                    selectSchedule();
-                    clearInterval(interval);
-                }
-            } catch (err) {
-                console.error("Schedule membership check failed", err);
-                clearInterval(interval);
+        setChecking(false);
+
+        // cleanup
+        return () => socket.off("removedFromSchedule", handleRemoval);
+    }, [socket, user, selectedSchedule, loading]);
+
+    // whenever there is no schedule selected, it redirects to schedule selection page
+    useEffect(() => {
+        // wait for schedule context to load
+        if (loading || checking || !initialised) {
+            return;
+        }
+
+        // no schedule has been selected
+        if (!selectedSchedule && location.pathname !== "/select-schedule") {
+            if (!redirectToSelect) {
+                message.destroy();
+                message.info("Please select a schedule first.");
+                setRedirectToSelect(true);
             }
-        }, 30 * 1000);
+        } else if (redirectToSelect) {
+            setRedirectToSelect(false);
+        }
+    }, [selectedSchedule, location.pathname, initialised]);
 
-        return () => clearInterval(interval);
-    }, [user, selectedSchedule, loading, location.pathname]);
-
-    if (loading || checking) {
+    if (loading || checking || !initialised) {
         return <div>Loading...</div>;
     }
 
     // user is not authorised, redirectly to login page
-    if (!user || !valid) {
+    if (!user) {
         return <Navigate to="/login" replace state={{ from: location }} />;
+    }
+
+    if (redirectToSelect) {
+        return <Navigate to="/select-schedule" replace />;
     }
 
     return children;

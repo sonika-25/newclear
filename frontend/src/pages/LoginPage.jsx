@@ -84,7 +84,7 @@ export default function LoginPage() {
                 .then((res) => {
                     console.log(res.data);
                     if (res.data.message === "Successful login") {
-                        // save access and refresh token in local storage
+                        // save access and refresh token in session storage
                         const { user, accessToken, refreshToken } = res.data;
 
                         login(user, accessToken, refreshToken);
