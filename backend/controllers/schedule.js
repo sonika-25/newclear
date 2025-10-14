@@ -467,6 +467,11 @@ async function removeCategory(req, res) {
         // Delete the actual Category document
         await Category.findByIdAndDelete(categoryId);
 
+        // Alerts that a category has been removed so that live
+        // updates can occur
+        const io = req.app.get("io");
+        io.to(scheduleId).emit("categoryRemoved", { id: categoryId });
+
         res.json({ message: "Category deleted successfully" });
     } catch (err) {
         console.error(err);
@@ -496,7 +501,54 @@ async function addCategory(req, res) {
             { $addToSet: { categories: newCat._id } },
         );
 
+        // Alerts that a category has been added so that live
+        // updates can occur
+        const io = req.app.get("io");
+        io.to(scheduleId).emit("categoryAdded", {
+            id: newCat._id,
+            name: newCat.name,
+            budget: newCat.budget,
+        });
+
         res.status(201).json(newCat);
+    } catch (err) {
+        console.log(err);
+    }
+}
+
+async function editCategory(req, res) {
+    try {
+        const { name, budget } = req.body;
+        const { scheduleId, categoryId } = req.params;
+
+        if (!name && !budget) {
+            return res.status(400).json({
+                message: "At least one of name or budget is required to edit.",
+            });
+        }
+
+        const updatedCategory = await Category.findByIdAndUpdate(
+            categoryId,
+            {
+                $set: { name, budget },
+            },
+            { new: true },
+        );
+
+        if (!updatedCategory) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+
+        // Alerts that a category has been added so that live
+        // updates can occur
+        const io = req.app.get("io");
+        io.to(scheduleId).emit("categoryEdited", {
+            id: updatedCategory._id,
+            name: updatedCategory.name,
+            budget: updatedCategory.budget,
+        });
+
+        res.status(200).json(updatedCategory);
     } catch (err) {
         console.log(err);
     }
@@ -605,6 +657,7 @@ module.exports = {
     getCategory,
     removeCategory,
     addCategory,
+    editCategory,
     completeTask,
     addTask,
 };

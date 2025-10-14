@@ -70,6 +70,13 @@ router.post(
     scheduleCtrl.addCategory,
 );
 
+router.patch(
+    "/:scheduleId/categories/:categoryId",
+    authenticateToken,
+    checkPermission("edit:category"),
+    scheduleCtrl.editCategory,
+);
+
 router.post(
     "/:scheduleId/finish-task",
     authenticateToken,
