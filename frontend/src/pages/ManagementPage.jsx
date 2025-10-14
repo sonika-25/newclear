@@ -549,61 +549,145 @@ export default function ManagementPage() {
         };
     }, [selectedSchedule, initialised]);
 
-    const addCategoryData = (values) => {
-        axios
-            .post(
-                `http://localhost:3000/schedule/${selectedSchedule}/add-category`,
-                {
-                    name: values.name,
-                    budget: values.budget,
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${getAccessToken()}`,
+    // live updates for manipulating categories
+    useEffect(() => {
+        if (!selectedSchedule) return;
+
+        socket.emit("joinSchedule", selectedSchedule);
+
+        // detects when a category is added
+        socket.on("categoryAdded", (newCat) => {
+            setCategories((prev) => {
+                // avoid duplicates
+                if (
+                    prev.some((c) => c.id === newCat.id || c._id === newCat.id)
+                ) {
+                    return prev;
+                }
+                return [
+                    ...prev,
+                    {
+                        id: newCat.id || newCat._id,
+                        name: newCat.name,
+                        budget: Number(newCat.budget) || 0,
                     },
-                },
-            )
-            .then(({ data }) => {
+                ];
+            });
+            message.success(`New category "${newCat.name}" added`);
+        });
+
+        // detects when a category is removed
+        socket.on("categoryRemoved", (removedCat) => {
+            setCategories((prev) => {
+                const updated = prev.filter(
+                    (c) => c.id !== removedCat.id && c._id !== removedCat.id,
+                );
+                setTaskData((tasks) =>
+                    tasks.filter((t) => t.categoryId !== removedCat.id),
+                );
+                setActiveKey((prevActive) =>
+                    prevActive === removedCat.id
+                        ? (updated[0]?.id ?? null)
+                        : prevActive,
+                );
+                return updated;
+            });
+            message.info("Category removed");
+        });
+
+        // detects when a category is edited
+        socket.on("categoryEdited", (updatedCat) => {
+            setCategories((prev) =>
+                prev.map((c) =>
+                    c.id === updatedCat.id || c._id === updatedCat.id
+                        ? {
+                              ...c,
+                              name: updatedCat.name,
+                              budget: Number(updatedCat.budget) || 0,
+                          }
+                        : c,
+                ),
+            );
+            message.success(`Category "${updatedCat.name}" updated`);
+        });
+
+        return () => {
+            socket.off("categoryAdded");
+            socket.off("categoryRemoved");
+            socket.off("categoryEdited");
+        };
+    }, [socket, selectedSchedule]);
+
+    const addCategoryData = async (values) => {
+        try {
+            if (editingCatKey) {
+                // Edit the category
+                const { data } = await axios.patch(
+                    `http://localhost:3000/schedule/${selectedSchedule}/categories/${editingCatKey}`,
+                    {
+                        name: values.name,
+                        budget: values.budget,
+                    },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${getAccessToken()}`,
+                        },
+                    },
+                );
+
+                // Update UI
+                setCategories((prev) =>
+                    prev.map((cat) =>
+                        cat.id === editingCatKey
+                            ? { ...cat, name: data.name, budget: data.budget }
+                            : cat,
+                    ),
+                );
+            } else {
+                const { data } = await axios.post(
+                    `http://localhost:3000/schedule/${selectedSchedule}/add-category`,
+                    {
+                        name: values.name,
+                        budget: values.budget,
+                    },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${getAccessToken()}`,
+                        },
+                    },
+                );
                 // expect either { id, name, budget } or { _id, name, budget } or { category: { ... } }
                 const c = data.category || data;
                 const id = typeof c === "object" ? c._id : c;
                 const budget = Number(c.budget) || 0;
                 const name = c.name;
 
-                if (editingCatKey) {
-                    setCategories((prev) =>
-                        prev.map((cat) =>
-                            cat.id !== editingCatKey
-                                ? cat
-                                : { ...cat, budget, name },
-                        ),
-                    );
-                } else {
-                    setCategories((prev) => [...prev, { id, name, budget }]);
-                    setActiveKey(id);
-                }
-                message.success("Category saved");
-            })
-            .catch((err) => {
-                if (err.response?.status === 403) {
-                    message.error(
-                        "You don't have permission to add a category.",
-                    );
-                } else if (err.response?.status === 401) {
-                    message.error("Session expired. Please log in again.");
-                } else {
-                    message.error(
-                        err.response?.data?.message ||
-                            "Failed to add category.",
-                    );
-                }
-                console.error("Add category failed:", err);
-            })
-            .finally(() => {
-                setCategoryModalOpen(false);
-                categoryForm.resetFields();
-                setCatEditingKey(null);
-            });
+                setCategories((prev) =>
+                    prev.map((cat) =>
+                        cat.id !== editingCatKey
+                            ? cat
+                            : { ...cat, budget, name },
+                    ),
+                );
+                setActiveKey(c._id);
+                message.success(`New category "${name}" added`);
+            }
+        } catch (err) {
+            if (err.response?.status === 403) {
+                message.error("You don't have permission to add a category.");
+            } else if (err.response?.status === 401) {
+                message.error("Session expired. Please log in again.");
+            } else {
+                message.error(
+                    err.response?.data?.message || "Failed to add category.",
+                );
+            }
+            console.error("Add category failed:", err);
+        } finally {
+            setCategoryModalOpen(false);
+            categoryForm.resetFields();
+            setCatEditingKey(null);
+        }
     };
 
     const HandleCatEdit = (id) => {
@@ -645,7 +729,6 @@ export default function ManagementPage() {
 
                 return newList;
             });
-            message.success("Category deleted");
         } catch (err) {
             console.error(err);
             message.error(
@@ -657,7 +740,7 @@ export default function ManagementPage() {
     const onEdit = (targetKey) => {
         if (
             window.confirm(
-                "you sure? this will permananetly delete all the tasks in this category",
+                "Are you sure? This will permananetly delete all the tasks in this category",
             )
         ) {
             removeTab(targetKey);
