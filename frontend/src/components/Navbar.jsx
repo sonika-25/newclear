@@ -1,6 +1,6 @@
 import { Layout, Menu } from 'antd';
 import { Link } from 'react-router-dom';
-import {AreaChartOutlined, LogoutOutlined, RollbackOutlined, ScheduleOutlined, EditOutlined, SettingOutlined, QuestionCircleOutlined, LoginOutlined} from '@ant-design/icons';
+import {AreaChartOutlined, LogoutOutlined, FolderOpenOutlined, RollbackOutlined, ScheduleOutlined, EditOutlined, SettingOutlined, QuestionCircleOutlined, LoginOutlined} from '@ant-design/icons';
 import {Typography} from 'antd';
 import './navbar.css';
 import logo from '../assets/importedlogotest.svg';
@@ -53,6 +53,17 @@ const Navbar = () => {
                     <EditOutlined className="navIcon" />
                 </Link>
                   <Typography.Title level={5} style={{margin:0}} className="navTitle">Management</Typography.Title>
+                 </div>
+                ),
+            },
+            {
+             key: '/evidence',
+                label: (
+                <div>    
+                <Link to="/evidence" className="navItem">
+                    <FolderOpenOutlined className="navIcon" />
+                </Link>
+                  <Typography.Title level={5} style={{margin:0}} className="navTitle">Evidence</Typography.Title>
                  </div>
                 ),
             },
