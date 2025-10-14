@@ -622,37 +622,35 @@ export default function ManagementPage() {
         setActiveKey(key ?? null);
     };
 
-    const removeTab = (categoryId) => {
-        axios
-            .delete(
+    const removeTab = async (categoryId) => {
+        try {
+            await axios.delete(
                 `http://localhost:3000/schedule/${selectedSchedule}/categories/${categoryId}`,
                 {
                     headers: { Authorization: `Bearer ${getAccessToken()}` },
                 },
-            )
-            .then(() => {
-                message.success("Category deleted");
-            })
-            .catch((err) => {
-                console.error(err);
-                message.error(
-                    err?.response?.data?.message || "Failed to delete category",
+            );
+            setCategories((prev) => {
+                const newList = prev.filter((c) => c.id !== categoryId);
+                setTaskData((tasks) =>
+                    tasks.filter((t) => t.categoryId !== categoryId),
                 );
+
+                setActiveKey((prevActive) =>
+                    prevActive === categoryId
+                        ? (newList[0]?.id ?? null)
+                        : prevActive,
+                );
+
+                return newList;
             });
-        setCategories((prev) => {
-            const newList = prev.filter((c) => c.id !== categoryId);
-            setTaskData((tasks) =>
-                tasks.filter((t) => t.categoryId !== categoryId),
+            message.success("Category deleted");
+        } catch (err) {
+            console.error(err);
+            message.error(
+                err?.response?.data?.message || "Failed to delete category",
             );
-
-            setActiveKey((prevActive) =>
-                prevActive === categoryId
-                    ? (newList[0]?.id ?? null)
-                    : prevActive,
-            );
-
-            return newList;
-        });
+        }
     };
 
     const onEdit = (targetKey) => {
