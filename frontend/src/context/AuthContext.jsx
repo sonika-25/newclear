@@ -147,7 +147,7 @@ export const AuthProvider = ({ children }) => {
     const login = (userData, accessToken, refreshToken) => {
         storeTokens(accessToken, refreshToken);
         setUser(userData);
-        navigate("/select-schedule", 0);
+        navigate("/select");
     };
 
     // logout function

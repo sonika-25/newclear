@@ -88,13 +88,13 @@ async function createSchedule(req, res) {
             schedule: schedule._id,
             role: "family",
         });
-        await scheduleUser.save();
+        await scheduleUser.save({ session });
         await scheduleUser.populate("user");
         await scheduleUser.populate("schedule");
 
         await session.commitTransaction();
         const inviteLink = `/schedules/join/${inviteToken}`;
-        res.status(201).json(schedule, inviteLink);
+        res.status(201).json({ schedule, inviteLink });
     } catch (error) {
         await session.abortTransaction();
         res.status(500).json({ error: error.message });
@@ -106,11 +106,11 @@ async function createSchedule(req, res) {
 // Returns the information of a schedule belonging to a given owner and client/PWSN
 async function getScheduleInfo(req, res) {
     const inputOwner = req.body.scheduleOwner;
-    const inputPWSN = req.body.pwsn_name;
+    const inputPWSN = req.body.pwsnName;
 
     Schedule.findOne({
         scheduleOwner: inputOwner,
-        pwsn_name: inputPWSN,
+        pwsnName: inputPWSN,
     }).then((data) => {
         res.json(data);
     });

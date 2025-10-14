@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import LogoReact from "/src/assets/react.svg";
 import {
     ConfigProvider,
     theme,
@@ -24,39 +23,6 @@ import {
     clearTokens,
 } from "../utils/tokenUtils.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-
-// Add React Logo on the home page (temporary)
-function ReactLogo({ size = 420 }) {
-    return (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 841.9 595.3"
-            fill="none"
-            xmlns={LogoReact}
-            style={{ opacity: 0.1 }}
-        >
-            <g stroke="currentColor" strokeWidth="40">
-                <ellipse cx="420.9" cy="296.5" rx="190" ry="380" />
-                <ellipse
-                    cx="420.9"
-                    cy="296.5"
-                    rx="190"
-                    ry="380"
-                    transform="rotate(60 420.9 296.5)"
-                />
-                <ellipse
-                    cx="420.9"
-                    cy="296.5"
-                    rx="190"
-                    ry="380"
-                    transform="rotate(120 420.9 296.5)"
-                />
-            </g>
-            <circle cx="420.9" cy="296.5" r="50" fill="currentColor" />
-        </svg>
-    );
-}
 
 // temporary authentication
 function tempAuth({ email, password }) {
@@ -159,9 +125,7 @@ export default function LoginPage() {
                         placeItems: "center",
                         pointerEvents: "none",
                     }}
-                >
-                    <ReactLogo />
-                </div>
+                ></div>
 
                 {/* login form using ant design ui */}
                 <Card style={{ width: 360 }} variant={false}>

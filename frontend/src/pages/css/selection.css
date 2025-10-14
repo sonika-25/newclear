@@ -1,0 +1,15 @@
+
+.bgLogo {
+  position: absolute;
+  transform: translate(-30%, 0);
+  width: 1200px;
+  opacity: .4;   
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+.background > .ant-card {
+  position: relative;
+  z-index: 1;
+}
