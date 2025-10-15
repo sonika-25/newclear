@@ -157,7 +157,7 @@ export default function LoginPage() {
                                 {
                                     type: "email",
                                     message:
-                                        "That doesn't look like a valud email",
+                                        "That doesn't look like a valid email",
                                 },
                             ]}
                         >
@@ -199,7 +199,6 @@ export default function LoginPage() {
                             >
                                 <Checkbox>Remember me</Checkbox>
                             </Form.Item>
-                            <a href="#">Forgot Password</a>
                         </div>
 
                         {/* sign in button */}
