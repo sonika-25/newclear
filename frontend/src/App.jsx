@@ -3,6 +3,7 @@ import UILayout from "./components/UILayout";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import SchedulePage from "./pages/SchedulePage";
+import EvidencePage from "./pages/EvidencePage";
 import ManagementPage from "./pages/ManagementPage";
 import SelectionPage from "./pages/SelectionPage";
 import SelectSchedulePage from "./pages/SelectSchedulePage";
@@ -58,6 +59,14 @@ export default function App() {
                     element={
                         <ProtectedRoute>
                             <ManagementPage />
+                        </ProtectedRoute>
+                    }
+                />
+                 <Route
+                    path="/evidence"
+                    element={
+                        <ProtectedRoute>
+                            <EvidencePage />
                         </ProtectedRoute>
                     }
                 />
