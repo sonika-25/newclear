@@ -670,7 +670,6 @@ export default function ManagementPage() {
                     ),
                 );
                 setActiveKey(c._id);
-                message.success(`New category "${name}" added`);
             }
         } catch (err) {
             if (err.response?.status === 403) {

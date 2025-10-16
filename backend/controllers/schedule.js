@@ -288,9 +288,10 @@ async function removeUser(req, res) {
         session = await ScheduleUser.startSession();
         session.startTransaction();
 
+        const io = req.app.get("io");
         const removedRole = tobeRemovedScheduleUser.role;
         if (removedRole === "serviceProvider") {
-            await removeOrgEmployees(scheduleId, session, req);
+            await removeOrgEmployees(scheduleId, session, io);
         }
 
         // Remove the link between the user and the schedule
@@ -307,7 +308,6 @@ async function removeUser(req, res) {
         await session.commitTransaction();
 
         // live update everyone in the schedule when user is removed
-        const io = req.app.get("io");
         await removedScheduleUser.populate("user");
         io.to(scheduleId).emit("userRemoved", removedScheduleUser);
 
@@ -330,7 +330,7 @@ async function removeUser(req, res) {
 }
 
 // Removes all managers and carers when an org is removed
-async function removeOrgEmployees(scheduleId, session, req) {
+async function removeOrgEmployees(scheduleId, session, io) {
     const removedEmployees = await ScheduleUser.find({
         schedule: scheduleId,
         role: { $in: ["manager", "carer"] },
@@ -348,7 +348,6 @@ async function removeOrgEmployees(scheduleId, session, req) {
         role: { $in: ["manager", "carer"] },
     }).session(session);
 
-    const io = req.app.get("io");
     // Live updates for each removed employee
     for (const employee of removedEmployees) {
         io.to(scheduleId).emit("userRemoved", employee);
