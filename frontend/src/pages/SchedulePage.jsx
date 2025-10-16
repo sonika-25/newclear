@@ -1,6 +1,6 @@
 import './css/schedule.css';
-import React, { useState, useMemo } from "react"
-import { Layout, Typography, Calendar, Table, Tag, Button, Modal, Form, Input, DatePicker, Select, Tooltip, Upload } from 'antd';
+import React, { useState, useMemo, useEffect } from "react"
+import { Layout, Typography, Calendar, Table, Tag, Button, Modal, Form, Input, DatePicker, Select, Tooltip, Upload, message } from 'antd';
 import { CheckCircleTwoTone, ClockCircleTwoTone, ExclamationCircleTwoTone, InboxOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs from 'dayjs';
 
@@ -93,6 +93,7 @@ const CARERS = [
 ];
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const DAY_OPTIONS = DAYS.map((d, i) => ({ value: i, label: d }));
 
 const SHIFT_OPTIONS = [
     { value: "morning", label: "Morning" },
@@ -170,10 +171,24 @@ export default function SchedulePage() {
         }));
     }
 
+    function openAddShift() {
+        setAddOpen(true);
+    }
+
+    useEffect(() => {
+        if (addOpen) {
+            addForm.resetFields();
+            addForm.setFieldValue({
+                carerID: undefined,
+                dayIdx: undefined,
+                shift: undefined,
+            });
+        }
+    }, [addOpen, addForm]);
+
     function onAddShift(values) {
         setShift(values.carerID, values.dayIdx, values.shift);
         setAddOpen(false);
-        addForm.resetFields();
     }
 
     const cols = [
@@ -450,7 +465,7 @@ export default function SchedulePage() {
                                         gap: 8
                                     }}
                                 >
-                                    <Button onClick={() => setAddOpen(true)} type="primary">
+                                    <Button onClick={openAddShift} type="primary">
                                         Add Shift
                                     </Button>
 
@@ -473,7 +488,7 @@ export default function SchedulePage() {
                                     onClick={ () => setSelectedDayIdx((i) => (i + 6) % 7)}
                                 />
                                 
-                                <Text type="secondary">
+                                <Text type="primary">
                                     {DAYS[selectedDayIdx]}
                                 </Text>
                                 
@@ -581,7 +596,10 @@ export default function SchedulePage() {
             <Modal
                 title="Add Shift"
                 open={addOpen}
-                onCancel={() => { addForm.resetFields(); setAddOpen(false); }}
+                onCancel={() => { 
+                    addForm.resetFields(); 
+                    setAddOpen(false); 
+                }}
                 okText="Add"
                 onOk={() => addForm.submit()}
                 destroyOnHidden
@@ -590,12 +608,11 @@ export default function SchedulePage() {
                     form={addForm}
                     layout="vertical"
                     onFinish={onAddShift}
-                    initialValues={{ dayIdx: selectedDayIdx }}
                 >
                     <Form.Item
                         name="carerID"
                         label="Carer"
-                        rules={[{ required: true }]}
+                        rules={[{ required: true, message:"Please select a carer" }]}
                     >
                         <Select options={CARERS.map(c => ({ value: c.id, label: c.name }))}/>
                     </Form.Item>
@@ -603,15 +620,17 @@ export default function SchedulePage() {
                     <Form.Item
                         name="dayIdx"
                         label="Day"
-                        rules={[{ required: true }]}
+                        rules={[{ required: true, message: "Please select a day" }]}
                     >
-                        <Select options={DAYS.map((d, i) => ({ values: i, label: d }))}/>
+                        <Select
+                            options={DAY_OPTIONS}
+                        />
                     </Form.Item>
                     
                     <Form.Item
                         name="shift"
                         label="Shift"
-                        rules={[{ required: true, message: "Pick one shift" }]}
+                        rules={[{ required: true, message: "Pick select a shift" }]}
                     >
                         <Select
                             options={SHIFT_OPTIONS}
@@ -639,6 +658,7 @@ export default function SchedulePage() {
                         ...DAYS.map((d, i) => ({
                             title: d,
                             dataIndex: `d${i}`,
+                            align: "center",
                             render: (_,r) => shiftTag(getShift(r.id, i)),
                         }))
                     ]}
