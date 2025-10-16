@@ -2,8 +2,11 @@ const User = require("../model/user-model");
 const Schedule = require("../model/schedule-model");
 const ScheduleUser = require("../model/schedule-user-model");
 const Task = require("../model/task-model");
+const TaskRun = require("../model/task-run-model");
 const Category = require("../model/category-model");
 const bcrypt = require("bcrypt");
+const { addByUnit } = require("../utils/dates");
+
 const crypto = require("crypto");
 const { authenticateToken } = require("./authentication.js");
 const {
@@ -11,6 +14,9 @@ const {
     hasPermission,
     checkPermission,
 } = require("./permission.js");
+
+
+
 
 // Find all schedules associated with the current user
 async function fetchUserSchedules(req, res) {
@@ -479,6 +485,20 @@ async function removeCategory(req, res) {
     }
 }
 
+async function getTasksInCat (req,res) {
+    const {catId}= req.params
+    console.log(catId)
+    try {
+        const tasks = await Category.findById (catId)
+            .populate("tasks")
+            .exec();
+        return res.status(200).json(tasks)
+    } catch(err){
+        console.log(err)
+        res.send(err)
+    }
+}
+
 async function addCategory(req, res) {
     try {
         const { name, budget } = req.body;
@@ -553,41 +573,77 @@ async function editCategory(req, res) {
         console.log(err);
     }
 }
-
 async function completeTask(req, res) {
-    let { taskId, scheduleId } = req.body;
-    let task = await Task.findOne({ taskId });
-    if (task.isCompleted) {
+    let {taskInsId} = req.params
+    let actualCost = (req.body.actualCost)
+    //let taskId  = req.body;
+    console.log(req.params)
+    let task = await TaskRun.findById(taskInsId)    
+    //console.log(req.body.file)
+    if (task.done) {
         console.log("already done");
-        return;
+        res.send("already done");
     }
-    await Task.updateOne({ _id: taskId }, { $set: { isCompleted: true } });
-    const amount = Number(task.budget || 0);
+    /*if (req.file) {
+      const f = req.file; // provided by multer-gridfs-storage
+      task.completionImage = {
+        fileId: f.id || f._id,
+        filename: f.filename,
+        contentType: f.contentType || f.mimetype,
+        length: typeof f.size === "number" ? f.size : undefined,
+        uploadDate: f.uploadDate || new Date(),
+      };
+    }*/
+    task.done = true;
+    task.save()
+    const cat = await Category.findById(task.categoryId).lean();
+    const newBudget = Math.max(0, ((cat.budget) - Number(actualCost)));
+    await Category.updateOne({ _id: cat._id }, { $set: { budget: newBudget } ,$inc: { value: actualCost }});
 
-    const cat = await Category.findById(task.category).lean();
-    const newBudget = Math.max(0, (cat.budget || 0) - amount);
-    await Category.updateOne({ _id: cat._id }, { $set: { budget: newBudget } });
+    const ogTask = await Task.findById(task.taskId).lean();
+    const newTaskBudget = Math.max (0, ((ogTask.budget) - Number(actualCost)));
+    await Task.updateOne({ _id: ogTask._id}, {$set : {budget : newTaskBudget}})
 
-    const schedule = await Schedule.findById(scheduleId);
-    if (!schedule) return res.status(404).json({ error: "Schedule not found" });
-    const newRemaining = Math.max(
-        0,
-        (patient.totalBudgetRemaining || 0) - amount,
-    );
-    await Schedule.updateOne(
-        { _id: scheduleId },
-        { $set: { totalBudgetRemaining: newRemaining } },
-    );
+    res.send (`newCategBudget: ${newBudget} | NewtaskBudget: ${newTaskBudget}`)
+    
+}
+
+async function seedRuns(task, monthsAhead = 12) {
+    const start = new Date(task.startDate);
+    const horizon = new Date();
+    horizon.setMonth(horizon.getMonth() + monthsAhead);
+
+    const endLimit = task.endDate ? new Date(task.endDate) : horizon;
+
+    let due = new Date(start);
+    while (due <= endLimit) {
+        await TaskRun.updateOne(
+            { taskId: task._id, dueOn: due },
+            {
+                $setOnInsert: {
+                    taskId: task._id,
+                    scheduleId: task.scheduleId,
+                    categoryId: task.category,
+                    dueOn: due,
+                    cost: task.costPerRun,
+                },
+            },
+            { upsert: true },
+        );
+        due = addByUnit(due, task.unit, task.every || 1);
+    }
 }
 
 async function addTask(req, res) {
     try {
         const { scheduleId } = req.params;
         const {
-            task,
+            name,
             description,
-            frequency,
-            interval,
+            startDate,
+            endDate,
+            unit,
+            every,
             budget,
             categoryId,
             categoryName,
@@ -615,15 +671,19 @@ async function addTask(req, res) {
 
         // 3) Create Task (isCompleted default = false recommended)
         const newTask = await Task.create({
-            task,
+            name,
             description,
-            frequency, // ensure Task.frequency is type String with enum DAILY/WEEKLY/MONTHLY/YEARLY
-            interval,
+            startDate,
+            endDate,
+            unit,
+            every,
             budget,
             category: resolvedCategoryId || undefined,
+            scheduleId,
             isCompleted: false, // add default in schema too
             assignedToCarer: null,
         });
+
 
         // 4) Attach to schedule.tasks
         await Schedule.updateOne(
@@ -638,10 +698,11 @@ async function addTask(req, res) {
                 { $addToSet: { tasks: newTask._id } },
             );
         }
+        await seedRuns(newTask, 20)
 
         return res.status(201).json(newTask);
     } catch (e) {
-        next(e);
+        console.log(e);
     }
 }
 
@@ -660,4 +721,5 @@ module.exports = {
     editCategory,
     completeTask,
     addTask,
+    getTasksInCat
 };

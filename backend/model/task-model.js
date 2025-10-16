@@ -6,11 +6,7 @@ const taskSchema = new mongoose.Schema(
         description: { type: String },
         startDate: { type: Date, required: true },
         endDate: { type: Date },
-        frequency: {
-            type: String,
-            enum: ["DAILY", "WEEKLY", "MONTHLY", "YEARLY"],
-            required: false,
-        },
+        
         unit: {
             type: String,
             enum: ["day", "week", "month", "year"],

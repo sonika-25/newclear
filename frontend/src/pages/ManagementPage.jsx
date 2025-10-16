@@ -337,18 +337,18 @@ export default function ManagementPage() {
                 startDate: start?.toDate?.() ?? new Date(),
                 endDate: end?.toDate?.(),
                 every: Number(values.frequency),
-                unit: "day", // simple default
+                unit: values.unit, // simple default
                 budget: Number(values.budget),
-                category: activeKey,
+                categoryId: activeKey,
                 scheduleId: `${selectedSchedule}`,
             };
 
             const { data } = await axios.post(
-                `http://localhost:3000/trial/tasks/${selectedSchedule}/${activeKey}`,
+                `http://localhost:3000/schedule/${selectedSchedule}/add-task`,
                 payload,
                 { headers: { Authorization: `Bearer ${getAccessToken()}` } },
             );
-
+            console.log("data: ",data)
             // add new task to table
             setTaskData((prev) => [
                 ...prev,
@@ -433,12 +433,14 @@ export default function ManagementPage() {
     );
     //loads tasks
     useEffect(() => {
+        console.log("stop")
+        
         if (!activeKey) return;
         let ignore = false;
         (async () => {
             try {
                 const { data } = await axios.get(
-                    `http://localhost:3000/trial/categories/tasks/${activeKey}`,
+                    `http://localhost:3000/schedule/catTasks/${activeKey}`,
                     {
                         headers: {
                             Authorization: `Bearer ${getAccessToken()}`,
@@ -1085,7 +1087,27 @@ export default function ManagementPage() {
                                             defaultValue={30}
                                         />
                                     </Form.Item>
-
+                                    <Form.Item
+                                        label="Frequency Unit"
+                                        name="unit"
+                                        rules={[
+                                            {
+                                            required: true,
+                                            message: "Select a unit",
+                                            },
+                                        ]}
+                                        >
+                                        <Select
+                                            size="large"
+                                            defaultValue="month"
+                                            options={[
+                                            { value: "day", label: "Day" },
+                                            { value: "week", label: "Week" },
+                                            { value: "month", label: "Month" },
+                                            { value: "year", label: "Year" },
+                                            ]}
+                                        />
+                                    </Form.Item>
                                     <Form.Item
                                         label="Add task context or further notes"
                                         name="description"
@@ -1107,6 +1129,8 @@ export default function ManagementPage() {
                                             }}
                                         />
                                     </Form.Item>
+                                    
+
                                 </Form>
                             </Modal>
 

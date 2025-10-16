@@ -17,6 +17,7 @@ router.get(
     authenticateToken,
     scheduleCtrl.fetchScheduleUsers,
 );
+router.get("/catTasks/:catId", scheduleCtrl.getTasksInCat)
 
 // Fetches all the categories belong to a specific schedule
 router.get(
@@ -78,7 +79,7 @@ router.patch(
 );
 
 router.post(
-    "/:scheduleId/finish-task",
+    "/:taskInsId/finish-task",
     authenticateToken,
     checkPermission("complete:task"),
     scheduleCtrl.completeTask,
