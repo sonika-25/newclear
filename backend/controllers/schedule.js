@@ -214,7 +214,7 @@ async function addUser(req, res) {
 async function removeUser(req, res) {
     const { scheduleId } = req.params;
     const { removedUser } = req.body;
-    const currentUserId = req.user._id || req.user;
+    const currentUserId = req.user._id?.toString() || req.user;
     const removedUserId = removedUser._id || removedUser;
 
     let session;
@@ -309,12 +309,18 @@ async function removeUser(req, res) {
         // live update everyone in the schedule when user is removed
         const io = req.app.get("io");
         await removedScheduleUser.populate("user");
-        io.to(scheduleId).emit("userRemoved", removedScheduleUser);
+        io.to(scheduleId).emit("userRemoved", {
+            user: removedScheduleUser.user,
+            role: removedScheduleUser.role,
+            skipUserId: removedUserId,
+        });
 
         // updates on removed user's end
-        io.to(String(removedUserId)).emit("removedFromSchedule", {
-            scheduleId,
-        });
+        if (String(currentUserId) !== String(removedUserId)) {
+            io.to(String(removedUserId)).emit("removedFromSchedule", {
+                scheduleId,
+            });
+        }
 
         res.status(200).json({ message: "User removed successfully." });
     } catch (error) {
@@ -331,6 +337,8 @@ async function removeUser(req, res) {
 
 // Removes all managers and carers when an org is removed
 async function removeOrgEmployees(scheduleId, session, req) {
+    const io = req.app.get("io");
+    const removerId = req.user._id?.toString() || req.user;
     const removedEmployees = await ScheduleUser.find({
         schedule: scheduleId,
         role: { $in: ["manager", "carer"] },
@@ -348,13 +356,20 @@ async function removeOrgEmployees(scheduleId, session, req) {
         role: { $in: ["manager", "carer"] },
     }).session(session);
 
-    const io = req.app.get("io");
     // Live updates for each removed employee
     for (const employee of removedEmployees) {
-        io.to(scheduleId).emit("userRemoved", employee);
-        io.to(String(employee.user._id)).emit("removedFromSchedule", {
-            scheduleId,
+        const employeeId = String(employee.user._id);
+        // Updates everyone in the schedule that the
+        // employee has been removed
+        io.to(scheduleId).emit("userRemoved", {
+            user: employee.user,
+            role: employee.role,
+            skipUserId: employeeId,
         });
+        // Updates the removed users view
+        if (employeeId !== removerId) {
+            io.to(employeeId).emit("removedFromSchedule", { scheduleId });
+        }
     }
 
     return;

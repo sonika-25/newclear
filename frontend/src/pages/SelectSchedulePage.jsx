@@ -41,10 +41,12 @@ export default function SelectSchedule() {
             .finally(() => setPageLoading(false));
     }, [loading, user]);
 
-    // live update of the schedule selection page of the user being added to the schedule
+    // Live update of the schedule selection page of the user being added to the schedule
     useEffect(() => {
-        if (!socket || !user?._id) return;
-
+        if (!socket || !user?._id) {
+            return;
+        }
+        
         const handleAdded = (newScheduleUser) => {
             message.success(
                 `You've been added to ${newScheduleUser.schedule.pwsnName}'s schedule`,
@@ -72,6 +74,32 @@ export default function SelectSchedule() {
         navigate("/home");
         message.success("Schedule selected!");
     };
+
+    // Live update of the schedule selection page when user is removed
+    useEffect(() => {
+        if (!socket || !user?._id) {
+            return;
+        }
+
+        const handleRemoved = ({ scheduleId }) => {
+            // Remove that schedule from the UI immediately
+            setScheduleUser((prev) =>
+                prev.filter((s) => s.schedule._id !== scheduleId),
+            );
+
+            // Reset schedule for the user being removed
+            if (selectedSchedule === scheduleId) {
+                setSelectedSchedule(null);
+                setScheduleRole(null);
+                localStorage.removeItem("selectedSchedule");
+                localStorage.removeItem("scheduleRole");
+            }
+        };
+
+        socket.on("removedFromSchedule", handleRemoved);
+
+        return () => socket.off("removedFromSchedule", handleRemoved);
+    }, [socket, user, selectedSchedule]);
 
     if (pageLoading) {
         return <div>Loading schedules...</div>;
