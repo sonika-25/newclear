@@ -100,16 +100,6 @@ const SHIFT_OPTIONS = [
     { value: "evening", label: "Evening" },
 ]
 
-function startOfWeek(d) {
-    const dow = d.day();
-    const delta = (dow === 0 ? -6 : 1 - dow);
-    return d.add(delta, "day").startOf("day");
-}
-
-function weekKeyFrom(d) {
-    return d.format("YYYY-MM-DD");
-}
-
 function shiftTag(shift) {
     if (!shift) return <span style={{opacity:.5}}></span>
     const map = {
@@ -157,35 +147,27 @@ export default function SchedulePage() {
         [items, selectedYear, selectedMonth]
     );
 
-    const [weekStart, setWeekStart] = useState(startOfWeek(dayjs()));
     const [selectedDayIdx, setSelectedDayIdx] = useState(0);
 
-    const [rosters, setRosters] = useState({
-        [weekKeyFrom(startOfWeek(dayjs("2025-01-01")))] : {
-            c1: { 0: "morning", 2: "evening" },
-            c2: { 0: "afternoon", 5: "morning" },
-            c3: { 6: "evening" },
-        }
+    const [roster, setRoster] = useState({
+        c1: { 0: "morning", 2: "evening" },
+        c2: { 4: "afternoon" },
+        c3: { 6: "evening" },
     });
-
-    const wkkKey = weekKeyFrom(weekStart);
 
     const [addOpen, setAddOpen] = useState(false);
     const [fullOpen, setFullOpen] = useState(false);
     const [addForm] = Form.useForm();
 
     function getShift(carerID, dayIdx) {
-        return rosters[wkkKey]?.[carerID]?.[dayIdx] || null;
+        return roster[carerID]?.[dayIdx] || null;
     }
 
     function setShift(carerID, dayIdx, shift) {
-        setRosters(prev => {
-            const wk = { ...(prev[wkkKey] || {}) };
-            const row = { ...Button(wk[carerID] || {} )};
-            row[dayIdx] = shift;
-            wk[carerID] = row;
-            return { ...prev, [wkkKey]: wk };
-        })
+        setRoster(prev => ({
+            ...prev,
+            [carerID]: { ...(prev[carerID] || {}), [dayIdx]: shift }
+        }));
     }
 
     function onAddShift(values) {
@@ -486,47 +468,36 @@ export default function SchedulePage() {
                                     marginBottom: 8
                                 }}
                             >
-                                <Button icon={<LeftOutlined/>} onClick={ () => {setWeekStart(weekStart.add(-7, "day")); setSelectedDayIdx(0);}}/>
+                                <Button 
+                                    icon={<LeftOutlined/>} 
+                                    onClick={ () => setSelectedDayIdx((i) => (i + 6) % 7)}
+                                />
                                 
                                 <Text type="secondary">
-                                    {weekStart.format("D MMM")} - {weekStart.add(6, "day").format("D MM YYYY")}
+                                    {DAYS[selectedDayIdx]}
                                 </Text>
                                 
-                                <Button icon={<RightOutlined/>} onClick={ () => {setWeekStart(weekStart.add(7, "day")); setSelectedDayIdx(0);}}/>
-                            </div>
-
-                            <div
-                                style={{
-                                    display: "flex",
-                                    gap: 6,
-                                    justifyContent: "center",
-                                    marginBottom: 8,
-                                    flexWrap: "wrap"
-                                }}
-                            >
-                                {DAYS.map((d, i) => (
-                                    <Button
-                                        key={d}
-                                        type={i === selectedDayIdx ? "primary" : "default"}
-                                        size="small"
-                                        onClick={() => setSelectedDayIdx(i)}
-                                    >
-                                        {d}
-                                    </Button>
-                                ))}
+                                <Button 
+                                    icon={<RightOutlined/>} 
+                                    onClick={ () => setSelectedDayIdx((i) => (i + 1) % 7)}
+                                />
                             </div>
 
                             <Table
                                 size="small"
                                 pagination={false}
                                 rowKey="id"
-                                dataSource={CARERS.map(c => ({ id: c.id, name: c.name, shift: getShift(c.id, selectedDayIdx) }))}
+                                dataSource={CARERS.map(c => ({
+                                    id: c.id,
+                                    name: c.name,
+                                    shift: getShift(c.id, selectedDayIdx),    
+                                }))}
                                 columns={[
-                                    { title: "Carer", dataIndex: "name" },
+                                    { title: "Carer", dataIndex: "name", width: 140 },
                                     { title: "Shift", dataIndex: "shift", render: (val) => shiftTag(val) },
                                 ]}
                                 style={{
-                                    flex: 1, overflow: "auto"
+                                    flex: 1
                                 }}
                             />
                         </div>
@@ -624,7 +595,7 @@ export default function SchedulePage() {
                     <Form.Item
                         name="carerID"
                         label="Carer"
-                        rules={[{ required: true}]}
+                        rules={[{ required: true }]}
                     >
                         <Select options={CARERS.map(c => ({ value: c.id, label: c.name }))}/>
                     </Form.Item>
@@ -651,7 +622,7 @@ export default function SchedulePage() {
 
             {/* modal pop out for full roster view */}
             <Modal
-                title={`Week view: ${weekStart.format("D MMM")} - ${weekStart.add(6, "day").format("D MMM YYYY")}`}
+                title="Full Week Roster"
                 open={fullOpen}
                 onCancel={() => setFullOpen (false)}
                 footer={null}
@@ -666,7 +637,7 @@ export default function SchedulePage() {
                     columns={[
                         { title: "Carer", dataIndex: "name", fixed: "left", width: 140 },
                         ...DAYS.map((d, i) => ({
-                            title: `${d} ${weekStart.add(i, "day").format("D/M")}`,
+                            title: d,
                             dataIndex: `d${i}`,
                             render: (_,r) => shiftTag(getShift(r.id, i)),
                         }))
