@@ -86,6 +86,41 @@ const MOCK_ITEMS = [
     }
 ];
 
+const CARERS = [
+    { id: "c1", name: "Alice"},
+    { id: "c2", name: "Ben"},
+    { id: "c3", name: "Chloe"},
+];
+
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+const SHIFT_OPTIONS = [
+    { value: "morning", label: "Morning" },
+    { value: "afternoon", label: "Afternoon" },
+    { value: "evening", label: "Evening" },
+]
+
+function startOfWeek(d) {
+    const dow = d.day();
+    const delta = (dow === 0 ? -6 : 1 - dow);
+    return d.add(delta, "day").startOf("day");
+}
+
+function weekKeyFrom(d) {
+    return d.format("YYYY-MM-DD");
+}
+
+function shiftTag(shift) {
+    if (!shift) return <span style={{opacity:.5}}></span>
+    const map = {
+        morning: { color: "gold", text: "Morning" },
+        afternoon: { color: "blue", text: "Afternoon" },
+        evening: { color: "purple", text: "Evening" },
+    }
+    const m = map[shift];
+    return <Tag color={m.color}>{m.text}</Tag>
+}
+
 function formatISO(iso) {
     if (!iso) return "-";
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
@@ -121,6 +156,43 @@ export default function SchedulePage() {
         () => getMonthlyTasks(items, selectedYear, selectedMonth),
         [items, selectedYear, selectedMonth]
     );
+
+    const [weekStart, setWeekStart] = useState(startOfWeek(dayjs()));
+    const [selectedDayIdx, setSelectedDayIdx] = useState(0);
+
+    const [rosters, setRosters] = useState({
+        [weekKeyFrom(startOfWeek(dayjs("2025-01-01")))] : {
+            c1: { 0: "morning", 2: "evening" },
+            c2: { 0: "afternoon", 5: "morning" },
+            c3: { 6: "evening" },
+        }
+    });
+
+    const wkkKey = weekKeyFrom(weekStart);
+
+    const [addOpen, setAddOpen] = useState(false);
+    const [fullOpen, setFullOpen] = useState(false);
+    const [addForm] = Form.useForm();
+
+    function getShift(carerID, dayIdx) {
+        return rosters[wkkKey]?.[carerID]?.[dayIdx] || null;
+    }
+
+    function setShift(carerID, dayIdx, shift) {
+        setRosters(prev => {
+            const wk = { ...(prev[wkkKey] || {}) };
+            const row = { ...Button(wk[carerID] || {} )};
+            row[dayIdx] = shift;
+            wk[carerID] = row;
+            return { ...prev, [wkkKey]: wk };
+        })
+    }
+
+    function onAddShift(values) {
+        setShift(values.carerID, values.dayIdx, values.shift);
+        setAddOpen(false);
+        addForm.resetFields();
+    }
 
     const cols = [
         {
@@ -333,74 +405,135 @@ export default function SchedulePage() {
                 >
                     <Title level={4} style={ {marginTop: 0 }}>Schedule</Title>
                 
-                    <div
-                        style={{ 
-                            display: "grid", 
-                            gridTemplateRows: "3fr 2fr", 
-                            gap: 16,
-                            height: "90vh"
-                        }
-                    }>
-                        
-                        {/* Calendar component (top) */}
-                        <div 
-                            style={{ 
-                                border: "1px solid #f0f0f0", 
-                                borderRadius: 12, 
-                                background: "#fff", 
-                                padding: 12 
-                            }}
-                        >
-                            <Calendar
-                                className="sched-cal"
-                                fullscreen={false}
-                                mode="year"
-                                headerRender={calendarHeaderRender}
-                                value={dayjs().year(selectedYear).month(selectedMonth).date(1)}
-                                cellRender={cellRender}
-                                onSelect={(d) => {
-                                    setSelectedYear(d.year());
-                                    setSelectedMonth(d.month());
-                                }}
-                                onPanelChange={(d) => setSelectedYear(d.year())}
-                                style={{
-                                    border: "none",
-                                    background: "transparent",
-                                }}
-                            />
+                    <div className="schedule-two-col">
+                        <div className="schedule-left-stack">
+                            {/* Calendar component (top left) */}
+                            <div className="card">
+                                <Calendar
+                                    className="sched-cal"
+                                    fullscreen={false}
+                                    mode="year"
+                                    headerRender={calendarHeaderRender}
+                                    value={dayjs().year(selectedYear).month(selectedMonth).date(1)}
+                                    cellRender={cellRender}
+                                    onSelect={(d) => {
+                                        setSelectedYear(d.year());
+                                        setSelectedMonth(d.month());
+                                    }}
+                                    onPanelChange={(d) => setSelectedYear(d.year())}
+                                    style={{
+                                        border: "none",
+                                        background: "transparent",
+                                    }}
+                                />
+                            </div>
+
+                            {/* Table component (bottom left) */}
+                            <div className="card card-scroll">
+                                <div style={{ marginBottom: 8 }}>
+                                    <Text strong>
+                                        {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+                                    </Text>
+                                    
+                                    <Text type="secondary" style={{ marginLeft: 8}}>
+                                        • {monthData.length} task{monthData.length !== 1 ? "s" : ""}
+                                    </Text>
+                                </div>
+
+                                <Table
+                                    size="middle"
+                                    columns={cols}
+                                    dataSource={monthData}
+                                    rowKey="key"
+                                    pagination={false}
+                                />
+                            </div>
                         </div>
 
-                        {/* Table component (right side) */}
-                        <div 
-                            style={{ 
-                                border: "1px solid #f0f0f0", 
-                                borderRadius: 12, 
-                                padding: 12, 
-                                background: "#fff",
-                                overflow: "auto",
-                            }}
-                        >
-                            <div style={{ marginBottom: 8 }}>
-                                <Text strong>
-                                    {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+                        <div className="card roster-panel">
+                            {/* Roster component (right) */}
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    marginBottom: 8
+                                }}
+                            >
+                                <Text strong>Roster</Text>
+
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: 8
+                                    }}
+                                >
+                                    <Button onClick={() => setAddOpen(true)} type="primary">
+                                        Add Shift
+                                    </Button>
+
+                                    <Button onClick={() => setFullOpen(true)}>
+                                        Full Week Roster
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    marginBottom: 8
+                                }}
+                            >
+                                <Button icon={<LeftOutlined/>} onClick={ () => {setWeekStart(weekStart.add(-7, "day")); setSelectedDayIdx(0);}}/>
+                                
+                                <Text type="secondary">
+                                    {weekStart.format("D MMM")} - {weekStart.add(6, "day").format("D MM YYYY")}
                                 </Text>
                                 
-                                <Text type="secondary" style={{ marginLeft: 8}}>
-                                    • {monthData.length} task{monthData.length !== 1 ? "s" : ""}
-                                </Text>
+                                <Button icon={<RightOutlined/>} onClick={ () => {setWeekStart(weekStart.add(7, "day")); setSelectedDayIdx(0);}}/>
+                            </div>
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 6,
+                                    justifyContent: "center",
+                                    marginBottom: 8,
+                                    flexWrap: "wrap"
+                                }}
+                            >
+                                {DAYS.map((d, i) => (
+                                    <Button
+                                        key={d}
+                                        type={i === selectedDayIdx ? "primary" : "default"}
+                                        size="small"
+                                        onClick={() => setSelectedDayIdx(i)}
+                                    >
+                                        {d}
+                                    </Button>
+                                ))}
                             </div>
 
                             <Table
-                                size="middle"
-                                columns={cols}
-                                dataSource={monthData}
-                                rowKey="key"
+                                size="small"
                                 pagination={false}
+                                rowKey="id"
+                                dataSource={CARERS.map(c => ({ id: c.id, name: c.name, shift: getShift(c.id, selectedDayIdx) }))}
+                                columns={[
+                                    { title: "Carer", dataIndex: "name" },
+                                    { title: "Shift", dataIndex: "shift", render: (val) => shiftTag(val) },
+                                ]}
+                                style={{
+                                    flex: 1, overflow: "auto"
+                                }}
                             />
                         </div>
                     </div>
                 </div>
             </Content>
+
             {/* modal form for task updates */}
             <Modal
                 title={activeRow ? `Update: ${activeRow.name}` : "Update"}
@@ -415,7 +548,7 @@ export default function SchedulePage() {
                     <Form.Item name="status" label="Status" rules={[{ required: true }]}>
                         <Select
                             options={[
-                                { value: "upcoming", label: "Upcoming" },
+                                { value: "pending", label: "Upcoming" },
                                 { value: "completed", label: "Completed"},
                             ]}
                         />
@@ -471,6 +604,75 @@ export default function SchedulePage() {
                         <Input.TextArea rows={3} placeholder="Optional Comments"/>
                     </Form.Item>
                 </Form>
+            </Modal>
+
+            {/* modal form for adding shifts */}
+            <Modal
+                title="Add Shift"
+                open={addOpen}
+                onCancel={() => { addForm.resetFields(); setAddOpen(false); }}
+                okText="Add"
+                onOk={() => addForm.submit()}
+                destroyOnHidden
+            >
+                <Form
+                    form={addForm}
+                    layout="vertical"
+                    onFinish={onAddShift}
+                    initialValues={{ dayIdx: selectedDayIdx }}
+                >
+                    <Form.Item
+                        name="carerID"
+                        label="Carer"
+                        rules={[{ required: true}]}
+                    >
+                        <Select options={CARERS.map(c => ({ value: c.id, label: c.name }))}/>
+                    </Form.Item>
+
+                    <Form.Item
+                        name="dayIdx"
+                        label="Day"
+                        rules={[{ required: true }]}
+                    >
+                        <Select options={DAYS.map((d, i) => ({ values: i, label: d }))}/>
+                    </Form.Item>
+                    
+                    <Form.Item
+                        name="shift"
+                        label="Shift"
+                        rules={[{ required: true, message: "Pick one shift" }]}
+                    >
+                        <Select
+                            options={SHIFT_OPTIONS}
+                        />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* modal pop out for full roster view */}
+            <Modal
+                title={`Week view: ${weekStart.format("D MMM")} - ${weekStart.add(6, "day").format("D MMM YYYY")}`}
+                open={fullOpen}
+                onCancel={() => setFullOpen (false)}
+                footer={null}
+                width={800}
+                destroyOnHidden
+            >
+                <Table
+                    size="small"
+                    pagination={false}
+                    rowKey="id"
+                    dataSource={CARERS.map(c => ({ id: c.id, name: c.name }))}
+                    columns={[
+                        { title: "Carer", dataIndex: "name", fixed: "left", width: 140 },
+                        ...DAYS.map((d, i) => ({
+                            title: `${d} ${weekStart.add(i, "day").format("D/M")}`,
+                            dataIndex: `d${i}`,
+                            render: (_,r) => shiftTag(getShift(r.id, i)),
+                        }))
+                    ]}
+                    scroll={{ x: true }}
+                />
             </Modal>
         </Layout>
     )

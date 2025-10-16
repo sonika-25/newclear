@@ -18,3 +18,37 @@
 .ant-picker-calendar .ant-picker-cell-inner {
     padding: 8px 0;
 }
+
+.schedule-two-col {
+    display: grid;
+    grid-template-columns: minmax(620px, 2fr) minmax(360px, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.schedule-left-stack {
+    display: grid;
+    grid-template-rows: 3fr 2fr;
+    gap: 16px;
+    height: 88vh;
+    min-width: 0;
+}
+
+.card-scroll {
+    overflow: auto;
+}
+
+.roster-panel {
+    height: 88vh;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (max-width: 1100px) {
+    .schedule-two-col {
+        grid-template-columns: 1fr;
+    }
+    .roster-panel {
+        height: auto;
+    }
+}
