@@ -41,7 +41,10 @@ export const AuthProvider = ({ children }) => {
                 setUser(res.data);
             } catch (err) {
                 console.error("Profile fetch failed:", err);
-                if (err.response?.status === 401) {
+                if (
+                    err.response?.status === 401 ||
+                    err.response?.status === 403
+                ) {
                     try {
                         const newAccess = await refreshAccessToken();
                         if (newAccess) {
