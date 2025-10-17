@@ -1,5 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Button, Space, Typography, App } from "antd";
+import {Flex, Button, Space, Typography, App, Card } from "antd";
+import "./css/selection.css";
+import logo from "../assets/importedlogotest.svg";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { ScheduleContext } from "../context/ScheduleContext";
@@ -106,14 +108,57 @@ export default function SelectSchedule() {
     }
 
     return (
-        <div style={{ padding: 24, maxWidth: 500, margin: "0 auto" }}>
-            <Typography.Title level={3} style={{ textAlign: "center" }}>
-                Select a Schedule
-            </Typography.Title>
+          <div
+            className="background"
+                style={{
+                    minHeight: "100vh",
+                    display: "grid",
+                    placeItems: "center",
+                    background: "#feeaeaff",
+                }}
+                >
+                    <img src={logo} className="bgLogo" />
+        
+            <div style={{ padding: 24, maxWidth: 500, margin: "0 auto" }}>
+            
 
-            <Space direction="vertical" style={{ width: "100%" }}>
+                  <Card
+                    style={{
+                    background: "#ffffffd6",
+                    width: 600,
+                    maxHeight: 900,
+                    borderRadius: 20,
+                    display: "flex",
+                    flexDirection: "column",
+                    overflowY:"auto"
+                }}
+                 styles={{
+                    body: { flex: 1, overflowY: "auto" },
+                }}
+                variant={false}
+            >
+                <Flex
+                    vertical
+                    gap="small"
+                    align="center"
+                    justify="center"
+                    style={{ width: "100%" }}
+                >
+                     <Typography.Title level={3} style={{ textAlign: "center" }}>
+                        Select a Schedule
+                    </Typography.Title>
+            
                 {scheduleUser.map((s) => (
                     <Button
+                        color="pink"
+                        variant="filled"
+                        style={{
+                            fontSize: "20px",
+                            marginTop: 30,
+                            marginBottom: 10,
+                            width: 400,
+                            height: 60,
+                        }}
                         key={s.schedule._id}
                         type={
                             selectedSchedule === s.schedule._id
@@ -126,8 +171,13 @@ export default function SelectSchedule() {
                         {`${s.schedule.pwsnName}'s Schedule` ||
                             "Unnamed Schedule"}
                     </Button>
+                    
                 ))}
-            </Space>
+                
+             </Flex>
+        </Card>
         </div>
+       
+    </div>
     );
 }
