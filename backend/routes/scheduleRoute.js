@@ -9,6 +9,10 @@ const {
 } = require("../controllers/permission.js");
 
 // Find all schedules associated with the current user
+router.get("/:schedId/upcoming-runs",
+    scheduleCtrl.listRuns
+);
+
 router.get("/schedules", authenticateToken, scheduleCtrl.fetchUserSchedules);
 
 // Find all users associated with the given schedule
@@ -38,7 +42,8 @@ router.post("/create", authenticateToken, scheduleCtrl.createSchedule);
 
 // Returns the information of a schedule belonging to a given owner and client/PWSN
 router.get("/schedule-info", scheduleCtrl.getScheduleInfo);
-router.get("/:scheduleId/upcoming-runs", scheduleCtrl.listUpcomingRuns);
+
+
 
 // Add a user to a schedule
 router.post("/:scheduleId/add-user", authenticateToken, scheduleCtrl.addUser);

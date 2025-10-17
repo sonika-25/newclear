@@ -9,6 +9,8 @@ const ROLES = {
         "delete:schedule",
         "create:task",
         "delete:task",
+        "edit:task",
+        "read:runs"
 
     ],
     POA: [
@@ -18,6 +20,8 @@ const ROLES = {
         "delete:schedule",
         "create:task",
         "delete:task",
+        "edit:task",
+        "read:runs"
 
     ],
     serviceProvider: [
@@ -30,6 +34,8 @@ const ROLES = {
         "delete:task",
         "edit:category",
         "remove:org",
+        "edit:task",
+        "read:runs"
     ],
     manager: [
         "manage:ownUser",
@@ -39,6 +45,8 @@ const ROLES = {
         "create:category",
         "edit:category",
         "delete:task",
+        "edit:task",
+        "read:runs"
 
     ],
     carer: ["manage:ownUser", "upload:file", "complete:task"],

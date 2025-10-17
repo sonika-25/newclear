@@ -362,6 +362,15 @@ export default function HomePage() {
 
     async function checkConnection (){
       console.log(tempTaskData)
+      try {
+        const res = await axios.get(
+                       `http://localhost:3000/schedule/${selectedSchedule}/upcoming-runs?limit=25&from=2025-10-01&to=2025-12-31`,
+                        { headers: { Authorization: `Bearer ${getAccessToken()}` } },
+                    );
+        console.log(await res.data)
+
+      }
+      catch(err){console.log(err)}
     }
     // contains information of logged in user
     const token = getAccessToken();

@@ -814,15 +814,11 @@ function startOfToday() {
   d.setHours(0, 0, 0, 0);
   return d;
 }
-function startOfToday() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
+
 async function listUpcomingRuns(req, res) {
   try {
     const { scheduleId } = req.params;
-    const { limit = 20, from, to, patientId } = req.body;
+    const { limit = 20, from, to } = req.query;
 
     const start = from ? new Date(from) : startOfToday();
     const filter = {
@@ -831,7 +827,6 @@ async function listUpcomingRuns(req, res) {
       dueOn: { $gte: start },
     };
     if (to) filter.dueOn.$lte = new Date(to);
-    if (patientId) filter.patientId = patientId;
 
     const runs = await TaskRun.find(filter)
       .sort({ dueOn: 1 })
@@ -850,12 +845,29 @@ async function listUpcomingRuns(req, res) {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: err.message });
-    console.log(err)
   }
 }
+async function listRuns(req, res) {
+    try {
+        const { schedId } = req.params;
+        const from = req.query.from ? new Date(req.query.from) : new Date();
+        const to = req.query.to
+            ? new Date(req.query.to)
+            : addByUnit(new Date(), "month", 30);
 
+        const runs = await TaskRun.find({
+            scheduleId : schedId,
+            dueOn: { $gte: from, $lte: to },
+        })
+            .populate("taskId", "name")
+            .sort({ dueOn: 1 });
 
-
+        res.json(runs);
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: "could not list runs" });
+    }
+}
 
 module.exports = {
     fetchUserSchedules,
@@ -875,5 +887,6 @@ module.exports = {
     getTasksInCat,
     deleteTask,
     editTask,
-    listUpcomingRuns
+    listUpcomingRuns,
+    listRuns
 };

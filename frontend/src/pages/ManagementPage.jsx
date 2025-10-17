@@ -173,6 +173,7 @@ export default function ManagementPage() {
                             <a style={{ color: "#ff0000ff" }}>Delete Task</a>
                         </Space>
                     </Popconfirm>
+                    
                 </Space>
             ),
         },
