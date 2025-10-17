@@ -1,7 +1,7 @@
 import './css/schedule.css';
 import React, { useState, useMemo } from "react"
-import { Layout, Typography, Calendar, Table, Tag, Button, Modal, Form, Input, DatePicker, Select, Tooltip, Upload } from 'antd';
-import { CheckCircleTwoTone, ClockCircleTwoTone, ExclamationCircleTwoTone, InboxOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { Layout, Popover, Typography, Calendar, Table, Tag, Button, Modal, Form, Input, DatePicker, Select, Tooltip, Upload } from 'antd';
+import { CheckCircleTwoTone, ClockCircleTwoTone, ExclamationCircleTwoTone, InboxOutlined, LeftOutlined, RightOutlined, QuestionOutlined} from "@ant-design/icons";
 import dayjs from 'dayjs';
 
 const { Content } = Layout;
@@ -315,10 +315,20 @@ export default function SchedulePage() {
                 />
                 
                 <Button size="small" icon={<RightOutlined />} onClick={() => go(1)}/>
+                
+                <Popover content={instructions[0]} title="Category Budget">
+                                                            <Button   shape=  "circle" icon={<QuestionOutlined />} />
+                                                            </Popover>
+
             </div>
         )
 
     }
+    const instructions = [(
+  <div>
+    <p>This </p>
+  </div>
+    ),]
 
     return (
         <Layout style={{ minHeight: "100vh" }}>
@@ -388,6 +398,9 @@ export default function SchedulePage() {
                                 <Text type="secondary" style={{ marginLeft: 8}}>
                                     • {monthData.length} task{monthData.length !== 1 ? "s" : ""}
                                 </Text>
+                                <Popover content={instructions[0]} title="Category Budget">
+                                     <Button  style={{marginLeft: 10}} shape=  "circle" icon={<QuestionOutlined />} />
+                                 </Popover>
                             </div>
 
                             <Table

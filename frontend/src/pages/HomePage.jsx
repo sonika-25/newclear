@@ -14,8 +14,10 @@ import {
     Space,
     Divider,
     Tooltip,
+    Popover
 } from "antd";
 import {
+    QuestionOutlined,
     DownOutlined,
     UserOutlined,
     CheckCircleTwoTone,
@@ -35,6 +37,41 @@ import { getAccessToken } from "../utils/tokenUtils";
 import { jwtDecode } from "jwt-decode";
 
 /*Chart code reference: https://ant-design-charts.antgroup.com/en*/
+
+
+const instructions = [(
+  <div>
+    <p>This bar graph displays the budget</p>
+    <p>information for each for each of your categories</p>
+    <p>and how much of the allocated budget</p>
+    <p>you've spent (as of today).</p>
+  </div>
+),
+( <div>
+    <p>This pie chart displays how much you've spent across </p>
+    <p>all your categories and how much you have remaining.</p>
+    <p>The number at the top is your total budget.</p>
+  </div>
+),
+( <div>
+    <p>This bar graphs represent how much you've spent for each</p>
+    <p>sub element item. For example you may have spent 80% of</p>
+    <p>your budget for toothbrushes this year. If you click</p>
+    <p>a category on the side bar it will display</p>
+    <p>The budget information relevant to the sub elements in</p>
+    <p>that category. The list is scrollable!</p>
+  </div>
+),
+( <div>
+    <p>This list displays any overdue tasks you are yet to complete</p>
+    <p>And all the upcoming tasks in the next two months.</p>
+     <p>If you would like to complete one of these tasks</p>
+      <p>head to the schedule tab by click on Schedule in your navigation bar</p>
+       <p>At the bottom of the list you may see a number like [1] [2] this indicates</p>
+         <p>additional pages. Click on the numbers to see additional tasks.</p>
+  </div>
+),
+];
 
 const tempCatData = [
     { labelName: "Cat1", value: 210, budget: 200 },
@@ -384,9 +421,12 @@ export default function HomePage() {
                                         style={{ textAlign: "center" }}
                                     >
                                         Category Budgets
-                                    </Typography.Title>
-                                }
-                            >
+                                    </Typography.Title>}
+                                    extra= {<Popover content={instructions[0]} title="Category Budget">
+                                            <Button   shape=  "circle" icon={<QuestionOutlined />} />
+                                            </Popover>}
+                                    >
+
                                 <BudgetBar data={tempCatData} />
                             </Card>
                         </Col>
@@ -409,7 +449,11 @@ export default function HomePage() {
                                     >
                                         Total Budget Summary
                                     </Typography.Title>
+                                    
                                 }
+                                 extra= {<Popover content={instructions[1]} title="Total Budget">
+                                            <Button  shape=  "circle" icon={<QuestionOutlined />} />
+                                            </Popover>}
                             >
                                 <CatPie data={tempCatData} />
                             </Card>
@@ -440,6 +484,9 @@ export default function HomePage() {
                                         View Sub Element Budgets
                                     </Typography.Title>
                                 }
+                                 extra= {<Popover content={instructions[2]} title="Sub Elements Budget">
+                                            <Button  shape=  "circle" icon={<QuestionOutlined />} />
+                                            </Popover>}
                             >
                                 <Tabs
                                     tabPosition="left"
@@ -485,7 +532,11 @@ export default function HomePage() {
                                         Upcoming (~ 2 Months) & Overdue
                                         Tasks{" "}
                                     </Typography.Title>
+                                    
                                 }
+                                 extra= {<Popover content={instructions[3]} title="Upcoming & Overdue Tasks">
+                                            <Button  shape=  "circle" icon={<QuestionOutlined />} />
+                                            </Popover>}
                             >
                                 <Table
                                     columns={cols}
@@ -538,7 +589,7 @@ const BudgetBar = ({ data }) => {
                     "80%-100% Used",
                     "over budget",
                 ],
-                range: ["#fcadadff", "#fc9768ff", "#ff6565ff", "#ff0015ff"],
+                range: ["#64ba69ff", "#e7b416", "#ff6565ff", "#ff0015ff"],
             },
         },
 
@@ -623,7 +674,7 @@ const TaskBudgetBar = ({ data }) => {
                     "80%-100% Used",
                     "over budget",
                 ],
-                range: ["#fcadadff", "#fc9768ff", "#ff6565ff", "#ff0015ff"],
+                range: ["#64ba69ff", "#e7ac16ff", "#ff6565ff", "#ff0015ff"],
             },
         },
 
