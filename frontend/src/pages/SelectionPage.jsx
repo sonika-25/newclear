@@ -150,7 +150,7 @@ export default function SchedulePage() {
                         onClick={() => nav("/select-schedule")}
                         type="primary"
                         block
-                        color="danger"
+                        color="pink"
                         variant="filled"
                         style={{
                             boxShadow: "0 0px 8px rgba(0, 0, 0, 0.2)",
