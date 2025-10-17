@@ -1155,7 +1155,6 @@ export default function ManagementPage() {
                     </Splitter>
                 </div>
             </Content>
-            <button onClick={getActiveKey}>CLICK</button>
         </Layout>
     );
 }

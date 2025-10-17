@@ -316,19 +316,39 @@ export default function SchedulePage() {
                 
                 <Button size="small" icon={<RightOutlined />} onClick={() => go(1)}/>
                 
-                <Popover content={instructions[0]} title="Category Budget">
-                                                            <Button   shape=  "circle" icon={<QuestionOutlined />} />
-                                                            </Popover>
+                <Popover content={instructions[0]} title="Schedule Calendar">
+                        <Button size="small"  shape=  "circle" icon={<QuestionOutlined />} />
+                </Popover>
 
             </div>
         )
 
     }
     const instructions = [(
-  <div>
-    <p>This </p>
-  </div>
-    ),]
+    <div>
+        <p>This calendar displays all the scheduled items in each month.</p>
+        <p>The coloured dots tell you the status of each item: Red for overdue,</p>
+           <p>orange for upcoming and green for completed.</p>
+              <p>Click on a month to view all the items for that month in the list below.</p>
+         <p>To the left of this help icon you can click on the year or the arrows to </p>
+          <p>view all the scheduled tasks for a different year. </p>
+    </div>
+    ),(
+    <div>
+        <p>This list displays all the items scheduled in the current month</p>
+         <p>you have selected. Click on a item name (in the item column) to </p>
+          <p>update the status, add comments and upload evidence for that item.</p>
+    </div>
+    )
+    ,(
+    <div>
+        <p>Complete or refund items by changing their status accordingly (status button).</p>
+        <p>Mark the date that you completed this item (completion date button).</p>
+        <p>Upload or Select evidence proving your completion of the task.</p>
+        <p>Type in any context or comments related to the item.</p>
+        
+    </div>
+    )]
 
     return (
         <Layout style={{ minHeight: "100vh" }}>
@@ -398,8 +418,8 @@ export default function SchedulePage() {
                                 <Text type="secondary" style={{ marginLeft: 8}}>
                                     • {monthData.length} task{monthData.length !== 1 ? "s" : ""}
                                 </Text>
-                                <Popover content={instructions[0]} title="Category Budget">
-                                     <Button  style={{marginLeft: 10}} shape=  "circle" icon={<QuestionOutlined />} />
+                                <Popover content={instructions[1]} title="Scheduled Sub Elements">
+                                     <Button  size="small" style={{marginLeft: 10}} shape=  "circle" icon={<QuestionOutlined />} />
                                  </Popover>
                             </div>
 
@@ -416,7 +436,13 @@ export default function SchedulePage() {
             </Content>
             {/* modal form for task updates */}
             <Modal
-                title={activeRow ? `Update: ${activeRow.name}` : "Update"}
+                title={<div>
+                    <span>{activeRow ? `Update: ${activeRow.name}` : "Update" }</span>
+                <Popover content={instructions[2]} title="Update Item">
+                     <Button  size="small" style={{marginLeft: 10}} shape=  "circle" icon={<QuestionOutlined />} />
+                </Popover>
+                </div>} 
+
                 open={openModal}
                 onCancel={() => { form.resetFields(); setOpenModal(false); }}
                 okText="Save"
