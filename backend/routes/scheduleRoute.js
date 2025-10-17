@@ -38,6 +38,7 @@ router.post("/create", authenticateToken, scheduleCtrl.createSchedule);
 
 // Returns the information of a schedule belonging to a given owner and client/PWSN
 router.get("/schedule-info", scheduleCtrl.getScheduleInfo);
+router.get("/:scheduleId/upcoming-runs", scheduleCtrl.listUpcomingRuns);
 
 // Add a user to a schedule
 router.post("/:scheduleId/add-user", authenticateToken, scheduleCtrl.addUser);
@@ -48,6 +49,13 @@ router.delete(
     authenticateToken,
     scheduleCtrl.removeUser,
 );
+
+router.delete (
+    "/:scheduleId/:taskId/:catId/delete-task",
+    authenticateToken,
+    checkPermission("delete:task"),
+    scheduleCtrl.deleteTask,
+)
 
 // Delete a schedule from the system and database
 router.delete(
@@ -77,7 +85,11 @@ router.patch(
     checkPermission("edit:category"),
     scheduleCtrl.editCategory,
 );
-
+router.patch (
+    "/:scheduleId/:taskId/edit-task",
+    authenticateToken,
+    scheduleCtrl.editTask
+)
 router.post(
     "/:taskInsId/finish-task",
     authenticateToken,

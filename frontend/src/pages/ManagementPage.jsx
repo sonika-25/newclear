@@ -22,7 +22,7 @@ import {
     App,
 } from "antd";
 
-import React, { useState, useRef, useMemo, useContext, useEffect } from "react";
+import React, { useState, useRef, useMemo, useEffect, useContext } from "react";
 import { CloseOutlined, PlusOutlined } from "@ant-design/icons";
 import { Pie } from "@ant-design/plots";
 import dayjs from "dayjs";
@@ -319,8 +319,14 @@ export default function ManagementPage() {
         });
         setTaskModalOpen(true);
     };
-    const HandleTaskDelete = (key) => {
+    const HandleTaskDelete = async (key) => {
         setTaskData((prev) => prev.filter((item) => item.key !== key));
+         try {
+            console.log ("sched: ", selectedSchedule, ", key: ",activeKey, "taskId: ",key)
+            let data = await axios.delete (`http://localhost:3000/schedule/${selectedSchedule}/${key}/${activeKey}/delete-task`)
+            console.log(data)
+        }
+        catch (err){console.log(err)}
     };
 
     const ShowTaskModal = () => {
@@ -489,7 +495,7 @@ export default function ManagementPage() {
     }, [activeKey]);
 
     async function getActiveKey() {
-        console.log(activeKey);
+        console.log(selectedSchedule);
     }
     // === NEW === Load categories for this schedule on mount
     useEffect(() => {

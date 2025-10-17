@@ -21,7 +21,6 @@ const TaskRunSchema = new mongoose.Schema(
 
         dueOn: { type: Date, required: true }, // when this run is due
         cost: { type: Number, default: 0 }, // cost for this run
-
         done: { type: Boolean, default: false },
         doneAt: { type: Date },
         note: { type: String },
