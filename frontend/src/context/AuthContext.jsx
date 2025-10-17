@@ -123,14 +123,14 @@ export const AuthProvider = ({ children }) => {
         };
     }, []);
 
-    // proactive token refresh every 14 mins
+    // proactive token refresh every 50 mins
     useEffect(() => {
         // do not refresh user does not exist
         if (!user) {
             return;
         }
 
-        // give a new access token every 14 mins
+        // give a new access token every 50 mins
         const interval = setInterval(
             async () => {
                 try {
@@ -140,7 +140,7 @@ export const AuthProvider = ({ children }) => {
                     logout("Periodic refresh failed");
                 }
             },
-            14 * 60 * 1000,
+            50 * 60 * 1000,
         );
 
         return () => clearInterval(interval);
