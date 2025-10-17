@@ -415,16 +415,17 @@ export default function HomePage() {
                                     body: { flex: 1, overflowY: "auto" },
                                 }}
                                 type="inner"
-                                title={
+                                title={<div>
                                     <Typography.Title
                                         level={4}
-                                        style={{ textAlign: "center" }}
+                                        style={{ textAlign: "center", marginLeft:120 }}
                                     >
-                                        Category Budgets
-                                    </Typography.Title>}
-                                    extra= {<Popover content={instructions[0]} title="Category Budget">
+                                        Category Budgets 
+                                    </Typography.Title>
+                                </div>}
+                                    extra= {<div>     <span style={{fontWeight:20, marginRight:50}}> Budget data as of {dayjs().format("DD-MM-YYYY")}</span> <Popover content={instructions[0]} title="Category Budget">
                                             <Button   shape=  "circle" icon={<QuestionOutlined />} />
-                                            </Popover>}
+                                            </Popover></div>}
                                     >
 
                                 <BudgetBar data={tempCatData} />
@@ -761,6 +762,9 @@ const CatPie = ({ data }) => {
     };
     return (
         <div style={{ width: 400, height: 350, margin: "auto" }}>
+            <div style={{marginLeft: 20, fontSize: 13, opacity: 0.7 }}>
+                Total Budget: ${budget.toString()}
+            </div>
             <Pie {...config} />
         </div>
     );
