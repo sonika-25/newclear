@@ -99,6 +99,10 @@ const CatPie = ({ data }) => {
     );
 };
 
+// contains the information of the logged in user
+const token = getAccessToken();
+const decoded = token ? jwtDecode(token) : null;
+
 export default function ManagementPage() {
     const socket = useSocket();
     const { message } = App.useApp();
@@ -133,11 +137,6 @@ export default function ManagementPage() {
         return <div>Loading schedule...</div>;
     }
 
-    // contains information of logged in user
-    const token = getAccessToken();
-    if (token) {
-        const decoded = jwtDecode(token);
-    }
     let roles = [scheduleRole];
 
     const columns = [
@@ -218,7 +217,6 @@ export default function ManagementPage() {
             const optimisticUser = {
                 user: userToAdd,
                 role: values.userType,
-                isAdmin: values.admin || false,
                 optimistic: true,
             };
             setUserData((prev) => [...prev, optimisticUser]);
@@ -291,17 +289,23 @@ export default function ManagementPage() {
         }
     };
 
+    // Only updates the view for users in the schedule
     useEffect(() => {
-        if (!selectedSchedule) return;
+        if (!selectedSchedule || !socket) {
+            return;
+        }
 
         socket.emit("joinSchedule", selectedSchedule);
+        sessionStorage.setItem("selectedSchedule", selectedSchedule);
 
         socket.on("userRemoved", (removedUser) => {
+            // The removed user is no longer in the schedule
+            if (decoded && decoded.userId === removedUser.skipUserId) {
+                return;
+            }
+
             setUserData((prev) =>
                 prev.filter((u) => u.user._id != removedUser.user._id),
-            );
-            message.success(
-                `${removedUser.user.firstName} removed from schedule`,
             );
         });
 
@@ -670,7 +674,6 @@ export default function ManagementPage() {
                     ),
                 );
                 setActiveKey(c._id);
-                message.success(`New category "${name}" added`);
             }
         } catch (err) {
             if (err.response?.status === 403) {
@@ -829,15 +832,6 @@ export default function ManagementPage() {
                                 >
                                     <Input placeholder="Enter user email" />
                                 </Form.Item>
-                                <Form.Item
-                                    name="admin"
-                                    label="Enable Admin"
-                                    valuePropName="checked"
-                                    initialValue={false}
-                                >
-                                    <Switch />
-                                </Form.Item>
-
                                 <Form.Item label="User Type" name="userType">
                                     <Radio.Group>
                                         {/* family member view */}
@@ -919,7 +913,7 @@ export default function ManagementPage() {
                                                 />,
                                             ]}
                                         >
-                                            {`${scheduleUser.user.firstName} ${scheduleUser.user.lastName} · ${scheduleUser.role} · Admin Status: ${scheduleUser.isAdmin}`}
+                                            {`${scheduleUser.user.firstName} ${scheduleUser.user.lastName} · ${scheduleUser.role}`}
                                         </List.Item>
                                     )}
                                 />
