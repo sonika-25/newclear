@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+const Schedule = require("./schedule-model");
+const User = require("./user-model");
 
 const shiftSchema = new mongoose.Schema({
 

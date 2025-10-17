@@ -10,6 +10,7 @@ const tasks = require("./routes/tasksRoute.js");
 const user = require("./controllers/user.js");
 const userInfo = require("./controllers/userInfo.js");
 const schedule = require("./routes/scheduleRoute.js");
+const roster = require("./controllers/roster.js");
 const connectDB = require("./utils/db.js");
 
 const app = express();
@@ -60,6 +61,7 @@ app.use("/trial", tasks);
 app.use("/users", user);
 app.use("/user-info", userInfo);
 app.use("/schedule", schedule);
+app.use("/rosters", roster);
 
 PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
