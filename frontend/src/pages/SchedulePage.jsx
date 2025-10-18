@@ -1,5 +1,5 @@
 import './css/schedule.css';
-import React, { useState, useMemo } from "react"
+import React, { useContext,useState, useMemo , useEffect} from "react"
 import { Layout, Typography, Calendar, Table, Tag, Button, Modal, Form, Input, DatePicker, Select, Tooltip, Upload } from 'antd';
 import { CheckCircleTwoTone, ClockCircleTwoTone, ExclamationCircleTwoTone, InboxOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs from 'dayjs';
@@ -8,6 +8,10 @@ const { Content } = Layout;
 const { Title, Text } = Typography;
 const DATE_OPTIONS = { day: "numeric",  month: "long", year: "numeric" };
 const TODAY = () => new Date();
+import axios from 'axios'
+import { ScheduleContext } from "../context/ScheduleContext";
+import { getAccessToken } from "../utils/tokenUtils";
+import { jwtDecode } from "jwt-decode";
 
 function isISO(s) {
     return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -20,13 +24,12 @@ function toLocalDate(iso) {
 }
 
 function deriveStatus(entry) {
-    if (entry.status === "completed") return "completed";
-    const due = toLocalDate(entry.dueDate);
-    if (!due) return "upcoming";
-    const now = TODAY();
-    due.setHours(0,0,0,0);
-    now.setHours(0,0,0,0);
-    return due < now ? "overdue" : "upcoming";
+    const done = Boolean(entry.done) || entry.status === "completed";
+    if (done) return "completed";
+    const due = dayjs(entry.dueOn || entry.dueDate);
+    if (!due.isValid()) return "upcoming";
+    return due.isBefore(dayjs(), "day") ? "overdue" : "upcoming";
+
 }
 
 function statusTagProps(status) {
@@ -88,40 +91,88 @@ const MOCK_ITEMS = [
 
 function formatISO(iso) {
     if (!iso) return "-";
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-    if (!m) return "-";
-    const dt = new Date(+m[1], +m[2] - 1, +m[3]);
-    return dt.toLocaleDateString(undefined, DATE_OPTIONS);
+    const d = dayjs(iso)
+    //const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+    if (!d) return "-";
+    //const dt = new Date(+m[1], +m[2] - 1, +m[3]);
+    //return dt.toLocaleDateString(undefined, DATE_OPTIONS);
+    return d.toDate().toLocaleDateString(undefined,DATE_OPTIONS)
 };
 
+// items: backend task-run array ({ _id, taskId:{_id,name}, dueOn, done, cost, files, updatedAt, ... })
+// year: full year (e.g., 2025)
+// month: 0-based month (0=Jan ... 11=Dec)
 function getMonthlyTasks(items, year, month) {
-    return items.flatMap(it => {
-        const s = it.schedules.find(x => x.year === year && x.month === month);
-        return s ? [{
-            key: `${it.id}-${year}-${month}`,
-            id: it.id,
-            name: it.name,
-            status: s.status,
-            completionDate: s.completionDate,
-            dueDate: s.dueDate,
-            comments: s.comments,
-            amountSpent: s.amountSpent,
-            documents: s.documents,
-            _scheduleRef: s,
-        }] : [];
-    });
-};
+  return items.flatMap((item) => {
+    const due = dayjs(item.dueOn);
+    if (!due.isValid()) return [];
+    if (due.year() !== year || due.month() !== month) return [];
+
+    const today = dayjs();
+    const status = item.done
+      ? "completed"
+      : due.isBefore(today, "day")
+      ? "overdue"
+      : "pending";
+
+    return [
+      {
+        key: `${item._id}-${year}-${month}`,
+        id: item._id,
+        name: item.taskId?.name ?? "Untitled",
+        status,
+        completionDate:
+          item.done && item.updatedAt
+            ? dayjs(item.updatedAt).format("YYYY-MM-DD")
+            : undefined,
+        dueDate: due.format("YYYY-MM-DD"),
+        comments: "", // no comments field in backend sample
+        amountSpent: item.cost ?? 0,
+        documents: item.files ?? [],
+        _scheduleRef: item, // keep original record reference
+      },
+    ];
+  });
+}
 
 export default function SchedulePage() {
+    const currentDate = dayjs().startOf("day");
+    const endDate = currentDate.add(60, "day");
+
     const today = dayjs();
     const [selectedYear, setSelectedYear] = useState(today.year());
     const [selectedMonth, setSelectedMonth] = useState(today.month());
-    const [items, setItems] = useState(MOCK_ITEMS);
+    const [items, setItems] = useState([]);
     const monthData = useMemo(
         () => getMonthlyTasks(items, selectedYear, selectedMonth),
         [items, selectedYear, selectedMonth]
     );
+    const upcomingTasks = items
+    .map((item) => {
+        const due = dayjs(item.dueOn); // e.g., "2025-10-03T14:00:00.000Z"
+        const today = dayjs();
 
+        const dStatus = item.done
+        ? "completed"
+        : (due.isValid() && due.isBefore(today, "day")) ? "overdue" : "pending";
+
+        return {
+        id: item._id,
+        taskId: item.taskId?._id,
+        name: item.taskId?.name ?? "Untitled",
+        dueDate: due.isValid() ? due : null, // keep as dayjs for comparisons
+        dStatus,
+        scheduleId: item.scheduleId,
+        cost: item.cost ?? 0,
+        files: item.files ?? [],
+        };
+    })
+    // exclude completed and invalid dates
+    .filter((t) => t.dStatus !== "completed" && t.dueDate)
+    // within window OR overdue
+    .filter((t) => t.dueDate.isBetween(currentDate, endDate, "day", "[]") || t.dStatus === "overdue")
+    // sort by due date ascending
+    .sort((a, b) => a.dueDate.valueOf() - b.dueDate.valueOf());
     const cols = [
         {
             title: "Item",
@@ -174,51 +225,86 @@ export default function SchedulePage() {
     const [openModal, setOpenModal] = useState(false);
     const [activeRow, setActiveRow] = useState(null);
     const [form] = Form.useForm();
+    const { selectedSchedule } = useContext(ScheduleContext);
+    
+    useEffect (()=>{
+        try {
+            axios.get(
+                `http://localhost:3000/schedule/${selectedSchedule}/upcoming-runs?&from=2025-10-01&to=2027-12-31`,
+                { headers: { Authorization: `Bearer ${getAccessToken()}` } },
+                )
+                .then (res=>{
+                    console.log(res.data)
+                    setItems(res.data)
+                })
+                
 
+        }
+        catch(err){console.log(err)}
+        }
+        ,[])
     function onOpenModal(record) {
         setActiveRow(record);
         form.setFieldsValue({
             status: record.status || "upcoming",
             completionDate: record.completionDate ? dayjs(record.completionDate, "YYYY-MM-DD") : null,
             amountSpent: record.amountSpent ?? null,
-            documents: (record.documents || []).map((name, i) => ({
-                uid: `${record.key}-doc${i}`,
-                name,
-                status: "done"
-            })),
+            documents: (record.documents || []).map((file, i) => {
+               const displayName = typeof file === "string" ? file : (file.name || `file-${i+1}`);
+               return { uid: `${record.key}-doc${i}`, name: displayName, status: "done" };
+               }),
             comments: record.comments || "",
         });
 
         setOpenModal(true);
     }
+     const token = getAccessToken();
+            let roles = [];
+            if (token) {
+                const decoded = jwtDecode(token);
+                roles = decoded.role || [];
+        }
+    
 
-    function handleSave(values) {
+    async function handleSave (values) {
+        console.log(values)
+        const done = values.status === "completed";
+
+        try {
+            if (done){
+                const payload = {
+                    actualCost: Number(values.amountSpent)
+                };
+                const { data } = await axios.post(
+                    `http://localhost:3000/schedule/${selectedSchedule}/runs/${activeRow.id}/finish-task`,
+                    payload,
+                    { headers: { Authorization: `Bearer ${getAccessToken()}` } },
+                );
+                console.log(data)
+            }  
+        }
+        catch(err){console.log(err)}
+
         setItems(prev =>
             prev.map(it => {
-                if (it.id !== activeRow.id) return it;
-                
-                const nextSchedules = it.schedules.map(sched => {
-                    if (sched !== activeRow._scheduleRef) return sched;
+            const itId = it._id || it.id;
+            if (itId !== activeRow.id) return it;
 
-                    const next = { ...sched, status: values.status };
-                    
-                    if (values.status === "completed" && values.completionDate) {
-                        next.completionDate = values.completionDate.format("YYYY-MM-DD");
-                    }
-
-                    else {
-                        next.completionDate = undefined;
-                    }
-
-                    next.amountSpent = values.amountSpent ?? undefined;
-                    next.documents = (values.documents || []).map(f => f.name);
-                    next.comments = values.comments || "";
-                    return next;
-                });
-
-                return { ...it, schedules: nextSchedules };
+            return {
+                ...it,
+                done,
+                updatedAt:
+                done && values.completionDate
+                    ? values.completionDate.toISOString()
+                    : it.updatedAt,
+                cost: values.amountSpent,
+                // Store simple file names locally if you want; adjust to your API shape if it returns files
+                files: (values.documents || []).map(f => ({ name: f.name })),
+                comments: values.comments || it.comments || "",
+            };
             })
         );
+
         setOpenModal(false);
         form.resetFields();
     }
@@ -438,7 +524,9 @@ export default function SchedulePage() {
                     >
                         <DatePicker style={{ width: "100%" }}/>
                     </Form.Item>
-
+                    <Form.Item name="amountSpent" label="amountSpent">
+                        <Input.TextArea rows={1} placeholder=" Cost"/>
+                    </Form.Item>
                     {/* upload documents */}
 
                     <Form.Item

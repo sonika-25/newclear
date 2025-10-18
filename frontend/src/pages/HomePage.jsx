@@ -317,32 +317,32 @@ export default function HomePage() {
 
 
     // items: backend task-run array; currentDate & endDate are dayjs instances
-const upcomingTasks = items
-  .map((item) => {
-    const due = dayjs(item.dueOn); // e.g., "2025-10-03T14:00:00.000Z"
-    const today = dayjs();
+    const upcomingTasks = items
+    .map((item) => {
+        const due = dayjs(item.dueOn); // e.g., "2025-10-03T14:00:00.000Z"
+        const today = dayjs();
 
-    const dStatus = item.done
-      ? "completed"
-      : (due.isValid() && due.isBefore(today, "day")) ? "overdue" : "pending";
+        const dStatus = item.done
+        ? "completed"
+        : (due.isValid() && due.isBefore(today, "day")) ? "overdue" : "pending";
 
-    return {
-      id: item._id,
-      taskId: item.taskId?._id,
-      name: item.taskId?.name ?? "Untitled",
-      dueDate: due.isValid() ? due : null, // keep as dayjs for comparisons
-      dStatus,
-      scheduleId: item.scheduleId,
-      cost: item.cost ?? 0,
-      files: item.files ?? [],
-    };
-  })
-  // exclude completed and invalid dates
-  .filter((t) => t.dStatus !== "completed" && t.dueDate)
-  // within window OR overdue
-  .filter((t) => t.dueDate.isBetween(currentDate, endDate, "day", "[]") || t.dStatus === "overdue")
-  // sort by due date ascending
-  .sort((a, b) => a.dueDate.valueOf() - b.dueDate.valueOf());
+        return {
+        id: item._id,
+        taskId: item.taskId?._id,
+        name: item.taskId?.name ?? "Untitled",
+        dueDate: due.isValid() ? due : null, // keep as dayjs for comparisons
+        dStatus,
+        scheduleId: item.scheduleId,
+        cost: item.cost ?? 0,
+        files: item.files ?? [],
+        };
+    })
+    // exclude completed and invalid dates
+    .filter((t) => t.dStatus !== "completed" && t.dueDate)
+    // within window OR overdue
+    .filter((t) => t.dueDate.isBetween(currentDate, endDate, "day", "[]") || t.dStatus === "overdue")
+    // sort by due date ascending
+    .sort((a, b) => a.dueDate.valueOf() - b.dueDate.valueOf());
 
     const cols = [
         {
@@ -380,7 +380,7 @@ const upcomingTasks = items
       try{
         axios.get(`http://localhost:3000/schedule/${selectedSchedule}/getCategories`)
           .then(res=>{
-            //console.log(res.data)
+            console.log(res.data)
             setCatData(res.data)
           })
       }
@@ -390,7 +390,7 @@ const upcomingTasks = items
     useEffect (()=>{
       try {
         axios.get(
-            `http://localhost:3000/schedule/${selectedSchedule}/upcoming-runs?limit=25&from=2025-10-01&to=2025-12-31`,
+            `http://localhost:3000/schedule/${selectedSchedule}/upcoming-runs?from=2025-10-01&to=2027-12-31`,
             { headers: { Authorization: `Bearer ${getAccessToken()}` } },
             )
             .then (res=>{
@@ -404,18 +404,7 @@ const upcomingTasks = items
     }
     ,[])
 
-    async function checkConnection (){
-      console.log(tempTaskData)
-      try {
-        const res = await axios.get(
-                       `http://localhost:3000/schedule/${selectedSchedule}/upcoming-runs?limit=25&from=2025-10-01&to=2025-12-31`,
-                        { headers: { Authorization: `Bearer ${getAccessToken()}` } },
-                    );
-        console.log(await res.data)
 
-      }
-      catch(err){console.log(err)}
-    }
     // contains information of logged in user
     const token = getAccessToken();
     let roles = [];
@@ -427,7 +416,6 @@ const upcomingTasks = items
     return (
         <Layout>
             <Content className="manageContent" style={{ padding: "10px 15px" }}>
-            <button onClick={checkConnection}>CLICj</button>
                 <div
                     style={{
                         background: "#FFFFFF",

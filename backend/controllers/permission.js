@@ -35,7 +35,8 @@ const ROLES = {
         "edit:category",
         "remove:org",
         "edit:task",
-        "read:runs"
+        "read:runs",
+        "complete:task"
     ],
     manager: [
         "manage:ownUser",
@@ -46,7 +47,8 @@ const ROLES = {
         "edit:category",
         "delete:task",
         "edit:task",
-        "read:runs"
+        "read:runs",
+        "complete:task"
 
     ],
     carer: ["manage:ownUser", "upload:file", "complete:task"],

@@ -486,6 +486,8 @@ async function removeCategory(req, res) {
 async function deleteTask (req,res){
     try {
         const { scheduleId,taskId, categoryId } = req.params;
+        await TaskRun.deleteMany({ taskId }) 
+
         await Category.updateOne (
             {_id : categoryId},
             {$pull : {tasks : taskId}}
@@ -494,7 +496,6 @@ async function deleteTask (req,res){
             {_id : scheduleId},
             {$pull : {tasks : taskId}}
         )
-        await TaskRun.deleteMany({ taskId }) 
         await Task.findByIdAndDelete(taskId)
         res.send("task deleted")
         console.log("task deleted")
@@ -650,7 +651,7 @@ async function editCategory(req, res) {
     }
 }
 async function completeTask(req, res) {
-    let {taskInsId} = req.params
+    let { taskInsId} = req.params
     let actualCost = (req.body.actualCost)
     //let taskId  = req.body;
     console.log(req.params)
@@ -672,6 +673,7 @@ async function completeTask(req, res) {
     }*/
     task.done = true;
     task.save()
+    console.log(task)
     const cat = await Category.findById(task.categoryId).lean();
     await Category.updateOne({ _id: cat._id }, { $inc: { value: actualCost }});
 
@@ -818,8 +820,8 @@ function startOfToday() {
 async function listUpcomingRuns(req, res) {
   try {
     const { schedId } = req.params;
-    const { limit = 20, from, to } = req.query;
-
+    const { from, to } = req.query;
+    const {limit} = req.query || 100
     const start = from ? new Date(from) : startOfToday();
     const filter = {
       scheduleId: schedId,
