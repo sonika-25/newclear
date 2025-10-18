@@ -817,12 +817,12 @@ function startOfToday() {
 
 async function listUpcomingRuns(req, res) {
   try {
-    const { scheduleId } = req.params;
+    const { schedId } = req.params;
     const { limit = 20, from, to } = req.query;
 
     const start = from ? new Date(from) : startOfToday();
     const filter = {
-      scheduleId,
+      scheduleId: schedId,
       done: false,
       dueOn: { $gte: start },
     };
@@ -833,7 +833,7 @@ async function listUpcomingRuns(req, res) {
       .limit(Number(limit))
       .populate({
         path: "taskId",
-        select: "name budget unit every categoryId",
+        select: "name",
       })
       .populate({
         path: "categoryId",

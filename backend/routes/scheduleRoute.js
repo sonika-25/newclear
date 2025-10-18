@@ -10,7 +10,7 @@ const {
 
 // Find all schedules associated with the current user
 router.get("/:schedId/upcoming-runs",
-    scheduleCtrl.listRuns
+    scheduleCtrl.listUpcomingRuns
 );
 
 router.get("/schedules", authenticateToken, scheduleCtrl.fetchUserSchedules);
