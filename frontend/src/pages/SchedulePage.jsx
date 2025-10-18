@@ -1,7 +1,7 @@
 import './css/schedule.css';
-import React, { useState, useMemo } from "react"
-import { Layout, Popover, Typography, Calendar, Table, Tag, Button, Modal, Form, Input, DatePicker, Select, Tooltip, Upload } from 'antd';
-import { CheckCircleTwoTone, ClockCircleTwoTone, ExclamationCircleTwoTone, InboxOutlined, LeftOutlined, RightOutlined, QuestionOutlined} from "@ant-design/icons";
+import React, { useState, useMemo, useEffect } from "react"
+import { Layout, Popover, Typography, Calendar, Table, Tag, Button, Modal, Form, Input, DatePicker, Select, Tooltip, Upload, InputNumber } from 'antd';
+import { CheckCircleTwoTone, ClockCircleTwoTone, ExclamationCircleTwoTone, InboxOutlined, LeftOutlined, RightOutlined, QuestionOutlined } from "@ant-design/icons";
 import dayjs from 'dayjs';
 
 const { Content } = Layout;
@@ -86,6 +86,32 @@ const MOCK_ITEMS = [
     }
 ];
 
+const CARERS = [
+    { id: "c1", name: "Alice"},
+    { id: "c2", name: "Ben"},
+    { id: "c3", name: "Chloe"},
+];
+
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const DAY_OPTIONS = DAYS.map((d, i) => ({ value: i, label: d }));
+
+const SHIFT_OPTIONS = [
+    { value: "morning", label: "Morning" },
+    { value: "afternoon", label: "Afternoon" },
+    { value: "evening", label: "Evening" },
+]
+
+function shiftTag(shift) {
+    if (!shift) return <span style={{opacity:.5}}></span>
+    const map = {
+        morning: { color: "gold", text: "Morning" },
+        afternoon: { color: "blue", text: "Afternoon" },
+        evening: { color: "purple", text: "Evening" },
+    }
+    const m = map[shift];
+    return <Tag color={m.color}>{m.text}</Tag>
+}
+
 function formatISO(iso) {
     if (!iso) return "-";
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
@@ -121,6 +147,49 @@ export default function SchedulePage() {
         () => getMonthlyTasks(items, selectedYear, selectedMonth),
         [items, selectedYear, selectedMonth]
     );
+
+    const [selectedDayIdx, setSelectedDayIdx] = useState(0);
+
+    const [roster, setRoster] = useState({
+        c1: { 0: "morning", 2: "evening" },
+        c2: { 4: "afternoon" },
+        c3: { 6: "evening" },
+    });
+
+    const [addOpen, setAddOpen] = useState(false);
+    const [fullOpen, setFullOpen] = useState(false);
+    const [addForm] = Form.useForm();
+
+    function getShift(carerID, dayIdx) {
+        return roster[carerID]?.[dayIdx] || null;
+    }
+
+    function setShift(carerID, dayIdx, shift) {
+        setRoster(prev => ({
+            ...prev,
+            [carerID]: { ...(prev[carerID] || {}), [dayIdx]: shift }
+        }));
+    }
+
+    function openAddShift() {
+        setAddOpen(true);
+    }
+
+    useEffect(() => {
+        if (addOpen) {
+            addForm.resetFields();
+            addForm.setFieldValue({
+                carerID: undefined,
+                dayIdx: undefined,
+                shift: undefined,
+            });
+        }
+    }, [addOpen, addForm]);
+
+    function onAddShift(values) {
+        setShift(values.carerID, values.dayIdx, values.shift);
+        setAddOpen(false);
+    }
 
     const cols = [
         {
@@ -160,6 +229,23 @@ export default function SchedulePage() {
             key: "completionDate",
             width: 260,
             render: (_, r) => formatISO(r.completionDate),
+        },
+        {
+            title: "Amount Spent",
+            key: "amountSpent",
+            width: 160,
+            align: "left",
+            render: (_, r) => {
+                const completed = deriveStatus(r) === "completed";
+                if (completed && r.amountSpent != null) {
+                    return new Intl.NumberFormat("en-AU", {
+                        style: "currency",
+                        currency: "AUD",
+                        maximumFractionDigits: 2,
+                    }).format(r.amountSpent);
+                }
+                return <span style={{ opacity: 0.6 }}>-</span>;
+            },
         },
         {
             title: "Comments",
@@ -363,77 +449,128 @@ export default function SchedulePage() {
                 >
                     <Title level={4} style={ {marginTop: 0 }}>Schedule</Title>
                 
-                    <div
-                        style={{ 
-                            display: "grid", 
-                            gridTemplateRows: "3fr 2fr", 
-                            gap: 16,
-                            height: "90vh"
-                        }
-                    }>
-                        
-                        {/* Calendar component (top) */}
-                        <div 
-                            style={{ 
-                                border: "1px solid #f0f0f0", 
-                                borderRadius: 12, 
-                                background: "#fff", 
-                                padding: 12 
-                            }}
-                        >
-                            <Calendar
-                                className="sched-cal"
-                                fullscreen={false}
-                                mode="year"
-                                headerRender={calendarHeaderRender}
-                                value={dayjs().year(selectedYear).month(selectedMonth).date(1)}
-                                cellRender={cellRender}
-                                onSelect={(d) => {
-                                    setSelectedYear(d.year());
-                                    setSelectedMonth(d.month());
-                                }}
-                                onPanelChange={(d) => setSelectedYear(d.year())}
-                                style={{
-                                    border: "none",
-                                    background: "transparent",
-                                }}
-                            />
+                    <div className="schedule-two-col">
+                        <div className="schedule-left-stack">
+                            {/* Calendar component (top left) */}
+                            <div className="card">
+                                <Calendar
+                                    className="sched-cal"
+                                    fullscreen={false}
+                                    mode="year"
+                                    headerRender={calendarHeaderRender}
+                                    value={dayjs().year(selectedYear).month(selectedMonth).date(1)}
+                                    cellRender={cellRender}
+                                    onSelect={(d) => {
+                                        setSelectedYear(d.year());
+                                        setSelectedMonth(d.month());
+                                    }}
+                                    onPanelChange={(d) => setSelectedYear(d.year())}
+                                    style={{
+                                        border: "none",
+                                        background: "transparent",
+                                    }}
+                                />
+                            </div>
+
+                            {/* Table component (bottom left) */}
+                            <div className="card card-scroll">
+                                <div style={{ marginBottom: 8 }}>
+                                    <Text strong>
+                                        {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+                                    </Text>
+                                    
+                                    <Text type="secondary" style={{ marginLeft: 8}}>
+                                        • {monthData.length} task{monthData.length !== 1 ? "s" : ""}
+                                    </Text>
+                                </div>
+
+                                <Table
+                                    size="middle"
+                                    columns={cols}
+                                    dataSource={monthData}
+                                    rowKey="key"
+                                    pagination={false}
+                                />
+                            </div>
                         </div>
 
-                        {/* Table component (right side) */}
-                        <div 
-                            style={{ 
-                                border: "1px solid #f0f0f0", 
-                                borderRadius: 12, 
-                                padding: 12, 
-                                background: "#fff",
-                                overflow: "auto",
-                            }}
-                        >
-                            <div style={{ marginBottom: 8 }}>
-                                <Text strong>
-                                    {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+                        <div className="card roster-panel">
+                            {/* Roster component (right) */}
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    marginBottom: 8
+                                }}
+                            >
+                                <Text strong>Roster</Text>
+
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: 8
+                                    }}
+                                >
+                                    <Button onClick={openAddShift} type="primary">
+                                        Add Shift
+                                    </Button>
+
+                                    <Button onClick={() => setFullOpen(true)}>
+                                        Full Week Roster
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    marginBottom: 8
+                                }}
+                            >
+                                <Button 
+                                    icon={<LeftOutlined/>} 
+                                    onClick={ () => setSelectedDayIdx((i) => (i + 6) % 7)}
+                                />
+                                
+                                <Text type="primary">
+                                    {DAYS[selectedDayIdx]}
                                 </Text>
                                 
-                                <Text type="secondary" style={{ marginLeft: 8}}>
-                                    • {monthData.length} task{monthData.length !== 1 ? "s" : ""}
-                                </Text>
+                                <Button 
+                                    icon={<RightOutlined/>} 
+                                    onClick={ () => setSelectedDayIdx((i) => (i + 1) % 7)}
+                                />
+
                                 <Popover content={instructions[1]} title="Scheduled Sub Elements">
                                      <Button  size="small" style={{marginLeft: 10}} shape=  "circle" icon={<QuestionOutlined />} />
-                                 </Popover>
+                                </Popover>
                             </div>
 
                             <Table
-                                size="middle"
-                                columns={cols}
-                                dataSource={monthData}
-                                rowKey="key"
+                                size="small"
                                 pagination={false}
+                                rowKey="id"
+                                dataSource={CARERS.map(c => ({
+                                    id: c.id,
+                                    name: c.name,
+                                    shift: getShift(c.id, selectedDayIdx),    
+                                }))}
+                                columns={[
+                                    { title: "Carer", dataIndex: "name", width: 140 },
+                                    { title: "Shift", dataIndex: "shift", render: (val) => shiftTag(val) },
+                                ]}
+                                style={{
+                                    flex: 1
+                                }}
                             />
                         </div>
                     </div>
                 </div>
             </Content>
+
             {/* modal form for task updates */}
             <Modal
                 title={<div>
@@ -454,7 +591,7 @@ export default function SchedulePage() {
                     <Form.Item name="status" label="Status" rules={[{ required: true }]}>
                         <Select
                             options={[
-                                { value: "upcoming", label: "Upcoming" },
+                                { value: "pending", label: "Upcoming" },
                                 { value: "completed", label: "Completed"},
                             ]}
                         />
@@ -478,8 +615,27 @@ export default function SchedulePage() {
                         <DatePicker style={{ width: "100%" }}/>
                     </Form.Item>
 
-                    {/* upload documents */}
+                    <Form.Item
+                        name="amountSpent"
+                        label="Amount Spent"
+                        rules={[
+                            { required: true, message: "Please enter amount spent" },
+                            { type: "number", min: 0 },
+                        ]}
+                    >
+                        <InputNumber
+                            style={{ width: "100%" }}
+                            min={0}
+                            step={0.01}
+                            precision={2}
+                            formatter={(value) => 
+                                `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                            }
+                            parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+                        />
+                    </Form.Item>
 
+                    {/* upload documents */}
                     <Form.Item
                         name="documents"
                         label="Upload receipt/invoice/proof of purchase"
@@ -510,6 +666,80 @@ export default function SchedulePage() {
                         <Input.TextArea rows={3} placeholder="Optional Comments"/>
                     </Form.Item>
                 </Form>
+            </Modal>
+
+            {/* modal form for adding shifts */}
+            <Modal
+                title="Add Shift"
+                open={addOpen}
+                onCancel={() => { 
+                    addForm.resetFields(); 
+                    setAddOpen(false); 
+                }}
+                okText="Add"
+                onOk={() => addForm.submit()}
+                destroyOnHidden
+            >
+                <Form
+                    form={addForm}
+                    layout="vertical"
+                    onFinish={onAddShift}
+                >
+                    <Form.Item
+                        name="carerID"
+                        label="Carer"
+                        rules={[{ required: true, message:"Please select a carer" }]}
+                    >
+                        <Select options={CARERS.map(c => ({ value: c.id, label: c.name }))}/>
+                    </Form.Item>
+
+                    <Form.Item
+                        name="dayIdx"
+                        label="Day"
+                        rules={[{ required: true, message: "Please select a day" }]}
+                    >
+                        <Select
+                            options={DAY_OPTIONS}
+                        />
+                    </Form.Item>
+                    
+                    <Form.Item
+                        name="shift"
+                        label="Shift"
+                        rules={[{ required: true, message: "Pick select a shift" }]}
+                    >
+                        <Select
+                            options={SHIFT_OPTIONS}
+                        />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* modal pop out for full roster view */}
+            <Modal
+                title="Full Week Roster"
+                open={fullOpen}
+                onCancel={() => setFullOpen (false)}
+                footer={null}
+                width={800}
+                destroyOnHidden
+            >
+                <Table
+                    size="small"
+                    pagination={false}
+                    rowKey="id"
+                    dataSource={CARERS.map(c => ({ id: c.id, name: c.name }))}
+                    columns={[
+                        { title: "Carer", dataIndex: "name", fixed: "left", width: 140 },
+                        ...DAYS.map((d, i) => ({
+                            title: d,
+                            dataIndex: `d${i}`,
+                            align: "center",
+                            render: (_,r) => shiftTag(getShift(r.id, i)),
+                        }))
+                    ]}
+                    scroll={{ x: true }}
+                />
             </Modal>
         </Layout>
     )
