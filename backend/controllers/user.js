@@ -232,7 +232,7 @@ router.post("/signin", async (req, res) => {
 // generates an access token which eventually expires
 function generateAccessToken(user) {
     return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "15m",
+        expiresIn: "60m",
     });
 }
 

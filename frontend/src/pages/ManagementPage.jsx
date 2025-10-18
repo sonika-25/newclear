@@ -20,10 +20,11 @@ import {
     Space,
     Typography,
     App,
+    Popover,
 } from "antd";
 
-import React, { useState, useRef, useMemo, useEffect, useContext } from "react";
-import { CloseOutlined, PlusOutlined } from "@ant-design/icons";
+import React, { useState, useRef, useMemo, useContext, useEffect } from "react";
+import { CloseOutlined, QuestionOutlined, PlusOutlined } from "@ant-design/icons";
 import { Pie } from "@ant-design/plots";
 import dayjs from "dayjs";
 import axios from "axios";
@@ -40,6 +41,42 @@ const { Content } = Layout;
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
 
+
+   const instructions = [(
+    <div>
+        <p>This is where if you can add individuals to view the schedule. If you are the owner of the schedule</p>
+        <p>this is also where you handover control to an organisation. To add a new individual or organisation to the</p>
+        <p>schedule enter their email address at the top, select what type of user they are and click add user.</p>
+        <p>Depending on the user type you select the new individual or organisation will be granted different controls.</p>
+           <p>If you want to remove anyone from being able to view or control the schedule click the big X next to their name.</p>
+    </div>
+    ),(
+    <div>
+          <p>This is where you control adding, removing and editting categories and sub elements. </p>
+          <p>To add a new category click on the add new category button below. </p>
+          <p>To cycle through categories and their sub elements click on the tabs belows the </p>
+          <p>add new category and edit category button. To delete a category click on the the x on the tab.</p>
+          <p>To edit a category name or budget click on the edit current category button.</p>
+          <p>To add a new sub element you must first have made a category.</p>
+        <p>Ensure you have selected the category tab that you wish to add the sub element to and click the</p>
+           <p>add sub element button. To edit or remove a sub element click on "edit sub element" or "delete sub element"</p>
+            <p>At the bottom of the list you may see a number like [1] [2] this indicates</p>
+         <p>additional pages. Click on the numbers to see additional sub elements.</p>
+          <p>The pie chart displays the current categories remaining finances and how much as been spent so far.</p>
+          
+    </div>
+    )
+    ,(
+    <div>
+        <p>Enter a name for the sub element, a budget, a start and end date for the sub element, an interval </p>
+           <p>which determines how frequently the sub element needs to be completed. For example 30 means the sub element</p>
+                     <p>will schedule the sub element to be completed every 30 days. Finally, add some notes providing context for the task.</p>
+    </div>
+    ),(
+    <div>
+        <p>Enter a name a the budget for the category you would like to add or edit.</p>
+    </div>
+    )]
 /*Elements of this code utilise basic boiler plate code from AntD.*/
 
 //This defines the budget pie configuration as well as determining if budget is exceeded
@@ -99,6 +136,10 @@ const CatPie = ({ data }) => {
     );
 };
 
+// contains the information of the logged in user
+const token = getAccessToken();
+const decoded = token ? jwtDecode(token) : null;
+
 export default function ManagementPage() {
     const socket = useSocket();
     const { message } = App.useApp();
@@ -133,11 +174,6 @@ export default function ManagementPage() {
         return <div>Loading schedule...</div>;
     }
 
-    // contains information of logged in user
-    const token = getAccessToken();
-    if (token) {
-        const decoded = jwtDecode(token);
-    }
     let roles = [scheduleRole];
 
     const columns = [
@@ -149,18 +185,18 @@ export default function ManagementPage() {
             key: "frequency",
         },
         {
-            title: "Remove/Edit Task",
+            title: "Remove/Edit Sub Element",
             key: "operation",
             render: (_, record) => (
-                <Space size="middle">
+                <Space>
                     <Popconfirm
                         title="Edit this task?"
                         okText="Edit"
                         cancelText="Cancel"
                         onConfirm={() => HandleTaskEdit(record)}
                     >
-                        <Space size="middle">
-                            <a style={{ color: "#224fa3ff" }}>Edit Task</a>
+                        <Space>
+                            <a style={{color: "#224fa3ff" }}>Edit Sub Element</a>
                         </Space>
                     </Popconfirm>
                     <Popconfirm
@@ -169,8 +205,8 @@ export default function ManagementPage() {
                         cancelText="Cancel"
                         onConfirm={() => HandleTaskDelete(record.key)}
                     >
-                        <Space size="middle">
-                            <a style={{ color: "#ff0000ff" }}>Delete Task</a>
+                        <Space >
+                            <a style={{ marginLeft: 20, color: "#ff0000ff" }}>Delete Sub Element</a>
                         </Space>
                     </Popconfirm>
                     
@@ -219,7 +255,6 @@ export default function ManagementPage() {
             const optimisticUser = {
                 user: userToAdd,
                 role: values.userType,
-                isAdmin: values.admin || false,
                 optimistic: true,
             };
             setUserData((prev) => [...prev, optimisticUser]);
@@ -292,17 +327,23 @@ export default function ManagementPage() {
         }
     };
 
+    // Only updates the view for users in the schedule
     useEffect(() => {
-        if (!selectedSchedule) return;
+        if (!selectedSchedule || !socket) {
+            return;
+        }
 
         socket.emit("joinSchedule", selectedSchedule);
+        sessionStorage.setItem("selectedSchedule", selectedSchedule);
 
         socket.on("userRemoved", (removedUser) => {
+            // The removed user is no longer in the schedule
+            if (decoded && decoded.userId === removedUser.skipUserId) {
+                return;
+            }
+
             setUserData((prev) =>
                 prev.filter((u) => u.user._id != removedUser.user._id),
-            );
-            message.success(
-                `${removedUser.user.firstName} removed from schedule`,
             );
         });
 
@@ -679,7 +720,6 @@ export default function ManagementPage() {
                     ),
                 );
                 setActiveKey(c._id);
-                message.success(`New category "${name}" added`);
             }
         } catch (err) {
             if (err.response?.status === 403) {
@@ -819,8 +859,12 @@ export default function ManagementPage() {
                                     textAlign: "center",
                                 }}
                             >
-                                Add People to the Schedule
+                                Provide Someone Access to the Schedule 
+                                  <Popover content={instructions[0]} title="Provide Access">
+                                                    <Button size="small" style={{marginLeft: 10}} shape=  "circle" icon={<QuestionOutlined />} />
+                                            </Popover>
                             </Typography.Title>
+                             
                             <Form
                                 form={userForm}
                                 onFinish={UserFormComplete}
@@ -838,15 +882,6 @@ export default function ManagementPage() {
                                 >
                                     <Input placeholder="Enter user email" />
                                 </Form.Item>
-                                <Form.Item
-                                    name="admin"
-                                    label="Enable Admin"
-                                    valuePropName="checked"
-                                    initialValue={false}
-                                >
-                                    <Switch />
-                                </Form.Item>
-
                                 <Form.Item label="User Type" name="userType">
                                     <Radio.Group>
                                         {/* family member view */}
@@ -928,7 +963,7 @@ export default function ManagementPage() {
                                                 />,
                                             ]}
                                         >
-                                            {`${scheduleUser.user.firstName} ${scheduleUser.user.lastName} · ${scheduleUser.role} · Admin Status: ${scheduleUser.isAdmin}`}
+                                            {`${scheduleUser.user.firstName} ${scheduleUser.user.lastName} · ${scheduleUser.role}`}
                                         </List.Item>
                                     )}
                                 />
@@ -943,7 +978,10 @@ export default function ManagementPage() {
                                     textAlign: "center",
                                 }}
                             >
-                                Add a Task or Category to Schedule
+                                Add a Sub Element or Category to the Schedule
+                                   <Popover content={instructions[1]} title="Add Sub Element/Category">
+                                                    <Button size="small" style={{marginLeft: 10}} shape=  "circle" icon={<QuestionOutlined />} />
+                                            </Popover>
                             </Typography.Title>
                             <div>
                                 <div style={{ marginBottom: 16 }}>
@@ -992,7 +1030,7 @@ export default function ManagementPage() {
                                     marginBottom: "10px",
                                 }}
                             >
-                                Add New Task
+                                Add New Sub Element
                             </Button>
 
                             <Table
@@ -1020,7 +1058,9 @@ export default function ManagementPage() {
                                 footer={() => ""}
                             />
                             <Modal
-                                title="Add/Edit a Task"
+                                title={<div><span>Add/Edit a Task</span>    <Popover content={instructions[2]} title="Schedule Calendar">
+                                                    <Button size="small" style={{marginLeft: 10}} shape=  "circle" icon={<QuestionOutlined />} />
+                                            </Popover> </div>}
                                 open={isTaskModalOpen}
                                 onOk={() => taskForm.submit()}
                                 onCancel={() => {
@@ -1142,7 +1182,9 @@ export default function ManagementPage() {
                             </Modal>
 
                             <Modal
-                                title="Add/Edit a Category"
+                                 title={<div><span>Add/Edit a Category</span>    <Popover content={instructions[3]} title="Schedule Calendar">
+                                                    <Button size="small" style={{marginLeft: 10}} shape=  "circle" icon={<QuestionOutlined />} />
+                                            </Popover> </div>}
                                 open={isCategoryModalOpen}
                                 onOk={() => categoryForm.submit()}
                                 onCancel={() => {
@@ -1192,7 +1234,6 @@ export default function ManagementPage() {
                     </Splitter>
                 </div>
             </Content>
-            <button onClick={getActiveKey}>CLICK</button>
         </Layout>
     );
 }

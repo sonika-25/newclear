@@ -1,4 +1,3 @@
-// TODO: implement roles into database
 const ScheduleUser = require("../model/schedule-user-model.js");
 
 const ROLES = {
@@ -56,10 +55,11 @@ const ROLES = {
 
 // check if the given user can perform an action
 async function hasPermission(userId, scheduleId, permission) {
+    // fetches the information of this user in the schedule
     const scheduleUser = await ScheduleUser.findOne({
         user: userId,
         schedule: scheduleId,
-    });
+    }).lean();
     if (!scheduleUser) {
         return false;
     }
@@ -67,6 +67,18 @@ async function hasPermission(userId, scheduleId, permission) {
     const role = scheduleUser.role;
     if (!role) {
         return false;
+    }
+
+    // family has admin privileges when there are no service providers
+    if (role === "family" || role === "POA") {
+        const serviceProviderExists = await ScheduleUser.exists({
+            schedule: scheduleId,
+            role: "serviceProvider",
+        });
+
+        if (!serviceProviderExists) {
+            return true;
+        }
     }
 
     return ROLES[role].includes(permission);
