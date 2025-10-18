@@ -6,11 +6,6 @@ const taskSchema = new mongoose.Schema(
         description: { type: String },
         startDate: { type: Date, required: true },
         endDate: { type: Date },
-        frequency: {
-            type: String,
-            enum: ["DAILY", "WEEKLY", "MONTHLY", "YEARLY"],
-            required: false,
-        },
         unit: {
             type: String,
             enum: ["day", "week", "month", "year"],
@@ -18,6 +13,8 @@ const taskSchema = new mongoose.Schema(
         },
         every: { type: Number, min: 1, default: 1 },
         budget: { type: Number, required: true },
+        used : {type: Number, default: 0},
+
         category: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
         scheduleId: {
             type: mongoose.Schema.Types.ObjectId,

@@ -1,4 +1,4 @@
-import React, { useContext, useState, useMemo } from "react";
+import React, { useContext, useState, useMemo , useEffect} from "react";
 import {
     Typography,
     Layout,
@@ -31,7 +31,7 @@ dayjs.extend(isBetween);
 const { Content } = Layout;
 const DATE_OPTIONS = { day: "numeric", month: "long", year: "numeric" };
 const TODAY = () => new Date();
-
+import axios from 'axios'
 import { ScheduleContext } from "../context/ScheduleContext";
 import { getAccessToken } from "../utils/tokenUtils";
 import { jwtDecode } from "jwt-decode";
@@ -74,16 +74,16 @@ const instructions = [(
 ];
 
 const tempCatData = [
-    { labelName: "Cat1", value: 210, budget: 200 },
-    { labelName: "Cat5", value: 110, budget: 150 },
-    { labelName: "Cat10", value: 110, budget: 1000 },
-    { labelName: "Cdw", value: 110, budget: 2000 },
-    { labelName: "Cat21", value: 220, budget: 300 },
-    { labelName: "Cat3", value: 330, budget: 600 },
-    { labelName: "Cat4", value: 440, budget: 900 },
+    { name: "Cat1", value: 210, budget: 200 },
+    { name: "Cat5", value: 110, budget: 150 },
+    { name: "Cat10", value: 110, budget: 1000 },
+    { name: "Cdw", value: 110, budget: 2000 },
+    { name: "Cat21", value: 220, budget: 300 },
+    { name: "Cat3", value: 330, budget: 600 },
+    { name: "Cat4", value: 440, budget: 900 },
 ];
 
-const tempTaskData = [
+/*const tempTaskData = [
     { catId: "Cat1", name: "test", budget: 100, actuals: 80 },
     { catId: "Cat1", name: "zz", budget: 200, actuals: 80 },
     { catId: "Cat1", name: "teswtt", budget: 50, actuals: 20 },
@@ -95,7 +95,7 @@ const tempTaskData = [
     { catId: "Cat1", name: "td3121st", budget: 30, actuals: 80 },
     { catId: "Cat1", name: "zz312312", budget: 200, actuals: 100 },
     { catId: "Cat1", name: "te1231as2tt", budget: 150, actuals: 125 },
-];
+];*/
 
 function isISO(s) {
     return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -328,8 +328,10 @@ const MOCK_ITEMS = [
 export default function HomePage() {
     const currentDate = dayjs().startOf("day");
     const endDate = currentDate.add(60, "day");
-    const [items, setItems] = useState(MOCK_ITEMS);
-
+    const [items, setItems] = useState([]);
+    const [tempCatData,setCatData] = useState([])
+    const [tempTaskData,setTaskData] = useState([])
+/*
     const upcomingTasks = items
         .flatMap((item) =>
             item.schedules.map((task, index) => ({
@@ -348,7 +350,36 @@ export default function HomePage() {
                 task.dueDate.isBetween(currentDate, endDate) ||
                 task.dStatus == "overdue"
             );
-        });
+        });*/
+
+
+    // items: backend task-run array; currentDate & endDate are dayjs instances
+const upcomingTasks = items
+  .map((item) => {
+    const due = dayjs(item.dueOn); // e.g., "2025-10-03T14:00:00.000Z"
+    const today = dayjs();
+
+    const dStatus = item.done
+      ? "completed"
+      : (due.isValid() && due.isBefore(today, "day")) ? "overdue" : "pending";
+
+    return {
+      id: item._id,
+      taskId: item.taskId?._id,
+      name: item.taskId?.name ?? "Untitled",
+      dueDate: due.isValid() ? due : null, // keep as dayjs for comparisons
+      dStatus,
+      scheduleId: item.scheduleId,
+      cost: item.cost ?? 0,
+      files: item.files ?? [],
+    };
+  })
+  // exclude completed and invalid dates
+  .filter((t) => t.dStatus !== "completed" && t.dueDate)
+  // within window OR overdue
+  .filter((t) => t.dueDate.isBetween(currentDate, endDate, "day", "[]") || t.dStatus === "overdue")
+  // sort by due date ascending
+  .sort((a, b) => a.dueDate.valueOf() - b.dueDate.valueOf());
 
     const cols = [
         {
@@ -382,7 +413,46 @@ export default function HomePage() {
     ];
     // contains schedule information
     const { selectedSchedule } = useContext(ScheduleContext);
+    useEffect (()=>{
+      try{
+        axios.get(`http://localhost:3000/schedule/${selectedSchedule}/getCategories`)
+          .then(res=>{
+            //console.log(res.data)
+            setCatData(res.data)
+          })
+      }
+      catch (err){console.log(err)}    }
+    ,[])
 
+    useEffect (()=>{
+      try {
+        axios.get(
+            `http://localhost:3000/schedule/${selectedSchedule}/upcoming-runs?limit=25&from=2025-10-01&to=2025-12-31`,
+            { headers: { Authorization: `Bearer ${getAccessToken()}` } },
+            )
+            .then (res=>{
+                console.log(res.data)
+                setItems(res.data)
+            })
+            
+
+      }
+      catch(err){console.log(err)}
+    }
+    ,[])
+
+    async function checkConnection (){
+      console.log(tempTaskData)
+      try {
+        const res = await axios.get(
+                       `http://localhost:3000/schedule/${selectedSchedule}/upcoming-runs?limit=25&from=2025-10-01&to=2025-12-31`,
+                        { headers: { Authorization: `Bearer ${getAccessToken()}` } },
+                    );
+        console.log(await res.data)
+
+      }
+      catch(err){console.log(err)}
+    }
     // contains information of logged in user
     const token = getAccessToken();
     let roles = [];
@@ -394,6 +464,7 @@ export default function HomePage() {
     return (
         <Layout>
             <Content className="manageContent" style={{ padding: "10px 15px" }}>
+            <button onClick={checkConnection}>CLICj</button>
                 <div
                     style={{
                         background: "#FFFFFF",
@@ -494,8 +565,8 @@ export default function HomePage() {
                                     style={{ height: 300 }}
                                     items={tempCatData.map((cat) => ({
                                         //this should be changed to id when fetching from db
-                                        key: cat.labelName,
-                                        label: `${cat.labelName}`,
+                                        key: cat.name,
+                                        label: `${cat.name}`,
                                         children: (
                                             <div
                                                 style={{
@@ -574,7 +645,7 @@ const BudgetBar = ({ data }) => {
 
     const config = {
         data: rows,
-        xField: "labelName",
+        xField: "name",
         yField: "overflow",
         height: 400,
         width: 1000,
@@ -627,15 +698,44 @@ const BudgetBar = ({ data }) => {
 
 const TaskBudgetBar = ({ data }) => {
     //Get task data here?
+    //console.log(tempTaskData)
+    const [tempTaskData, setTaskData] = useState([])
+    const { selectedSchedule } = useContext(ScheduleContext);
+
+    useEffect(() => {
+      let ignore = false;
+
+      (async () => {
+        try {
+          const { data: cat } = await axios.get(
+            `http://localhost:3000/schedule/catTasks/${data._id}`
+          );
+          if (ignore) return;
+
+          const tasksWithCat = (cat.tasks || []).map(t => ({
+            ...t,
+            catName: cat.name,  
+            catId: cat.name       
+          }));
+
+          setTaskData(tasksWithCat);
+          //console.log(tasksWithCat)
+        } catch (err) {
+          console.error(err);
+        }
+      })();
+
+      return () => { ignore = true; };
+    }, []);
     const subElements = tempTaskData.filter(
-        (task) => task.catId == data.labelName,
+        (task) => task.catId == data.name,
     );
     if (subElements.length == 0) {
         return;
     }
     //
     const rows = subElements.map((d) => {
-        const used = d.actuals / d.budget;
+        const used = d.used / d.budget;
         const overflow = Math.min(1, used);
         const ranges =
             used > 1

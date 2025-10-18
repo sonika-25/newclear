@@ -209,6 +209,7 @@ export default function ManagementPage() {
                             <a style={{ marginLeft: 20, color: "#ff0000ff" }}>Delete Sub Element</a>
                         </Space>
                     </Popconfirm>
+                    
                 </Space>
             ),
         },
@@ -360,8 +361,14 @@ export default function ManagementPage() {
         });
         setTaskModalOpen(true);
     };
-    const HandleTaskDelete = (key) => {
+    const HandleTaskDelete = async (key) => {
         setTaskData((prev) => prev.filter((item) => item.key !== key));
+         try {
+            console.log ("sched: ", selectedSchedule, ", key: ",activeKey, "taskId: ",key)
+            let data = await axios.delete (`http://localhost:3000/schedule/${selectedSchedule}/${key}/${activeKey}/delete-task`)
+            console.log(data)
+        }
+        catch (err){console.log(err)}
     };
 
     const ShowTaskModal = () => {
@@ -378,18 +385,18 @@ export default function ManagementPage() {
                 startDate: start?.toDate?.() ?? new Date(),
                 endDate: end?.toDate?.(),
                 every: Number(values.frequency),
-                unit: "day", // simple default
+                unit: values.unit, // simple default
                 budget: Number(values.budget),
-                category: activeKey,
+                categoryId: activeKey,
                 scheduleId: `${selectedSchedule}`,
             };
 
             const { data } = await axios.post(
-                `http://localhost:3000/trial/tasks/${selectedSchedule}/${activeKey}`,
+                `http://localhost:3000/schedule/${selectedSchedule}/add-task`,
                 payload,
                 { headers: { Authorization: `Bearer ${getAccessToken()}` } },
             );
-
+            console.log("data: ",data)
             // add new task to table
             setTaskData((prev) => [
                 ...prev,
@@ -474,12 +481,14 @@ export default function ManagementPage() {
     );
     //loads tasks
     useEffect(() => {
+        console.log("stop")
+        
         if (!activeKey) return;
         let ignore = false;
         (async () => {
             try {
                 const { data } = await axios.get(
-                    `http://localhost:3000/trial/categories/tasks/${activeKey}`,
+                    `http://localhost:3000/schedule/catTasks/${activeKey}`,
                     {
                         headers: {
                             Authorization: `Bearer ${getAccessToken()}`,
@@ -528,7 +537,7 @@ export default function ManagementPage() {
     }, [activeKey]);
 
     async function getActiveKey() {
-        console.log(activeKey);
+        console.log(selectedSchedule);
     }
     // === NEW === Load categories for this schedule on mount
     useEffect(() => {
@@ -1125,7 +1134,27 @@ export default function ManagementPage() {
                                             defaultValue={30}
                                         />
                                     </Form.Item>
-
+                                    <Form.Item
+                                        label="Frequency Unit"
+                                        name="unit"
+                                        rules={[
+                                            {
+                                            required: true,
+                                            message: "Select a unit",
+                                            },
+                                        ]}
+                                        >
+                                        <Select
+                                            size="large"
+                                            defaultValue="month"
+                                            options={[
+                                            { value: "day", label: "Day" },
+                                            { value: "week", label: "Week" },
+                                            { value: "month", label: "Month" },
+                                            { value: "year", label: "Year" },
+                                            ]}
+                                        />
+                                    </Form.Item>
                                     <Form.Item
                                         label="Add task context or further notes"
                                         name="description"
@@ -1147,6 +1176,8 @@ export default function ManagementPage() {
                                             }}
                                         />
                                     </Form.Item>
+                                    
+
                                 </Form>
                             </Modal>
 
