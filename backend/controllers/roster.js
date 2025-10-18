@@ -30,9 +30,9 @@ router.patch("/:id", async (req, res) => {
 
     try {
 
-        roster.days[day][shift] = carer;
+        roster.days[day][shift] = carer.user; 
         await roster.save();
-        res.status(201).json(roster);
+        return res.status(201).json(roster);
     } catch (err) {
         res.status(500).json({error: "Server error"})
     }
@@ -41,66 +41,86 @@ router.patch("/:id", async (req, res) => {
 
 router.post("/create", async (req, res) => {
 
-    const scheduleId = req.body.scheduleId;
-    const weekStart = new Date(req.body.weekStart);
-
-    const schedule = await Schedule.findById(scheduleId);
-    if (!schedule) {
-        return res.status(400).json({message: "This schedule does not exist!"});
-    }
-
-    const currentDate = new Date();
-    // console.log("current date: " + currentDate);
-    if (currentDate.getTime() > weekStart.getTime()) {
-        return res.status(400).json({message: "This week has already passed!"});
-    }
+    const scheduleId = req.body.schedule;
+    const weekStartString = req.body.weekStart;
 
     try {
-
-        // Check if roster for that week already exists
-        const roster = Roster.findOne({scheduleId: scheduleId
-            , weekStart: weekStart});
-        if (roster) {
-            return res.status(400).json({message: "A roster for this week " + 
-                "already exists!"});
-        }
-
-        const newRoster = new Roster({schedule, weekStart});
-        await newRoster.save();
-        res.status(201).json(newRoster);
-
+        const newRoster = await createRoster(scheduleId, weekStartString);
+        return res.status(201).json(newRoster);
     } catch (err) {
-        res.status(500).json({err: err.message});
+        res.status(400).json({message: err.message});
     }
+    
 
 });
 
-router.get("/rosters", async (req, res) => {
+router.get("/fetch", async (req, res) => {
 
-    const {scheduleId, weekStart} = req.query;
+    const {scheduleId} = req.query;
 
     const scheduleExists = await Schedule.findById(scheduleId);
     if (!scheduleExists) {
         return res.status(400).json({message: "This schedule does not exist!"});
     }
 
-    const currentDate = new Date();
-    if (currentDate.getTime() < weekStart.getTime()) {
-        return res.status(400).json({message: "This week has already passed!"});
-    }
-
     try {
 
-        const roster = await Roster.findOne({schedule: scheduleId
-            , weekStart: weekStart});
+        const roster = await Roster.findOne({schedule: scheduleId});
         if (!roster) {
-            return res.status(400).json({message: "There is no roster for " + 
-                "this week!"});
+            weekStartString = (new Date()).toString();
+            const newRoster = await createRoster(scheduleId, weekStartString);
+            return res.status(201).json(newRoster);
         }
-        res.json(roster);
+
+        // Logic for resetting the roster for a new week
+        const weekStart = roster.weekStart;
+        const currentDate = new Date();
+        var daysSinceMonday;
+        if (currentDate.getDay() == 0) { // If it is a sunday
+            daysSinceMonday = 6;
+        } else {
+            daysSinceMonday = currentDate.getDay() - 1;
+        } 
+        const mostRecentMonday = new Date();
+        mostRecentMonday.setDate(mostRecentMonday.getDate() - daysSinceMonday);
+        mostRecentMonday.setHours(0, 0, 0, 0); // set to midnight
+
+        // If a reset is required
+        if (weekStart.getTime() < mostRecentMonday.getTime()) {      
+
+            const shiftKeys = ["morning", "afternoon", 'evening'];
+            for (const day in roster.days) {
+                for (const shift in shiftKeys) {
+                    roster.days[day][shift] = null;
+                } 
+
+            }
+            roster.weekStart = mostRecentMonday;
+        }
+        
+        await roster.save();
+        return res.status(200).json(roster);
     } catch (err) {
-        res.status(500).json({err: "Server error"});
+        res.status(400).json({err: err.message});
     }
 });
+
+async function createRoster(scheduleId, weekStartString) {
+
+    const weekStart = new Date(weekStartString);
+ 
+    // Check if roster for that week already exists
+    const roster = await Roster.findOne({schedule: scheduleId
+        , weekStart: weekStart});
+    if (roster) {
+        throw new Error("A roster for this week already exists!")
+    }
+
+    const newRoster = new Roster({schedule: scheduleId, weekStart});
+    await newRoster.save();
+    return newRoster;
+}
+
+ 
 
 module.exports = router;
