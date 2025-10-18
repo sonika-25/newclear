@@ -9,6 +9,9 @@ const categorySchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    value:{
+        type:Number,
+    },
     tasks: [
         {
             type: mongoose.Schema.Types.ObjectId,

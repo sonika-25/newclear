@@ -9,6 +9,10 @@ const {
 } = require("../controllers/permission.js");
 
 // Find all schedules associated with the current user
+router.get("/:schedId/upcoming-runs",
+    scheduleCtrl.listUpcomingRuns
+);
+
 router.get("/schedules", authenticateToken, scheduleCtrl.fetchUserSchedules);
 
 // Find all users associated with the given schedule
@@ -17,6 +21,7 @@ router.get(
     authenticateToken,
     scheduleCtrl.fetchScheduleUsers,
 );
+router.get("/catTasks/:catId", scheduleCtrl.getTasksInCat)
 
 // Fetches all the categories belong to a specific schedule
 router.get(
@@ -33,10 +38,12 @@ router.get(
 );
 
 // Creates a schedule for the client/PWSN, with the creator becoming the client's family/POA
-router.post("/create", authenticateToken, scheduleCtrl.createSchedule);
+router.post("/create", /*authenticateToken,*/ scheduleCtrl.createSchedule);
 
 // Returns the information of a schedule belonging to a given owner and client/PWSN
 router.get("/schedule-info", scheduleCtrl.getScheduleInfo);
+
+
 
 // Add a user to a schedule
 router.post("/:scheduleId/add-user", authenticateToken, scheduleCtrl.addUser);
@@ -47,6 +54,13 @@ router.delete(
     authenticateToken,
     scheduleCtrl.removeUser,
 );
+
+router.delete (
+    "/:scheduleId/:taskId/:catId/delete-task",
+    authenticateToken,
+    checkPermission("delete:task"),
+    scheduleCtrl.deleteTask,
+)
 
 // Delete a schedule from the system and database
 router.delete(
@@ -76,9 +90,13 @@ router.patch(
     checkPermission("edit:category"),
     scheduleCtrl.editCategory,
 );
-
+router.patch (
+    "/:scheduleId/:taskId/edit-task",
+    authenticateToken,
+    scheduleCtrl.editTask
+)
 router.post(
-    "/:scheduleId/finish-task",
+    "/:taskInsId/finish-task",
     authenticateToken,
     checkPermission("complete:task"),
     scheduleCtrl.completeTask,
