@@ -1,6 +1,6 @@
 import './css/schedule.css';
 import React, { useState, useMemo, useEffect } from "react"
-import { Layout, Typography, Calendar, Table, Tag, Button, Modal, Form, Input, DatePicker, Select, Tooltip, Upload, message } from 'antd';
+import { Layout, Typography, Calendar, Table, Tag, Button, Modal, Form, Input, DatePicker, Select, Tooltip, Upload, InputNumber } from 'antd';
 import { CheckCircleTwoTone, ClockCircleTwoTone, ExclamationCircleTwoTone, InboxOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs from 'dayjs';
 
@@ -229,6 +229,23 @@ export default function SchedulePage() {
             key: "completionDate",
             width: 260,
             render: (_, r) => formatISO(r.completionDate),
+        },
+        {
+            title: "Amount Spent",
+            key: "amountSpent",
+            width: 160,
+            align: "left",
+            render: (_, r) => {
+                const completed = deriveStatus(r) === "completed";
+                if (completed && r.amountSpent != null) {
+                    return new Intl.NumberFormat("en-AU", {
+                        style: "currency",
+                        currency: "AUD",
+                        maximumFractionDigits: 2,
+                    }).format(r.amountSpent);
+                }
+                return <span style={{ opacity: 0.6 }}>-</span>;
+            },
         },
         {
             title: "Comments",
@@ -558,8 +575,27 @@ export default function SchedulePage() {
                         <DatePicker style={{ width: "100%" }}/>
                     </Form.Item>
 
-                    {/* upload documents */}
+                    <Form.Item
+                        name="amountSpent"
+                        label="Amount Spent"
+                        rules={[
+                            { required: true, message: "Please enter amount spent" },
+                            { type: "number", min: 0 },
+                        ]}
+                    >
+                        <InputNumber
+                            style={{ width: "100%" }}
+                            min={0}
+                            step={0.01}
+                            precision={2}
+                            formatter={(value) => 
+                                `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                            }
+                            parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+                        />
+                    </Form.Item>
 
+                    {/* upload documents */}
                     <Form.Item
                         name="documents"
                         label="Upload receipt/invoice/proof of purchase"
