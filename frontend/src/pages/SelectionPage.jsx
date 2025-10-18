@@ -116,7 +116,7 @@ export default function SchedulePage() {
 
             <Card
                 style={{
-                    background: "#ffffffd6",
+                    background: "#ffffffff",
                     width: 600,
                     borderRadius: 20,
                 }}
