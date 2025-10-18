@@ -119,12 +119,12 @@ export default function SelectSchedule() {
                 >
                     <img src={logo} className="bgLogo" />
         
-            <div style={{ padding: 24, maxWidth: 500, margin: "0 auto" }}>
+            <div>
             
 
                   <Card
                     style={{
-                    background: "#ffffffd6",
+                    background: "#ffffffff",
                     width: 600,
                     maxHeight: 900,
                     borderRadius: 20,
