@@ -179,6 +179,7 @@ export default function ManagementPage() {
     const columns = [
         { title: "Task", dataIndex: "task", key: "task" },
         { title: "Task Budget $", dataIndex: "budget", key: "budget" },
+        { title: "Budget Used$", dataIndex: "used", key: "used" },
         {
             title: "Schedule Frequency",
             dataIndex: "frequency",
@@ -350,11 +351,33 @@ export default function ManagementPage() {
         return () => socket.off("userRemoved");
     }, [selectedSchedule, socket]);
 
-    const HandleTaskEdit = (key) => {
+    const HandleTaskEdit = async (key) => {
         setEditingTaskKey(key.key);
+        setTaskData((prev) => prev.filter((item) => item.key !== key));
+        console.log ("sched: ", selectedSchedule, ", key: ",activeKey, "taskId: ",key)
+        
+
+         try {
+            const payload = {
+                name: values.task.trim(), 
+                description: values.description || "",
+                startDate: start?.toDate?.() ?? new Date(),
+                endDate: end?.toDate?.(),
+                every: Number(values.frequency),
+                unit: values.unit, // simple default
+                budget: Number(values.budget),
+                categoryId: activeKey,
+                scheduleId: `${selectedSchedule}`,
+            };
+
+            let data = await axios.patch (`http://localhost:3000/schedule/${selectedSchedule}/${key.key}/edit-task`, key)
+            console.log(data)
+        }
+        catch (err){console.log(err)}
         taskForm.setFieldsValue({
             task: key.task,
             budget: key.budget,
+            used:key.used,
             frequency: key.frequency,
             dateRange: key.dateRange,
             description: key.description,
@@ -377,6 +400,9 @@ export default function ManagementPage() {
     };
 
     const HandleTaskOk = async (values) => {
+        console.log(values)
+        const find = values.task ? true: false
+        console.log(editingTaskKey)
         try {
             const [start, end] = values.dateRange ?? [];
             const payload = {
@@ -389,35 +415,66 @@ export default function ManagementPage() {
                 budget: Number(values.budget),
                 categoryId: activeKey,
                 scheduleId: `${selectedSchedule}`,
+                used: 0,
             };
 
-            const { data } = await axios.post(
-                `http://localhost:3000/schedule/${selectedSchedule}/add-task`,
-                payload,
-                { headers: { Authorization: `Bearer ${getAccessToken()}` } },
-            );
-            console.log("data: ",data)
-            // add new task to table
-            setTaskData((prev) => [
-                ...prev,
-                {
-                    key: data._id,
-                    task: data.name,
-                    categoryId: activeKey,
-                    budget: Number(data.budget) || 0,
-                    frequency: data.every
-                        ? `${data.every} ${data.unit}${data.every > 1 ? "s" : ""}`
-                        : "",
-                    description: data.description || "",
-                    dateRange: [
-                        dayjs(data.startDate),
-                        data.endDate
-                            ? dayjs(data.endDate)
-                            : dayjs(data.startDate),
-                    ],
-                },
-            ]);
+            let data;
+            if (editingTaskKey){
+                data = await axios.patch (`http://localhost:3000/schedule/${selectedSchedule}/${editingTaskKey}/edit-task`, payload)
+                console.log(data)
+                setTaskData((prev) =>
+                    prev.map((item) =>
+                        item.key === editingTaskKey
+                        ? {
+                            key: data._id,
+                            task: data.name,
+                            categoryId: activeKey,
+                            budget: Number(data.budget) || 0,
+                            used: Number(data.used) || 0, // fixed typo uesd -> used
+                            frequency: data.every
+                                ? `${data.every} ${data.unit}${data.every > 1 ? "s" : ""}`
+                                : "",
+                            description: data.description || "",
+                            dateRange: [
+                                data.startDate ? dayjs(data.startDate) : null,
+                                data.endDate ? dayjs(data.endDate) : (data.startDate ? dayjs(data.startDate) : null),
+                            ],
+                            }
+                        : item
+                    )
+                    );
 
+            }
+            else {
+                data = await axios.post(
+                    `http://localhost:3000/schedule/${selectedSchedule}/add-task`,
+                    payload,
+                    { headers: { Authorization: `Bearer ${getAccessToken()}` } },
+                );
+                
+                console.log("data: ",data)
+                // add new task to table
+                setTaskData((prev) => [
+                    ...prev,
+                    {
+                        key: data._id,
+                        task: data.name,
+                        categoryId: activeKey,
+                        budget: Number(data.budget) || 0,
+                        uesd:0,
+                        frequency: data.every
+                            ? `${data.every} ${data.unit}${data.every > 1 ? "s" : ""}`
+                            : "",
+                        description: data.description || "",
+                        dateRange: [
+                            dayjs(data.startDate),
+                            data.endDate
+                                ? dayjs(data.endDate)
+                                : dayjs(data.startDate),
+                        ],
+                    },
+                ]);
+            }
             taskForm.resetFields();
             setTaskModalOpen(false);
             message.success("Task added");
@@ -426,43 +483,7 @@ export default function ManagementPage() {
             message.error(err?.response?.data?.message || "Failed to add task");
         }
 
-        /*old frontend: -*/
-        /*if(editingTaskKey){
-          setTaskData(prev =>  prev.map(task => {
-          if (task.key !== editingTaskKey) 
-            {
-              return task;
-            }
-            else{
-              return {
-                ...task,
-                task: values.task.trim(),
-                budget: Number(values.budget),
-                frequency: Number(values.frequency),
-                description: values.description || '',
-                dateRange: values.dateRange,
-              };
-            }
-          })
-        );
-      }
-      else{
-        setTaskData(prev => [...prev,
-        {
-          key: crypto.randomUUID(),
-          task: values.task.trim(),
-          categoryId: activeKey,
-          budget: Number(values.budget),
-          frequency: Number(values.frequency),
-          description: values.description || '',
-          dateRange: values.dateRange,
-        },
-      ]);
-      }
         
-      taskForm.resetFields();
-      setEditingTaskKey(null);
-      setTaskModalOpen(false);*/
     };
     /*********************END TAB BOILIER PLATE FROM ANTD WITH SLIGHT EDITS**************************** */
 
@@ -503,6 +524,7 @@ export default function ManagementPage() {
                     task: t.name,
                     categoryId: activeKey, // we know which category we fetched
                     budget: Number(t.budget) || 0,
+                    used: Number(t.used) || 0,
                     frequency: t.every
                         ? `${t.every} ${t.unit}${t.every > 1 ? "s" : ""}`
                         : "",
@@ -537,7 +559,7 @@ export default function ManagementPage() {
     }, [activeKey]);
 
     async function getActiveKey() {
-        console.log(selectedSchedule);
+        console.log(taskData);
     }
     // === NEW === Load categories for this schedule on mount
     useEffect(() => {
