@@ -344,7 +344,7 @@ async function removeUser(req, res) {
     }
 }
 
-// Removes all managers and carers when an org is removed
+// Removes all the managers and carers of a service provider from the schedule
 async function removeOrgEmployees(scheduleId, serviceProviderId, session, req) {
     const io = req.app.get("io");
     const removerId = req.user._id?.toString() || req.user;
