@@ -43,7 +43,7 @@ router.get(
 );
 
 // Creates a schedule for the client/PWSN, with the creator becoming the client's family/POA
-router.post("/create", /*authenticateToken,*/ scheduleCtrl.createSchedule);
+router.post("/create", authenticateToken, scheduleCtrl.createSchedule);
 
 // Returns the information of a schedule belonging to a given owner and client/PWSN
 router.get("/schedule-info", scheduleCtrl.getScheduleInfo);
