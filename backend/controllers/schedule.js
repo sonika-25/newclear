@@ -15,7 +15,6 @@ const {
     checkPermission,
 } = require("./permission.js");
 
-
 // Find all schedules associated with the current user
 async function fetchUserSchedules(req, res) {
     try {
@@ -197,6 +196,12 @@ async function addUser(req, res) {
             schedule: scheduleId,
             role,
         });
+
+        // Assign a service provider to the manager or carer
+        if (role === "manager" || role === "carer") {
+            newScheduleUser.employer = currentUser._id;
+        }
+
         await newScheduleUser.save();
         await newScheduleUser.populate("user");
         await newScheduleUser.populate("schedule");
@@ -294,7 +299,7 @@ async function removeUser(req, res) {
 
         const removedRole = tobeRemovedScheduleUser.role;
         if (removedRole === "serviceProvider") {
-            await removeOrgEmployees(scheduleId, session, req);
+            await removeOrgEmployees(scheduleId, removedUserId, session, req);
         }
 
         // Remove the link between the user and the schedule
@@ -340,12 +345,13 @@ async function removeUser(req, res) {
 }
 
 // Removes all managers and carers when an org is removed
-async function removeOrgEmployees(scheduleId, session, req) {
+async function removeOrgEmployees(scheduleId, serviceProviderId, session, req) {
     const io = req.app.get("io");
     const removerId = req.user._id?.toString() || req.user;
     const removedEmployees = await ScheduleUser.find({
         schedule: scheduleId,
         role: { $in: ["manager", "carer"] },
+        employer: serviceProviderId,
     })
         .populate("user")
         .session(session);
@@ -358,6 +364,7 @@ async function removeOrgEmployees(scheduleId, session, req) {
     await ScheduleUser.deleteMany({
         schedule: scheduleId,
         role: { $in: ["manager", "carer"] },
+        employer: serviceProviderId,
     }).session(session);
 
     // Live updates for each removed employee
@@ -498,35 +505,34 @@ async function removeCategory(req, res) {
     }
 }
 
-async function deleteTask (req,res){
+async function deleteTask(req, res) {
     try {
-        const { scheduleId,taskId, categoryId } = req.params;
-        await Category.updateOne (
-            {_id : categoryId},
-            {$pull : {tasks : taskId}}
-        )
-        await Schedule.updateOne (
-            {_id : scheduleId},
-            {$pull : {tasks : taskId}}
-        )
-        await TaskRun.deleteMany({ taskId }) 
-        await Task.findByIdAndDelete(taskId)
-        res.send("task deleted")
-        console.log("task deleted")
+        const { scheduleId, taskId, categoryId } = req.params;
+        await Category.updateOne(
+            { _id: categoryId },
+            { $pull: { tasks: taskId } },
+        );
+        await Schedule.updateOne(
+            { _id: scheduleId },
+            { $pull: { tasks: taskId } },
+        );
+        await TaskRun.deleteMany({ taskId });
+        await Task.findByIdAndDelete(taskId);
+        res.send("task deleted");
+        console.log("task deleted");
+    } catch (err) {
+        console.log(error);
     }
-    catch (err){console.log(error)}
 }
-async function getTasksInCat (req,res) {
-    const {catId}= req.params
-    console.log(catId)
+async function getTasksInCat(req, res) {
+    const { catId } = req.params;
+    console.log(catId);
     try {
-        const tasks = await Category.findById (catId)
-            .populate("tasks")
-            .exec();
-        return res.status(200).json(tasks)
-    } catch(err){
-        console.log(err)
-        res.send(err)
+        const tasks = await Category.findById(catId).populate("tasks").exec();
+        return res.status(200).json(tasks);
+    } catch (err) {
+        console.log(err);
+        res.send(err);
     }
 }
 
@@ -570,61 +576,61 @@ async function addCategory(req, res) {
 // and seedRuns(task, monthsAhead) is defined
 
 async function editTask(req, res) {
-  try {
-    const { scheduleId, taskId } = req.params;
-    const {
-      name,
-      description,
-      startDate,
-      endDate,
-      unit,
-      every,
-      budget,
-      categoryId,
-      isCompleted,
-      assignedToCare
-    } = req.body;
+    try {
+        const { scheduleId, taskId } = req.params;
+        const {
+            name,
+            description,
+            startDate,
+            endDate,
+            unit,
+            every,
+            budget,
+            categoryId,
+            isCompleted,
+            assignedToCare,
+        } = req.body;
 
-    // 1) Update task and get the UPDATED doc back
-    const task = await Task.findByIdAndUpdate(
-      taskId,
-      {
-        $set: {
-          name,
-          description,
-          startDate,
-          endDate,
-          unit,
-          every,
-          budget,
-          categoryId,
-          isCompleted,
-          assignedToCare,
-          scheduleId // keep scheduleId consistent if you pass it in params
-        },
-      },
-      { new: true } // important to re-seed from the updated values
-    ).lean(); // seedRuns only needs plain values
+        // 1) Update task and get the UPDATED doc back
+        const task = await Task.findByIdAndUpdate(
+            taskId,
+            {
+                $set: {
+                    name,
+                    description,
+                    startDate,
+                    endDate,
+                    unit,
+                    every,
+                    budget,
+                    categoryId,
+                    isCompleted,
+                    assignedToCare,
+                    scheduleId, // keep scheduleId consistent if you pass it in params
+                },
+            },
+            { new: true }, // important to re-seed from the updated values
+        ).lean(); // seedRuns only needs plain values
 
-    if (!task) {
-      return res.status(404).json({ ok: false, error: "Task not found" });
+        if (!task) {
+            return res.status(404).json({ ok: false, error: "Task not found" });
+        }
+
+        // 2) Remove all existing runs for this task
+        const delRes = await TaskRun.deleteMany({ taskId });
+
+        // 3) Reseed based on the edited task
+        await seedRuns(task); // or whatever monthsAhead you prefer
+
+        return res.status(200).json({
+            ok: true,
+            taskId: task._id,
+            removedRuns: delRes.deletedCount,
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ ok: false, error: err.message });
     }
-
-    // 2) Remove all existing runs for this task
-    const delRes = await TaskRun.deleteMany({ taskId });
-
-    // 3) Reseed based on the edited task
-    await seedRuns(task); // or whatever monthsAhead you prefer
-
-    return res.status(200).json({
-      ok: true,
-      taskId: task._id,
-      removedRuns: delRes.deletedCount
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ ok: false, error: err.message });
-  }
 }
 
 async function editCategory(req, res) {
@@ -665,11 +671,11 @@ async function editCategory(req, res) {
     }
 }
 async function completeTask(req, res) {
-    let {taskInsId} = req.params
-    let actualCost = (req.body.actualCost)
+    let { taskInsId } = req.params;
+    let actualCost = req.body.actualCost;
     //let taskId  = req.body;
-    console.log(req.params)
-    let task = await TaskRun.findById(taskInsId)    
+    console.log(req.params);
+    let task = await TaskRun.findById(taskInsId);
     //console.log(req.body.file)
     if (task.done) {
         console.log("already done");
@@ -686,69 +692,68 @@ async function completeTask(req, res) {
       };
     }*/
     task.done = true;
-    task.save()
+    task.save();
     const cat = await Category.findById(task.categoryId).lean();
-    await Category.updateOne({ _id: cat._id }, { $inc: { value: actualCost }});
+    await Category.updateOne({ _id: cat._id }, { $inc: { value: actualCost } });
 
     const ogTask = await Task.findById(task.taskId).lean();
     //const newTaskBudget = Math.max (0, ((ogTask.budget) - Number(actualCost)));
-    await Task.updateOne({ _id: ogTask._id}, {$inc: { used: actualCost }})
+    await Task.updateOne({ _id: ogTask._id }, { $inc: { used: actualCost } });
 
-    res.send (`newCategBudget: ${cat.value} | NewtaskBudget: ${ogTask.used}`)
-    
+    res.send(`newCategBudget: ${cat.value} | NewtaskBudget: ${ogTask.used}`);
 }
 
 // utils/dates.js is unchanged (addByUnit)
 
 async function seedRuns(task) {
-  // Normalize to midnight to keep keys stable (taskId + dueOn)
-  const norm = (d) => {
-    const x = new Date(d);
-    x.setHours(0, 0, 0, 0);
-    return x;
-  };
+    // Normalize to midnight to keep keys stable (taskId + dueOn)
+    const norm = (d) => {
+        const x = new Date(d);
+        x.setHours(0, 0, 0, 0);
+        return x;
+    };
 
-  const start = norm(task.startDate);
-  const hasEnd = !!task.endDate;
-  const endLimit = hasEnd ? norm(task.endDate) : null;
+    const start = norm(task.startDate);
+    const hasEnd = !!task.endDate;
+    const endLimit = hasEnd ? norm(task.endDate) : null;
 
-  // If no endDate, seed a single occurrence at start and return
-  if (!hasEnd) {
-    await TaskRun.updateOne(
-      { taskId: task._id, dueOn: start },
-      {
-        $setOnInsert: {
-          taskId: task._id,
-          scheduleId: task.scheduleId,
-          categoryId: task.category ,
-          dueOn: start,
-          cost: 0
-        },
-      },
-      { upsert: true }
-    );
-    return;
-  }
+    // If no endDate, seed a single occurrence at start and return
+    if (!hasEnd) {
+        await TaskRun.updateOne(
+            { taskId: task._id, dueOn: start },
+            {
+                $setOnInsert: {
+                    taskId: task._id,
+                    scheduleId: task.scheduleId,
+                    categoryId: task.category,
+                    dueOn: start,
+                    cost: 0,
+                },
+            },
+            { upsert: true },
+        );
+        return;
+    }
 
-  if (start > endLimit) return;
+    if (start > endLimit) return;
 
-  let due = new Date(start);
-  while (due <= endLimit) {
-    await TaskRun.updateOne(
-      { taskId: task._id, dueOn: due },
-      {
-        $setOnInsert: {
-          taskId: task._id,
-          scheduleId: task.scheduleId,
-          categoryId: task.category || task.categoryId,
-          dueOn: due,
-          cost: 0, 
-        },
-      },
-      { upsert: true }
-    );
-    due = addByUnit(due, task.unit, task.every || 1);
-  }
+    let due = new Date(start);
+    while (due <= endLimit) {
+        await TaskRun.updateOne(
+            { taskId: task._id, dueOn: due },
+            {
+                $setOnInsert: {
+                    taskId: task._id,
+                    scheduleId: task.scheduleId,
+                    categoryId: task.category || task.categoryId,
+                    dueOn: due,
+                    cost: 0,
+                },
+            },
+            { upsert: true },
+        );
+        due = addByUnit(due, task.unit, task.every || 1);
+    }
 }
 
 async function addTask(req, res) {
@@ -801,7 +806,6 @@ async function addTask(req, res) {
             assignedToCarer: null,
         });
 
-
         // 4) Attach to schedule.tasks
         await Schedule.updateOne(
             { _id: scheduleId },
@@ -815,7 +819,7 @@ async function addTask(req, res) {
                 { $addToSet: { tasks: newTask._id } },
             );
         }
-        await seedRuns(newTask)
+        await seedRuns(newTask);
 
         return res.status(201).json(newTask);
     } catch (e) {
@@ -823,44 +827,43 @@ async function addTask(req, res) {
     }
 }
 
-
 function startOfToday() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
 }
 
 async function listUpcomingRuns(req, res) {
-  try {
-    const { schedId } = req.params;
-    const { limit = 20, from, to } = req.query;
+    try {
+        const { schedId } = req.params;
+        const { limit = 20, from, to } = req.query;
 
-    const start = from ? new Date(from) : startOfToday();
-    const filter = {
-      scheduleId: schedId,
-      done: false,
-      dueOn: { $gte: start },
-    };
-    if (to) filter.dueOn.$lte = new Date(to);
+        const start = from ? new Date(from) : startOfToday();
+        const filter = {
+            scheduleId: schedId,
+            done: false,
+            dueOn: { $gte: start },
+        };
+        if (to) filter.dueOn.$lte = new Date(to);
 
-    const runs = await TaskRun.find(filter)
-      .sort({ dueOn: 1 })
-      .limit(Number(limit))
-      .populate({
-        path: "taskId",
-        select: "name",
-      })
-      .populate({
-        path: "categoryId",
-        select: "name",
-      })
-      .lean();
+        const runs = await TaskRun.find(filter)
+            .sort({ dueOn: 1 })
+            .limit(Number(limit))
+            .populate({
+                path: "taskId",
+                select: "name",
+            })
+            .populate({
+                path: "categoryId",
+                select: "name",
+            })
+            .lean();
 
-    return res.json(runs);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: err.message });
-  }
+        return res.json(runs);
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: err.message });
+    }
 }
 async function listRuns(req, res) {
     try {
@@ -871,7 +874,7 @@ async function listRuns(req, res) {
             : addByUnit(new Date(), "month", 30);
 
         const runs = await TaskRun.find({
-            scheduleId : schedId,
+            scheduleId: schedId,
             dueOn: { $gte: from, $lte: to },
         })
             .populate("taskId", "name")
@@ -903,5 +906,5 @@ module.exports = {
     deleteTask,
     editTask,
     listUpcomingRuns,
-    listRuns
+    listRuns,
 };
