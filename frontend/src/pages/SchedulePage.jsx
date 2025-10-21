@@ -1,13 +1,41 @@
-import './css/schedule.css';
-import React, { useState, useMemo, useEffect } from "react"
-import { Layout, Popover, Typography, Calendar, Table, Tag, Button, Modal, Form, Input, DatePicker, Select, Tooltip, Upload, InputNumber } from 'antd';
-import { CheckCircleTwoTone, ClockCircleTwoTone, ExclamationCircleTwoTone, InboxOutlined, LeftOutlined, RightOutlined, QuestionOutlined } from "@ant-design/icons";
-import dayjs from 'dayjs';
+import "./css/schedule.css";
+import React, { useState, useMemo, useEffect, useContext } from "react";
+import {
+    Layout,
+    Popover,
+    Typography,
+    Calendar,
+    Table,
+    Tag,
+    Button,
+    Modal,
+    Form,
+    Input,
+    DatePicker,
+    Select,
+    Tooltip,
+    Upload,
+    InputNumber,
+} from "antd";
+import {
+    CheckCircleTwoTone,
+    ClockCircleTwoTone,
+    ExclamationCircleTwoTone,
+    InboxOutlined,
+    LeftOutlined,
+    RightOutlined,
+    QuestionOutlined,
+} from "@ant-design/icons";
+import dayjs from "dayjs";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
-const DATE_OPTIONS = { day: "numeric",  month: "long", year: "numeric" };
+const DATE_OPTIONS = { day: "numeric", month: "long", year: "numeric" };
 const TODAY = () => new Date();
+import axios from "axios";
+import { ScheduleContext } from "../context/ScheduleContext";
+import { getAccessToken } from "../utils/tokenUtils";
+import { jwtDecode } from "jwt-decode";
 
 function isISO(s) {
     return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -20,34 +48,32 @@ function toLocalDate(iso) {
 }
 
 function deriveStatus(entry) {
-    if (entry.status === "completed") return "completed";
-    const due = toLocalDate(entry.dueDate);
-    if (!due) return "upcoming";
-    const now = TODAY();
-    due.setHours(0,0,0,0);
-    now.setHours(0,0,0,0);
-    return due < now ? "overdue" : "upcoming";
+    const done = Boolean(entry.done) || entry.status === "completed";
+    if (done) return "completed";
+    const due = dayjs(entry.dueOn || entry.dueDate);
+    if (!due.isValid()) return "upcoming";
+    return due.isBefore(dayjs(), "day") ? "overdue" : "upcoming";
 }
 
 function statusTagProps(status) {
     switch (status) {
-        case "completed": 
-            return { 
+        case "completed":
+            return {
                 color: "success",
                 label: "Completed",
-                icon: <CheckCircleTwoTone twoToneColor="#52c41a" />
+                icon: <CheckCircleTwoTone twoToneColor="#52c41a" />,
             };
-        case "overdue": 
-            return { 
-                color: "error", 
+        case "overdue":
+            return {
+                color: "error",
                 label: "Overdue",
-                icon: <ExclamationCircleTwoTone twoToneColor="#ff4d4f" />
+                icon: <ExclamationCircleTwoTone twoToneColor="#ff4d4f" />,
             };
-        default: 
-            return { 
-                color: "processing", 
+        default:
+            return {
+                color: "processing",
                 label: "Upcoming",
-                icon: <ClockCircleTwoTone twoToneColor="#1677ff" />
+                icon: <ClockCircleTwoTone twoToneColor="#1677ff" />,
             };
     }
 }
@@ -63,91 +89,197 @@ const MOCK_ITEMS = [
         id: "aaa",
         name: "AAA",
         schedules: [
-            { year: 2025, month: 0, status: "completed", completionDate: "2025-01-18", dueDate: "2025-01-20", comments: ""},
-            { year: 2025, month: 8, status: "pending", dueDate: "2025-09-10", comments: "" },
-        ]
+            {
+                year: 2025,
+                month: 0,
+                status: "completed",
+                completionDate: "2025-01-18",
+                dueDate: "2025-01-20",
+                comments: "",
+            },
+            {
+                year: 2025,
+                month: 8,
+                status: "pending",
+                dueDate: "2025-09-10",
+                comments: "",
+            },
+        ],
     },
     {
         id: "bbb",
         name: "BBB",
         schedules: [
-            { year: 2025, month: 1, status: "pending", dueDate: "2025-02-15", comments: "" },
-            { year: 2025, month: 5, status: "pending", dueDate: "2025-06-12", comments: "" },
-        ]
+            {
+                year: 2025,
+                month: 1,
+                status: "pending",
+                dueDate: "2025-02-15",
+                comments: "",
+            },
+            {
+                year: 2025,
+                month: 5,
+                status: "pending",
+                dueDate: "2025-06-12",
+                comments: "",
+            },
+        ],
     },
     {
         id: "ccc",
         name: "CCC",
         schedules: [
-            { year: 2025, month: 8, status: "completed", completionDate: "2025-09-05", dueDate: "2025-09-01", comments: "" },
-            { year: 2025, month: 9, status: "pending", dueDate: "2025-10-20", comments: "" },
-            { year: 2026, month: 1, status: "pending", dueDate: "2026-02-03", comments: "" },
-        ]
-    }
+            {
+                year: 2025,
+                month: 8,
+                status: "completed",
+                completionDate: "2025-09-05",
+                dueDate: "2025-09-01",
+                comments: "",
+            },
+            {
+                year: 2025,
+                month: 9,
+                status: "pending",
+                dueDate: "2025-10-20",
+                comments: "",
+            },
+            {
+                year: 2026,
+                month: 1,
+                status: "pending",
+                dueDate: "2026-02-03",
+                comments: "",
+            },
+        ],
+    },
 ];
 
 const CARERS = [
-    { id: "c1", name: "Alice"},
-    { id: "c2", name: "Ben"},
-    { id: "c3", name: "Chloe"},
+    { id: "c1", name: "Alice" },
+    { id: "c2", name: "Ben" },
+    { id: "c3", name: "Chloe" },
 ];
 
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const DAYS = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+];
 const DAY_OPTIONS = DAYS.map((d, i) => ({ value: i, label: d }));
 
 const SHIFT_OPTIONS = [
     { value: "morning", label: "Morning" },
     { value: "afternoon", label: "Afternoon" },
     { value: "evening", label: "Evening" },
-]
+];
 
 function shiftTag(shift) {
-    if (!shift) return <span style={{opacity:.5}}></span>
+    if (!shift) return <span style={{ opacity: 0.5 }}></span>;
     const map = {
         morning: { color: "gold", text: "Morning" },
         afternoon: { color: "blue", text: "Afternoon" },
         evening: { color: "purple", text: "Evening" },
-    }
+    };
     const m = map[shift];
-    return <Tag color={m.color}>{m.text}</Tag>
+    return <Tag color={m.color}>{m.text}</Tag>;
 }
 
 function formatISO(iso) {
     if (!iso) return "-";
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-    if (!m) return "-";
-    const dt = new Date(+m[1], +m[2] - 1, +m[3]);
-    return dt.toLocaleDateString(undefined, DATE_OPTIONS);
-};
+    const d = dayjs(iso);
+    //const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+    if (!d) return "-";
+    //const dt = new Date(+m[1], +m[2] - 1, +m[3]);
+    //return dt.toLocaleDateString(undefined, DATE_OPTIONS);
+    return d.toDate().toLocaleDateString(undefined, DATE_OPTIONS);
+}
 
+// items: backend task-run array ({ _id, taskId:{_id,name}, dueOn, done, cost, files, updatedAt, ... })
+// year: full year (e.g., 2025)
+// month: 0-based month (0=Jan ... 11=Dec)
 function getMonthlyTasks(items, year, month) {
-    return items.flatMap(it => {
-        const s = it.schedules.find(x => x.year === year && x.month === month);
-        return s ? [{
-            key: `${it.id}-${year}-${month}`,
-            id: it.id,
-            name: it.name,
-            status: s.status,
-            completionDate: s.completionDate,
-            dueDate: s.dueDate,
-            comments: s.comments,
-            amountSpent: s.amountSpent,
-            documents: s.documents,
-            _scheduleRef: s,
-        }] : [];
+    return items.flatMap((item) => {
+        const due = dayjs(item.dueOn);
+        if (!due.isValid()) return [];
+        if (due.year() !== year || due.month() !== month) return [];
+
+        const today = dayjs();
+        const status = item.done
+            ? "completed"
+            : due.isBefore(today, "day")
+              ? "overdue"
+              : "pending";
+
+        return [
+            {
+                key: `${item._id}-${year}-${month}`,
+                id: item._id,
+                name: item.taskId?.name ?? "Untitled",
+                status,
+                completionDate:
+                    item.done && item.updatedAt
+                        ? dayjs(item.updatedAt).format("YYYY-MM-DD")
+                        : undefined,
+                dueDate: due.format("YYYY-MM-DD"),
+                comments: "", // no comments field in backend sample
+                amountSpent: item.cost ?? 0,
+                documents: item.files ?? [],
+                _scheduleRef: item, // keep original record reference
+            },
+        ];
     });
-};
+}
 
 export default function SchedulePage() {
+    const currentDate = dayjs().startOf("day");
+    const endDate = currentDate.add(60, "day");
+
     const today = dayjs();
     const [selectedYear, setSelectedYear] = useState(today.year());
     const [selectedMonth, setSelectedMonth] = useState(today.month());
-    const [items, setItems] = useState(MOCK_ITEMS);
+    const [items, setItems] = useState([]);
     const monthData = useMemo(
         () => getMonthlyTasks(items, selectedYear, selectedMonth),
-        [items, selectedYear, selectedMonth]
+        [items, selectedYear, selectedMonth],
     );
+    const upcomingTasks = items
+        .map((item) => {
+            const due = dayjs(item.dueOn); // e.g., "2025-10-03T14:00:00.000Z"
+            const today = dayjs();
 
+            const dStatus = item.done
+                ? "completed"
+                : due.isValid() && due.isBefore(today, "day")
+                  ? "overdue"
+                  : "pending";
+
+            return {
+                id: item._id,
+                taskId: item.taskId?._id,
+                name: item.taskId?.name ?? "Untitled",
+                dueDate: due.isValid() ? due : null, // keep as dayjs for comparisons
+                dStatus,
+                scheduleId: item.scheduleId,
+                cost: item.cost ?? 0,
+                files: item.files ?? [],
+            };
+        })
+        // exclude completed and invalid dates
+        .filter((t) => t.dStatus !== "completed" && t.dueDate)
+        // within window OR overdue
+        .filter(
+            (t) =>
+                t.dueDate.isBetween(currentDate, endDate, "day", "[]") ||
+                t.dStatus === "overdue",
+        )
+        // sort by due date ascending
+        .sort((a, b) => a.dueDate.valueOf() - b.dueDate.valueOf());
     const [selectedDayIdx, setSelectedDayIdx] = useState(0);
 
     const [roster, setRoster] = useState({
@@ -165,9 +297,9 @@ export default function SchedulePage() {
     }
 
     function setShift(carerID, dayIdx, shift) {
-        setRoster(prev => ({
+        setRoster((prev) => ({
             ...prev,
-            [carerID]: { ...(prev[carerID] || {}), [dayIdx]: shift }
+            [carerID]: { ...(prev[carerID] || {}), [dayIdx]: shift },
         }));
     }
 
@@ -200,7 +332,7 @@ export default function SchedulePage() {
                 <Button type="link" onClick={() => onOpenModal(record)}>
                     {text}
                 </Button>
-            )
+            ),
         },
         {
             title: "Status",
@@ -209,19 +341,21 @@ export default function SchedulePage() {
             render: (_, record) => {
                 const st = deriveStatus(record);
                 const { color, label, icon } = statusTagProps(st);
-                return <Tag 
+                return (
+                    <Tag
                         color={color}
                         icon={icon}
                         style={{ display: "inline-flex", alignItems: "center" }}
                     >
                         {label}
-                    </Tag>;
-            }
+                    </Tag>
+                );
+            },
         },
         {
             title: "Due Date",
             key: "dueDate",
-            width: 260, 
+            width: 260,
             render: (_, r) => formatISO(r.dueDate),
         },
         {
@@ -253,58 +387,115 @@ export default function SchedulePage() {
             key: "comments",
             ellipsis: true,
             render: (val) =>
-                val ? <Tooltip title={val}>{val}</Tooltip> : <span style={{ opacity: 0.6 }}></span>
-        }
+                val ? (
+                    <Tooltip title={val}>{val}</Tooltip>
+                ) : (
+                    <span style={{ opacity: 0.6 }}></span>
+                ),
+        },
     ];
 
     const [openModal, setOpenModal] = useState(false);
     const [activeRow, setActiveRow] = useState(null);
     const [form] = Form.useForm();
+    const { selectedSchedule } = useContext(ScheduleContext);
 
+    useEffect(() => {
+        try {
+            axios
+                .get(
+                    `http://localhost:3000/schedule/${selectedSchedule}/upcoming-runs?&from=2025-10-01&to=2027-12-31`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${getAccessToken()}`,
+                        },
+                    },
+                )
+                .then((res) => {
+                    console.log(res.data);
+                    setItems(res.data);
+                });
+        } catch (err) {
+            console.log(err);
+        }
+    }, []);
     function onOpenModal(record) {
         setActiveRow(record);
         form.setFieldsValue({
             status: record.status || "upcoming",
-            completionDate: record.completionDate ? dayjs(record.completionDate, "YYYY-MM-DD") : null,
+            completionDate: record.completionDate
+                ? dayjs(record.completionDate, "YYYY-MM-DD")
+                : null,
             amountSpent: record.amountSpent ?? null,
-            documents: (record.documents || []).map((name, i) => ({
-                uid: `${record.key}-doc${i}`,
-                name,
-                status: "done"
-            })),
+            documents: (record.documents || []).map((file, i) => {
+                const displayName =
+                    typeof file === "string"
+                        ? file
+                        : file.name || `file-${i + 1}`;
+                return {
+                    uid: `${record.key}-doc${i}`,
+                    name: displayName,
+                    status: "done",
+                };
+            }),
             comments: record.comments || "",
         });
 
         setOpenModal(true);
     }
+    const token = getAccessToken();
+    let roles = [];
+    if (token) {
+        const decoded = jwtDecode(token);
+        roles = decoded.role || [];
+    }
 
-    function handleSave(values) {
-        setItems(prev =>
-            prev.map(it => {
-                if (it.id !== activeRow.id) return it;
-                
-                const nextSchedules = it.schedules.map(sched => {
-                    if (sched !== activeRow._scheduleRef) return sched;
+    async function handleSave(values) {
+        console.log(values);
+        const done = values.status === "completed";
 
-                    const next = { ...sched, status: values.status };
-                    
-                    if (values.status === "completed" && values.completionDate) {
-                        next.completionDate = values.completionDate.format("YYYY-MM-DD");
-                    }
+        try {
+            if (done) {
+                const payload = {
+                    actualCost: Number(values.amountSpent),
+                };
+                const { data } = await axios.post(
+                    `http://localhost:3000/schedule/${selectedSchedule}/runs/${activeRow.id}/finish-task`,
+                    payload,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${getAccessToken()}`,
+                        },
+                    },
+                );
+                console.log(data);
+            }
+        } catch (err) {
+            console.log(err);
+        }
 
-                    else {
-                        next.completionDate = undefined;
-                    }
+        setItems((prev) =>
+            prev.map((it) => {
+                const itId = it._id || it.id;
+                if (itId !== activeRow.id) return it;
 
-                    next.amountSpent = values.amountSpent ?? undefined;
-                    next.documents = (values.documents || []).map(f => f.name);
-                    next.comments = values.comments || "";
-                    return next;
-                });
-
-                return { ...it, schedules: nextSchedules };
-            })
+                return {
+                    ...it,
+                    done,
+                    updatedAt:
+                        done && values.completionDate
+                            ? values.completionDate.toISOString()
+                            : it.updatedAt,
+                    cost: values.amountSpent,
+                    // Store simple file names locally if you want; adjust to your API shape if it returns files
+                    files: (values.documents || []).map((f) => ({
+                        name: f.name,
+                    })),
+                    comments: values.comments || it.comments || "",
+                };
+            }),
         );
+
         setOpenModal(false);
         form.resetFields();
     }
@@ -315,14 +506,14 @@ export default function SchedulePage() {
         const y = current.year();
         const m = current.month();
         const tasks = getMonthlyTasks(items, y, m);
-        
+
         const dots = tasks.map((t) => statusColor(deriveStatus(t)));
         const MAX_DOTS = 8;
         const shown = dots.slice(0, MAX_DOTS);
         const extra = dots.length - shown.length;
 
         return (
-            <div style={{ textAlign: "center", padding: "6px 0"}}>
+            <div style={{ textAlign: "center", padding: "6px 0" }}>
                 <div
                     style={{
                         display: "flex",
@@ -340,7 +531,7 @@ export default function SchedulePage() {
                                 borderRadius: "50%",
                                 background: "#fff",
                                 border: "none",
-                                display: "inline-block"
+                                display: "inline-block",
                             }}
                         />
                     ) : (
@@ -349,16 +540,18 @@ export default function SchedulePage() {
                                 <span
                                     key={i}
                                     style={{
-                                        width: 8, 
+                                        width: 8,
                                         height: 8,
                                         borderRadius: "50%",
                                         background: c,
-                                        display: "inline-block"
+                                        display: "inline-block",
                                     }}
                                 />
                             ))}
                             {extra > 0 && (
-                                <span style={{ fontSize: 12, opacity: 0.7 }}>+{extra}</span>
+                                <span style={{ fontSize: 12, opacity: 0.7 }}>
+                                    +{extra}
+                                </span>
                             )}
                         </>
                     )}
@@ -370,7 +563,10 @@ export default function SchedulePage() {
     function calendarHeaderRender({ value, onChange }) {
         const currentYear = value.year();
 
-        const years = Array.from({ length: 21 }, (_, i) => currentYear - 10 + i).map((y) => ({
+        const years = Array.from(
+            { length: 21 },
+            (_, i) => currentYear - 10 + i,
+        ).map((y) => ({
             value: y,
             label: y.toString(),
         }));
@@ -379,17 +575,21 @@ export default function SchedulePage() {
         const go = (delta) => onChange(value.clone().year(currentYear + delta));
 
         return (
-            <div 
-                style={{ 
+            <div
+                style={{
                     position: "relative",
-                    display: "flex", 
-                    gap: 8, 
-                    alignItems: "center", 
-                    justifyContent: "flex-start", 
-                    padding: 8 
+                    display: "flex",
+                    gap: 8,
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                    padding: 8,
                 }}
             >
-                <Button size="small" icon={<LeftOutlined />} onClick={() => go(-1)} />
+                <Button
+                    size="small"
+                    icon={<LeftOutlined />}
+                    onClick={() => go(-1)}
+                />
 
                 <Select
                     size="small"
@@ -399,42 +599,69 @@ export default function SchedulePage() {
                     style={{ width: 100, textAlign: "center" }}
                     popupMatchSelectWidth={false}
                 />
-                
-                <Button size="small" icon={<RightOutlined />} onClick={() => go(1)}/>
-                
+
+                <Button
+                    size="small"
+                    icon={<RightOutlined />}
+                    onClick={() => go(1)}
+                />
+
                 <Popover content={instructions[0]} title="Schedule Calendar">
-                        <Button size="small"  shape=  "circle" icon={<QuestionOutlined />} />
+                    <Button
+                        size="small"
+                        shape="circle"
+                        icon={<QuestionOutlined />}
+                    />
                 </Popover>
-
             </div>
-        )
-
+        );
     }
-    const instructions = [(
-    <div>
-        <p>This calendar displays all the scheduled items in each month.</p>
-        <p>The coloured dots tell you the status of each item: Red for overdue,</p>
-           <p>orange for upcoming and green for completed.</p>
-              <p>Click on a month to view all the items for that month in the list below.</p>
-         <p>To the left of this help icon you can click on the year or the arrows to </p>
-          <p>view all the scheduled tasks for a different year. </p>
-    </div>
-    ),(
-    <div>
-        <p>This list displays all the items scheduled in the current month</p>
-         <p>you have selected. Click on a item name (in the item column) to </p>
-          <p>update the status, add comments and upload evidence for that item.</p>
-    </div>
-    )
-    ,(
-    <div>
-        <p>Complete or refund items by changing their status accordingly (status button).</p>
-        <p>Mark the date that you completed this item (completion date button).</p>
-        <p>Upload or Select evidence proving your completion of the task.</p>
-        <p>Type in any context or comments related to the item.</p>
-        
-    </div>
-    )]
+    const instructions = [
+        <div>
+            <p>This calendar displays all the scheduled items in each month.</p>
+            <p>
+                The coloured dots tell you the status of each item: Red for
+                overdue,
+            </p>
+            <p>orange for upcoming and green for completed.</p>
+            <p>
+                Click on a month to view all the items for that month in the
+                list below.
+            </p>
+            <p>
+                To the left of this help icon you can click on the year or the
+                arrows to{" "}
+            </p>
+            <p>view all the scheduled tasks for a different year. </p>
+        </div>,
+        <div>
+            <p>
+                This list displays all the items scheduled in the current month
+            </p>
+            <p>
+                you have selected. Click on a item name (in the item column)
+                to{" "}
+            </p>
+            <p>
+                update the status, add comments and upload evidence for that
+                item.
+            </p>
+        </div>,
+        <div>
+            <p>
+                Complete or refund items by changing their status accordingly
+                (status button).
+            </p>
+            <p>
+                Mark the date that you completed this item (completion date
+                button).
+            </p>
+            <p>
+                Upload or Select evidence proving your completion of the task.
+            </p>
+            <p>Type in any context or comments related to the item.</p>
+        </div>,
+    ];
 
     return (
         <Layout style={{ minHeight: "100vh" }}>
@@ -447,8 +674,10 @@ export default function SchedulePage() {
                         borderRadius: 20,
                     }}
                 >
-                    <Title level={4} style={ {marginTop: 0 }}>Schedule</Title>
-                
+                    <Title level={4} style={{ marginTop: 0 }}>
+                        Schedule
+                    </Title>
+
                     <div className="schedule-two-col">
                         <div className="schedule-left-stack">
                             {/* Calendar component (top left) */}
@@ -458,13 +687,18 @@ export default function SchedulePage() {
                                     fullscreen={false}
                                     mode="year"
                                     headerRender={calendarHeaderRender}
-                                    value={dayjs().year(selectedYear).month(selectedMonth).date(1)}
+                                    value={dayjs()
+                                        .year(selectedYear)
+                                        .month(selectedMonth)
+                                        .date(1)}
                                     cellRender={cellRender}
                                     onSelect={(d) => {
                                         setSelectedYear(d.year());
                                         setSelectedMonth(d.month());
                                     }}
-                                    onPanelChange={(d) => setSelectedYear(d.year())}
+                                    onPanelChange={(d) =>
+                                        setSelectedYear(d.year())
+                                    }
                                     style={{
                                         border: "none",
                                         background: "transparent",
@@ -476,11 +710,18 @@ export default function SchedulePage() {
                             <div className="card card-scroll">
                                 <div style={{ marginBottom: 8 }}>
                                     <Text strong>
-                                        {dayjs().month(selectedMonth).format("MMMM")} {selectedYear}
+                                        {dayjs()
+                                            .month(selectedMonth)
+                                            .format("MMMM")}{" "}
+                                        {selectedYear}
                                     </Text>
-                                    
-                                    <Text type="secondary" style={{ marginLeft: 8}}>
-                                        • {monthData.length} task{monthData.length !== 1 ? "s" : ""}
+
+                                    <Text
+                                        type="secondary"
+                                        style={{ marginLeft: 8 }}
+                                    >
+                                        • {monthData.length} task
+                                        {monthData.length !== 1 ? "s" : ""}
                                     </Text>
                                 </div>
 
@@ -501,7 +742,7 @@ export default function SchedulePage() {
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "space-between",
-                                    marginBottom: 8
+                                    marginBottom: 8,
                                 }}
                             >
                                 <Text strong>Roster</Text>
@@ -509,10 +750,13 @@ export default function SchedulePage() {
                                 <div
                                     style={{
                                         display: "flex",
-                                        gap: 8
+                                        gap: 8,
                                     }}
                                 >
-                                    <Button onClick={openAddShift} type="primary">
+                                    <Button
+                                        onClick={openAddShift}
+                                        type="primary"
+                                    >
                                         Add Shift
                                     </Button>
 
@@ -527,25 +771,37 @@ export default function SchedulePage() {
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "space-between",
-                                    marginBottom: 8
+                                    marginBottom: 8,
                                 }}
                             >
-                                <Button 
-                                    icon={<LeftOutlined/>} 
-                                    onClick={ () => setSelectedDayIdx((i) => (i + 6) % 7)}
+                                <Button
+                                    icon={<LeftOutlined />}
+                                    onClick={() =>
+                                        setSelectedDayIdx((i) => (i + 6) % 7)
+                                    }
                                 />
-                                
+
                                 <Text type="primary">
                                     {DAYS[selectedDayIdx]}
                                 </Text>
-                                
-                                <Button 
-                                    icon={<RightOutlined/>} 
-                                    onClick={ () => setSelectedDayIdx((i) => (i + 1) % 7)}
+
+                                <Button
+                                    icon={<RightOutlined />}
+                                    onClick={() =>
+                                        setSelectedDayIdx((i) => (i + 1) % 7)
+                                    }
                                 />
 
-                                <Popover content={instructions[1]} title="Scheduled Sub Elements">
-                                     <Button  size="small" style={{marginLeft: 10}} shape=  "circle" icon={<QuestionOutlined />} />
+                                <Popover
+                                    content={instructions[1]}
+                                    title="Scheduled Sub Elements"
+                                >
+                                    <Button
+                                        size="small"
+                                        style={{ marginLeft: 10 }}
+                                        shape="circle"
+                                        icon={<QuestionOutlined />}
+                                    />
                                 </Popover>
                             </div>
 
@@ -553,17 +809,25 @@ export default function SchedulePage() {
                                 size="small"
                                 pagination={false}
                                 rowKey="id"
-                                dataSource={CARERS.map(c => ({
+                                dataSource={CARERS.map((c) => ({
                                     id: c.id,
                                     name: c.name,
-                                    shift: getShift(c.id, selectedDayIdx),    
+                                    shift: getShift(c.id, selectedDayIdx),
                                 }))}
                                 columns={[
-                                    { title: "Carer", dataIndex: "name", width: 140 },
-                                    { title: "Shift", dataIndex: "shift", render: (val) => shiftTag(val) },
+                                    {
+                                        title: "Carer",
+                                        dataIndex: "name",
+                                        width: 140,
+                                    },
+                                    {
+                                        title: "Shift",
+                                        dataIndex: "shift",
+                                        render: (val) => shiftTag(val),
+                                    },
                                 ]}
                                 style={{
-                                    flex: 1
+                                    flex: 1,
                                 }}
                             />
                         </div>
@@ -573,26 +837,46 @@ export default function SchedulePage() {
 
             {/* modal form for task updates */}
             <Modal
-                title={<div>
-                    <span>{activeRow ? `Update: ${activeRow.name}` : "Update" }</span>
-                <Popover content={instructions[2]} title="Update Item">
-                     <Button  size="small" style={{marginLeft: 10}} shape=  "circle" icon={<QuestionOutlined />} />
-                </Popover>
-                </div>} 
-
+                title={
+                    <div>
+                        <span>
+                            {activeRow ? `Update: ${activeRow.name}` : "Update"}
+                        </span>
+                        <Popover content={instructions[2]} title="Update Item">
+                            <Button
+                                size="small"
+                                style={{ marginLeft: 10 }}
+                                shape="circle"
+                                icon={<QuestionOutlined />}
+                            />
+                        </Popover>
+                    </div>
+                }
                 open={openModal}
-                onCancel={() => { form.resetFields(); setOpenModal(false); }}
+                onCancel={() => {
+                    form.resetFields();
+                    setOpenModal(false);
+                }}
                 okText="Save"
                 onOk={() => form.submit()}
                 destroyOnHidden
             >
-                <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ status: "upcoming" }}>
+                <Form
+                    form={form}
+                    layout="vertical"
+                    onFinish={handleSave}
+                    initialValues={{ status: "upcoming" }}
+                >
                     {/* item status */}
-                    <Form.Item name="status" label="Status" rules={[{ required: true }]}>
+                    <Form.Item
+                        name="status"
+                        label="Status"
+                        rules={[{ required: true }]}
+                    >
                         <Select
                             options={[
                                 { value: "pending", label: "Upcoming" },
-                                { value: "completed", label: "Completed"},
+                                { value: "completed", label: "Completed" },
                             ]}
                         />
                     </Form.Item>
@@ -605,21 +889,29 @@ export default function SchedulePage() {
                         rules={[
                             ({ getFieldValue }) => ({
                                 validator(_, value) {
-                                    if (getFieldValue("status") !== "completed") return Promise.resolve();
+                                    if (getFieldValue("status") !== "completed")
+                                        return Promise.resolve();
                                     if (value) return Promise.resolve();
-                                    return Promise.reject(new Error("Please pick a completion date"));
+                                    return Promise.reject(
+                                        new Error(
+                                            "Please pick a completion date",
+                                        ),
+                                    );
                                 },
                             }),
                         ]}
                     >
-                        <DatePicker style={{ width: "100%" }}/>
+                        <DatePicker style={{ width: "100%" }} />
                     </Form.Item>
 
                     <Form.Item
                         name="amountSpent"
                         label="Amount Spent"
                         rules={[
-                            { required: true, message: "Please enter amount spent" },
+                            {
+                                required: true,
+                                message: "Please enter amount spent",
+                            },
                             { type: "number", min: 0 },
                         ]}
                     >
@@ -628,8 +920,11 @@ export default function SchedulePage() {
                             min={0}
                             step={0.01}
                             precision={2}
-                            formatter={(value) => 
-                                `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                            formatter={(value) =>
+                                `$ ${value}`.replace(
+                                    /\B(?=(\d{3})+(?!\d))/g,
+                                    ",",
+                                )
                             }
                             parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
                         />
@@ -640,7 +935,9 @@ export default function SchedulePage() {
                         name="documents"
                         label="Upload receipt/invoice/proof of purchase"
                         valuePropName="fileList"
-                        getValueFromEvent={(e) => (Array.isArray(e) ? e : e?.fileList)}
+                        getValueFromEvent={(e) =>
+                            Array.isArray(e) ? e : e?.fileList
+                        }
                     >
                         <Upload.Dragger
                             beforeUpload={() => false}
@@ -663,7 +960,10 @@ export default function SchedulePage() {
 
                     {/* comments */}
                     <Form.Item name="comments" label="Comments">
-                        <Input.TextArea rows={3} placeholder="Optional Comments"/>
+                        <Input.TextArea
+                            rows={3}
+                            placeholder="Optional Comments"
+                        />
                     </Form.Item>
                 </Form>
             </Modal>
@@ -672,45 +972,51 @@ export default function SchedulePage() {
             <Modal
                 title="Add Shift"
                 open={addOpen}
-                onCancel={() => { 
-                    addForm.resetFields(); 
-                    setAddOpen(false); 
+                onCancel={() => {
+                    addForm.resetFields();
+                    setAddOpen(false);
                 }}
                 okText="Add"
                 onOk={() => addForm.submit()}
                 destroyOnHidden
             >
-                <Form
-                    form={addForm}
-                    layout="vertical"
-                    onFinish={onAddShift}
-                >
+                <Form form={addForm} layout="vertical" onFinish={onAddShift}>
                     <Form.Item
                         name="carerID"
                         label="Carer"
-                        rules={[{ required: true, message:"Please select a carer" }]}
+                        rules={[
+                            {
+                                required: true,
+                                message: "Please select a carer",
+                            },
+                        ]}
                     >
-                        <Select options={CARERS.map(c => ({ value: c.id, label: c.name }))}/>
+                        <Select
+                            options={CARERS.map((c) => ({
+                                value: c.id,
+                                label: c.name,
+                            }))}
+                        />
                     </Form.Item>
 
                     <Form.Item
                         name="dayIdx"
                         label="Day"
-                        rules={[{ required: true, message: "Please select a day" }]}
+                        rules={[
+                            { required: true, message: "Please select a day" },
+                        ]}
                     >
-                        <Select
-                            options={DAY_OPTIONS}
-                        />
+                        <Select options={DAY_OPTIONS} />
                     </Form.Item>
-                    
+
                     <Form.Item
                         name="shift"
                         label="Shift"
-                        rules={[{ required: true, message: "Pick select a shift" }]}
+                        rules={[
+                            { required: true, message: "Pick select a shift" },
+                        ]}
                     >
-                        <Select
-                            options={SHIFT_OPTIONS}
-                        />
+                        <Select options={SHIFT_OPTIONS} />
                     </Form.Item>
                 </Form>
             </Modal>
@@ -719,7 +1025,7 @@ export default function SchedulePage() {
             <Modal
                 title="Full Week Roster"
                 open={fullOpen}
-                onCancel={() => setFullOpen (false)}
+                onCancel={() => setFullOpen(false)}
                 footer={null}
                 width={800}
                 destroyOnHidden
@@ -728,19 +1034,24 @@ export default function SchedulePage() {
                     size="small"
                     pagination={false}
                     rowKey="id"
-                    dataSource={CARERS.map(c => ({ id: c.id, name: c.name }))}
+                    dataSource={CARERS.map((c) => ({ id: c.id, name: c.name }))}
                     columns={[
-                        { title: "Carer", dataIndex: "name", fixed: "left", width: 140 },
+                        {
+                            title: "Carer",
+                            dataIndex: "name",
+                            fixed: "left",
+                            width: 140,
+                        },
                         ...DAYS.map((d, i) => ({
                             title: d,
                             dataIndex: `d${i}`,
                             align: "center",
-                            render: (_,r) => shiftTag(getShift(r.id, i)),
-                        }))
+                            render: (_, r) => shiftTag(getShift(r.id, i)),
+                        })),
                     ]}
                     scroll={{ x: true }}
                 />
             </Modal>
         </Layout>
-    )
+    );
 }

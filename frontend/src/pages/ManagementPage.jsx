@@ -24,7 +24,11 @@ import {
 } from "antd";
 
 import React, { useState, useRef, useMemo, useContext, useEffect } from "react";
-import { CloseOutlined, QuestionOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+    CloseOutlined,
+    QuestionOutlined,
+    PlusOutlined,
+} from "@ant-design/icons";
 import { Pie } from "@ant-design/plots";
 import dayjs from "dayjs";
 import axios from "axios";
@@ -41,42 +45,93 @@ const { Content } = Layout;
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
 
-
-   const instructions = [(
+const instructions = [
     <div>
-        <p>This is where if you can add individuals to view the schedule. If you are the owner of the schedule</p>
-        <p>this is also where you handover control to an organisation. To add a new individual or organisation to the</p>
-        <p>schedule enter their email address at the top, select what type of user they are and click add user.</p>
-        <p>Depending on the user type you select the new individual or organisation will be granted different controls.</p>
-           <p>If you want to remove anyone from being able to view or control the schedule click the big X next to their name.</p>
-    </div>
-    ),(
+        <p>
+            This is where if you can add individuals to view the schedule. If
+            you are the owner of the schedule
+        </p>
+        <p>
+            this is also where you handover control to an organisation. To add a
+            new individual or organisation to the
+        </p>
+        <p>
+            schedule enter their email address at the top, select what type of
+            user they are and click add user.
+        </p>
+        <p>
+            Depending on the user type you select the new individual or
+            organisation will be granted different controls.
+        </p>
+        <p>
+            If you want to remove anyone from being able to view or control the
+            schedule click the big X next to their name.
+        </p>
+    </div>,
     <div>
-          <p>This is where you control adding, removing and editting categories and sub elements. </p>
-          <p>To add a new category click on the add new category button below. </p>
-          <p>To cycle through categories and their sub elements click on the tabs belows the </p>
-          <p>add new category and edit category button. To delete a category click on the the x on the tab.</p>
-          <p>To edit a category name or budget click on the edit current category button.</p>
-          <p>To add a new sub element you must first have made a category.</p>
-        <p>Ensure you have selected the category tab that you wish to add the sub element to and click the</p>
-           <p>add sub element button. To edit or remove a sub element click on "edit sub element" or "delete sub element"</p>
-            <p>At the bottom of the list you may see a number like [1] [2] this indicates</p>
-         <p>additional pages. Click on the numbers to see additional sub elements.</p>
-          <p>The pie chart displays the current categories remaining finances and how much as been spent so far.</p>
-          
-    </div>
-    )
-    ,(
+        <p>
+            This is where you control adding, removing and editting categories
+            and sub elements.{" "}
+        </p>
+        <p>
+            To add a new category click on the add new category button
+            below.{" "}
+        </p>
+        <p>
+            To cycle through categories and their sub elements click on the tabs
+            belows the{" "}
+        </p>
+        <p>
+            add new category and edit category button. To delete a category
+            click on the the x on the tab.
+        </p>
+        <p>
+            To edit a category name or budget click on the edit current category
+            button.
+        </p>
+        <p>To add a new sub element you must first have made a category.</p>
+        <p>
+            Ensure you have selected the category tab that you wish to add the
+            sub element to and click the
+        </p>
+        <p>
+            add sub element button. To edit or remove a sub element click on
+            "edit sub element" or "delete sub element"
+        </p>
+        <p>
+            At the bottom of the list you may see a number like [1] [2] this
+            indicates
+        </p>
+        <p>
+            additional pages. Click on the numbers to see additional sub
+            elements.
+        </p>
+        <p>
+            The pie chart displays the current categories remaining finances and
+            how much as been spent so far.
+        </p>
+    </div>,
     <div>
-        <p>Enter a name for the sub element, a budget, a start and end date for the sub element, an interval </p>
-           <p>which determines how frequently the sub element needs to be completed. For example 30 means the sub element</p>
-                     <p>will schedule the sub element to be completed every 30 days. Finally, add some notes providing context for the task.</p>
-    </div>
-    ),(
+        <p>
+            Enter a name for the sub element, a budget, a start and end date for
+            the sub element, an interval{" "}
+        </p>
+        <p>
+            which determines how frequently the sub element needs to be
+            completed. For example 30 means the sub element
+        </p>
+        <p>
+            will schedule the sub element to be completed every 30 days.
+            Finally, add some notes providing context for the task.
+        </p>
+    </div>,
     <div>
-        <p>Enter a name a the budget for the category you would like to add or edit.</p>
-    </div>
-    )]
+        <p>
+            Enter a name a the budget for the category you would like to add or
+            edit.
+        </p>
+    </div>,
+];
 /*Elements of this code utilise basic boiler plate code from AntD.*/
 
 //This defines the budget pie configuration as well as determining if budget is exceeded
@@ -179,6 +234,7 @@ export default function ManagementPage() {
     const columns = [
         { title: "Task", dataIndex: "task", key: "task" },
         { title: "Task Budget $", dataIndex: "budget", key: "budget" },
+        { title: "Budget Used$", dataIndex: "used", key: "used" },
         {
             title: "Schedule Frequency",
             dataIndex: "frequency",
@@ -196,7 +252,9 @@ export default function ManagementPage() {
                         onConfirm={() => HandleTaskEdit(record)}
                     >
                         <Space>
-                            <a style={{color: "#224fa3ff" }}>Edit Sub Element</a>
+                            <a style={{ color: "#224fa3ff" }}>
+                                Edit Sub Element
+                            </a>
                         </Space>
                     </Popconfirm>
                     <Popconfirm
@@ -205,11 +263,12 @@ export default function ManagementPage() {
                         cancelText="Cancel"
                         onConfirm={() => HandleTaskDelete(record.key)}
                     >
-                        <Space >
-                            <a style={{ marginLeft: 20, color: "#ff0000ff" }}>Delete Sub Element</a>
+                        <Space>
+                            <a style={{ marginLeft: 20, color: "#ff0000ff" }}>
+                                Delete Sub Element
+                            </a>
                         </Space>
                     </Popconfirm>
-                    
                 </Space>
             ),
         },
@@ -350,35 +409,21 @@ export default function ManagementPage() {
         return () => socket.off("userRemoved");
     }, [selectedSchedule, socket]);
 
-    const HandleTaskEdit = (key) => {
+    const HandleTaskEdit = async (key) => {
         setEditingTaskKey(key.key);
-        taskForm.setFieldsValue({
-            task: key.task,
-            budget: key.budget,
-            frequency: key.frequency,
-            dateRange: key.dateRange,
-            description: key.description,
-        });
-        setTaskModalOpen(true);
-    };
-    const HandleTaskDelete = async (key) => {
         setTaskData((prev) => prev.filter((item) => item.key !== key));
-         try {
-            console.log ("sched: ", selectedSchedule, ", key: ",activeKey, "taskId: ",key)
-            let data = await axios.delete (`http://localhost:3000/schedule/${selectedSchedule}/${key}/${activeKey}/delete-task`)
-            console.log(data)
-        }
-        catch (err){console.log(err)}
-    };
+        console.log(
+            "sched: ",
+            selectedSchedule,
+            ", key: ",
+            activeKey,
+            "taskId: ",
+            key,
+        );
 
-    const ShowTaskModal = () => {
-        if (!activeKey) return;
-        setTaskModalOpen(true);
-    };
-
-    const HandleTaskOk = async (values) => {
         try {
-            const [start, end] = values.dateRange ?? [];
+            const values = await taskForm.validateFields();
+
             const payload = {
                 name: values.task.trim(),
                 description: values.description || "",
@@ -391,78 +436,154 @@ export default function ManagementPage() {
                 scheduleId: `${selectedSchedule}`,
             };
 
-            const { data } = await axios.post(
-                `http://localhost:3000/schedule/${selectedSchedule}/add-task`,
-                payload,
-                { headers: { Authorization: `Bearer ${getAccessToken()}` } },
+            let data = await axios.patch(
+                `http://localhost:3000/schedule/${selectedSchedule}/${key.key}/edit-task`,
+                key,
             );
-            console.log("data: ",data)
-            // add new task to table
-            setTaskData((prev) => [
-                ...prev,
+            console.log(data);
+        } catch (err) {
+            console.log(err);
+        }
+        taskForm.setFieldsValue({
+            task: key.task,
+            budget: key.budget,
+            used: key.used,
+            frequency: key.frequency,
+            dateRange: key.dateRange,
+            description: key.description,
+        });
+        setTaskModalOpen(true);
+    };
+    const HandleTaskDelete = async (key) => {
+        setTaskData((prev) => prev.filter((item) => item.key !== key));
+        try {
+            console.log(
+                "sched: ",
+                selectedSchedule,
+                ", key: ",
+                activeKey,
+                "taskId: ",
+                key,
+            );
+            let data = await axios.delete(
+                `http://localhost:3000/schedule/${selectedSchedule}/${key}/${activeKey}/delete-task`,
                 {
-                    key: data._id,
-                    task: data.name,
-                    categoryId: activeKey,
-                    budget: Number(data.budget) || 0,
-                    frequency: data.every
-                        ? `${data.every} ${data.unit}${data.every > 1 ? "s" : ""}`
-                        : "",
-                    description: data.description || "",
-                    dateRange: [
-                        dayjs(data.startDate),
-                        data.endDate
-                            ? dayjs(data.endDate)
-                            : dayjs(data.startDate),
-                    ],
+                    headers: {
+                        Authorization: `Bearer ${getAccessToken()}`,
+                    },
                 },
-            ]);
+            );
+            console.log(data);
+        } catch (err) {
+            console.log(err);
+        }
+    };
 
+    const ShowTaskModal = () => {
+        if (!activeKey) return;
+        setTaskModalOpen(true);
+    };
+
+    const HandleTaskOk = async (values) => {
+        setTaskModalOpen(false);
+
+        console.log(values);
+        const find = values.task ? true : false;
+        console.log(editingTaskKey);
+        try {
+            const [start, end] = values.dateRange ?? [];
+            const payload = {
+                name: values.task.trim(),
+                description: values.description || "",
+                startDate: start?.toDate?.() ?? new Date(),
+                endDate: end?.toDate?.(),
+                every: Number(values.frequency),
+                unit: values.unit, // simple default
+                budget: Number(values.budget),
+                categoryId: activeKey,
+                scheduleId: `${selectedSchedule}`,
+                used: 0,
+            };
+
+            let data;
+            if (editingTaskKey) {
+                data = await axios.patch(
+                    `http://localhost:3000/schedule/${selectedSchedule}/${editingTaskKey}/edit-task`,
+                    payload,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${getAccessToken()}`,
+                        },
+                    },
+                );
+                console.log(data);
+                setTaskData((prev) =>
+                    prev.map((item) =>
+                        item.key === editingTaskKey
+                            ? {
+                                  key: data.data._id,
+                                  task: data.data.name,
+                                  categoryId: activeKey,
+                                  budget: Number(data.data.budget) || 0,
+                                  used: Number(data.data.used) || 0, // fixed typo uesd -> used
+                                  frequency: data.data.every
+                                      ? `${data.data.every} ${data.data.unit}${data.data.every > 1 ? "s" : ""}`
+                                      : "",
+                                  description: data.data.description || "",
+                                  dateRange: [
+                                      data.data.startDate
+                                          ? dayjs(data.data.startDate)
+                                          : null,
+                                      data.data.endDate
+                                          ? dayjs(data.data.endDate)
+                                          : data.data.startDate
+                                            ? dayjs(data.data.startDate)
+                                            : null,
+                                  ],
+                              }
+                            : item,
+                    ),
+                );
+            } else {
+                data = await axios.post(
+                    `http://localhost:3000/schedule/${selectedSchedule}/add-task`,
+                    payload,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${getAccessToken()}`,
+                        },
+                    },
+                );
+
+                console.log("data: ", data);
+                // add new task to table
+                setTaskData((prev) => [
+                    ...prev,
+                    {
+                        key: data.data._id,
+                        task: data.data.name,
+                        categoryId: activeKey,
+                        budget: Number(data.data.budget) || 0,
+                        used: 0,
+                        frequency: data.data.every
+                            ? `${data.data.every} ${data.data.unit}${data.data.every > 1 ? "s" : ""}`
+                            : "",
+                        description: data.data.description || "",
+                        dateRange: [
+                            dayjs(data.data.startDate),
+                            data.endDate
+                                ? dayjs(data.data.endDate)
+                                : dayjs(data.data.startDate),
+                        ],
+                    },
+                ]);
+            }
             taskForm.resetFields();
-            setTaskModalOpen(false);
             message.success("Task added");
         } catch (err) {
             console.error(err);
             message.error(err?.response?.data?.message || "Failed to add task");
         }
-
-        /*old frontend: -*/
-        /*if(editingTaskKey){
-          setTaskData(prev =>  prev.map(task => {
-          if (task.key !== editingTaskKey) 
-            {
-              return task;
-            }
-            else{
-              return {
-                ...task,
-                task: values.task.trim(),
-                budget: Number(values.budget),
-                frequency: Number(values.frequency),
-                description: values.description || '',
-                dateRange: values.dateRange,
-              };
-            }
-          })
-        );
-      }
-      else{
-        setTaskData(prev => [...prev,
-        {
-          key: crypto.randomUUID(),
-          task: values.task.trim(),
-          categoryId: activeKey,
-          budget: Number(values.budget),
-          frequency: Number(values.frequency),
-          description: values.description || '',
-          dateRange: values.dateRange,
-        },
-      ]);
-      }
-        
-      taskForm.resetFields();
-      setEditingTaskKey(null);
-      setTaskModalOpen(false);*/
     };
     /*********************END TAB BOILIER PLATE FROM ANTD WITH SLIGHT EDITS**************************** */
 
@@ -481,8 +602,8 @@ export default function ManagementPage() {
     );
     //loads tasks
     useEffect(() => {
-        console.log("stop")
-        
+        console.log("stop");
+
         if (!activeKey) return;
         let ignore = false;
         (async () => {
@@ -503,6 +624,7 @@ export default function ManagementPage() {
                     task: t.name,
                     categoryId: activeKey, // we know which category we fetched
                     budget: Number(t.budget) || 0,
+                    used: Number(t.used) || 0,
                     frequency: t.every
                         ? `${t.every} ${t.unit}${t.every > 1 ? "s" : ""}`
                         : "",
@@ -537,7 +659,7 @@ export default function ManagementPage() {
     }, [activeKey]);
 
     async function getActiveKey() {
-        console.log(selectedSchedule);
+        console.log(taskData);
     }
     // === NEW === Load categories for this schedule on mount
     useEffect(() => {
@@ -859,12 +981,20 @@ export default function ManagementPage() {
                                     textAlign: "center",
                                 }}
                             >
-                                Provide Someone Access to the Schedule 
-                                  <Popover content={instructions[0]} title="Provide Access">
-                                                    <Button size="small" style={{marginLeft: 10}} shape=  "circle" icon={<QuestionOutlined />} />
-                                            </Popover>
+                                Provide Someone Access to the Schedule
+                                <Popover
+                                    content={instructions[0]}
+                                    title="Provide Access"
+                                >
+                                    <Button
+                                        size="small"
+                                        style={{ marginLeft: 10 }}
+                                        shape="circle"
+                                        icon={<QuestionOutlined />}
+                                    />
+                                </Popover>
                             </Typography.Title>
-                             
+
                             <Form
                                 form={userForm}
                                 onFinish={UserFormComplete}
@@ -979,9 +1109,17 @@ export default function ManagementPage() {
                                 }}
                             >
                                 Add a Sub Element or Category to the Schedule
-                                   <Popover content={instructions[1]} title="Add Sub Element/Category">
-                                                    <Button size="small" style={{marginLeft: 10}} shape=  "circle" icon={<QuestionOutlined />} />
-                                            </Popover>
+                                <Popover
+                                    content={instructions[1]}
+                                    title="Add Sub Element/Category"
+                                >
+                                    <Button
+                                        size="small"
+                                        style={{ marginLeft: 10 }}
+                                        shape="circle"
+                                        icon={<QuestionOutlined />}
+                                    />
+                                </Popover>
                             </Typography.Title>
                             <div>
                                 <div style={{ marginBottom: 16 }}>
@@ -1058,9 +1196,22 @@ export default function ManagementPage() {
                                 footer={() => ""}
                             />
                             <Modal
-                                title={<div><span>Add/Edit a Task</span>    <Popover content={instructions[2]} title="Schedule Calendar">
-                                                    <Button size="small" style={{marginLeft: 10}} shape=  "circle" icon={<QuestionOutlined />} />
-                                            </Popover> </div>}
+                                title={
+                                    <div>
+                                        <span>Add/Edit a Task</span>{" "}
+                                        <Popover
+                                            content={instructions[2]}
+                                            title="Schedule Calendar"
+                                        >
+                                            <Button
+                                                size="small"
+                                                style={{ marginLeft: 10 }}
+                                                shape="circle"
+                                                icon={<QuestionOutlined />}
+                                            />
+                                        </Popover>{" "}
+                                    </div>
+                                }
                                 open={isTaskModalOpen}
                                 onOk={() => taskForm.submit()}
                                 onCancel={() => {
@@ -1139,19 +1290,28 @@ export default function ManagementPage() {
                                         name="unit"
                                         rules={[
                                             {
-                                            required: true,
-                                            message: "Select a unit",
+                                                required: true,
+                                                message: "Select a unit",
                                             },
                                         ]}
-                                        >
+                                    >
                                         <Select
                                             size="large"
                                             defaultValue="month"
                                             options={[
-                                            { value: "day", label: "Day" },
-                                            { value: "week", label: "Week" },
-                                            { value: "month", label: "Month" },
-                                            { value: "year", label: "Year" },
+                                                { value: "day", label: "Day" },
+                                                {
+                                                    value: "week",
+                                                    label: "Week",
+                                                },
+                                                {
+                                                    value: "month",
+                                                    label: "Month",
+                                                },
+                                                {
+                                                    value: "year",
+                                                    label: "Year",
+                                                },
                                             ]}
                                         />
                                     </Form.Item>
@@ -1176,15 +1336,26 @@ export default function ManagementPage() {
                                             }}
                                         />
                                     </Form.Item>
-                                    
-
                                 </Form>
                             </Modal>
 
                             <Modal
-                                 title={<div><span>Add/Edit a Category</span>    <Popover content={instructions[3]} title="Schedule Calendar">
-                                                    <Button size="small" style={{marginLeft: 10}} shape=  "circle" icon={<QuestionOutlined />} />
-                                            </Popover> </div>}
+                                title={
+                                    <div>
+                                        <span>Add/Edit a Category</span>{" "}
+                                        <Popover
+                                            content={instructions[3]}
+                                            title="Schedule Calendar"
+                                        >
+                                            <Button
+                                                size="small"
+                                                style={{ marginLeft: 10 }}
+                                                shape="circle"
+                                                icon={<QuestionOutlined />}
+                                            />
+                                        </Popover>{" "}
+                                    </div>
+                                }
                                 open={isCategoryModalOpen}
                                 onOk={() => categoryForm.submit()}
                                 onCancel={() => {

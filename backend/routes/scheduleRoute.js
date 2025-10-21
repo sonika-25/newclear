@@ -11,6 +11,13 @@ const {
 // Find all schedules associated with the current user
 router.get("/:schedId/upcoming-runs", scheduleCtrl.listUpcomingRuns);
 
+router.post(
+    "/:scheduleId/runs/:taskInsId/finish-task",
+    authenticateToken,
+    checkPermission("edit:task"),
+    scheduleCtrl.completeTask,
+);
+
 router.get("/schedules", authenticateToken, scheduleCtrl.fetchUserSchedules);
 
 // Find all users associated with the given schedule
@@ -19,6 +26,7 @@ router.get(
     authenticateToken,
     scheduleCtrl.fetchScheduleUsers,
 );
+
 router.get("/catTasks/:catId", scheduleCtrl.getTasksInCat);
 
 // Fetches all the categories belong to a specific schedule
@@ -52,7 +60,7 @@ router.delete(
 );
 
 router.delete(
-    "/:scheduleId/:taskId/:catId/delete-task",
+    "/:scheduleId/:taskId/:categoryId/delete-task",
     authenticateToken,
     checkPermission("delete:task"),
     scheduleCtrl.deleteTask,
@@ -86,11 +94,14 @@ router.patch(
     checkPermission("edit:category"),
     scheduleCtrl.editCategory,
 );
+
 router.patch(
     "/:scheduleId/:taskId/edit-task",
     authenticateToken,
+    checkPermission("edit:task"),
     scheduleCtrl.editTask,
 );
+
 router.post(
     "/:taskInsId/finish-task",
     authenticateToken,

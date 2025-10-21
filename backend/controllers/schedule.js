@@ -508,15 +508,18 @@ async function removeCategory(req, res) {
 async function deleteTask(req, res) {
     try {
         const { scheduleId, taskId, categoryId } = req.params;
-        await Category.updateOne(
-            { _id: categoryId },
-            { $pull: { tasks: taskId } },
-        );
-        await Schedule.updateOne(
-            { _id: scheduleId },
-            { $pull: { tasks: taskId } },
-        );
-        await TaskRun.deleteMany({ taskId });
+        await TaskRun.deleteMany({ taskId: taskId });
+
+        await Promise.all([
+            Category.updateOne(
+                { _id: categoryId },
+                { $pull: { tasks: taskId } },
+            ),
+            Schedule.updateOne(
+                { _id: scheduleId },
+                { $pull: { tasks: taskId } },
+            ),
+        ]);
         await Task.findByIdAndDelete(taskId);
         res.send("task deleted");
         console.log("task deleted");
@@ -524,6 +527,7 @@ async function deleteTask(req, res) {
         console.log(error);
     }
 }
+
 async function getTasksInCat(req, res) {
     const { catId } = req.params;
     console.log(catId);
@@ -622,11 +626,7 @@ async function editTask(req, res) {
         // 3) Reseed based on the edited task
         await seedRuns(task); // or whatever monthsAhead you prefer
 
-        return res.status(200).json({
-            ok: true,
-            taskId: task._id,
-            removedRuns: delRes.deletedCount,
-        });
+        return res.status(200).json(task);
     } catch (err) {
         console.error(err);
         return res.status(500).json({ ok: false, error: err.message });
@@ -836,8 +836,8 @@ function startOfToday() {
 async function listUpcomingRuns(req, res) {
     try {
         const { schedId } = req.params;
-        const { limit = 20, from, to } = req.query;
-
+        const { from, to } = req.query;
+        const { limit } = req.query || 100;
         const start = from ? new Date(from) : startOfToday();
         const filter = {
             scheduleId: schedId,
