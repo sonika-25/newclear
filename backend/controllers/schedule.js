@@ -841,7 +841,6 @@ async function listUpcomingRuns(req, res) {
         const start = from ? new Date(from) : startOfToday();
         const filter = {
             scheduleId: schedId,
-            done: false,
             dueOn: { $gte: start },
         };
         if (to) filter.dueOn.$lte = new Date(to);
