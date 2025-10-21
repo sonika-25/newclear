@@ -422,6 +422,8 @@ export default function ManagementPage() {
         );
 
         try {
+            const values = await taskForm.validateFields();
+
             const payload = {
                 name: values.task.trim(),
                 description: values.description || "",
@@ -465,6 +467,11 @@ export default function ManagementPage() {
             );
             let data = await axios.delete(
                 `http://localhost:3000/schedule/${selectedSchedule}/${key}/${activeKey}/delete-task`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${getAccessToken()}`,
+                    },
+                },
             );
             console.log(data);
         } catch (err) {
@@ -503,6 +510,11 @@ export default function ManagementPage() {
                 data = await axios.patch(
                     `http://localhost:3000/schedule/${selectedSchedule}/${editingTaskKey}/edit-task`,
                     payload,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${getAccessToken()}`,
+                        },
+                    },
                 );
                 console.log(data);
                 setTaskData((prev) =>

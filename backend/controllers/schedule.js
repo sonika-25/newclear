@@ -519,6 +519,7 @@ async function deleteTask(req, res) {
         console.log(error);
     }
 }
+
 async function getTasksInCat(req, res) {
     const { catId } = req.params;
     console.log(catId);
@@ -617,11 +618,7 @@ async function editTask(req, res) {
         // 3) Reseed based on the edited task
         await seedRuns(task); // or whatever monthsAhead you prefer
 
-        return res.status(200).json({
-            ok: true,
-            taskId: task._id,
-            removedRuns: delRes.deletedCount,
-        });
+        return res.status(200).json(task);
     } catch (err) {
         console.error(err);
         return res.status(500).json({ ok: false, error: err.message });
