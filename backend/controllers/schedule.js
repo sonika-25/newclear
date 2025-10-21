@@ -673,6 +673,7 @@ async function editCategory(req, res) {
 async function completeTask(req, res) {
     let { taskInsId } = req.params;
     let actualCost = req.body.actualCost;
+    let doneAt = req.body.doneAt
     //let taskId  = req.body;
     console.log(req.params);
     let task = await TaskRun.findById(taskInsId);
@@ -691,11 +692,15 @@ async function completeTask(req, res) {
         uploadDate: f.uploadDate || new Date(),
       };
     }*/
-    task.done = true;
-    task.save();
+    //task.done = true;
+    //task.cost = actualCost;
+    //task.save();
     const cat = await Category.findById(task.categoryId).lean();
     await Category.updateOne({ _id: cat._id }, { $inc: { value: actualCost } });
-
+    await TaskRun.updateOne(
+    { _id: taskInsId },
+    { $set: { cost: actualCost, done: true, doneAt: doneAt } }
+    );    
     const ogTask = await Task.findById(task.taskId).lean();
     //const newTaskBudget = Math.max (0, ((ogTask.budget) - Number(actualCost)));
     await Task.updateOne({ _id: ogTask._id }, { $inc: { used: actualCost } });
@@ -832,6 +837,7 @@ function startOfToday() {
     d.setHours(0, 0, 0, 0);
     return d;
 }
+
 
 async function listUpcomingRuns(req, res) {
     try {

@@ -228,7 +228,7 @@ function getMonthlyTasks(items, year, month) {
                         : undefined,
                 dueDate: due.format("YYYY-MM-DD"),
                 comments: "", // no comments field in backend sample
-                amountSpent: item.cost ?? 0,
+                cost: item.cost ?? 0,
                 documents: item.files ?? [],
                 _scheduleRef: item, // keep original record reference
             },
@@ -365,18 +365,18 @@ export default function SchedulePage() {
             render: (_, r) => formatISO(r.completionDate),
         },
         {
-            title: "Amount Spent",
-            key: "amountSpent",
+            title: "Cost",
+            key: "cost",
             width: 160,
             align: "left",
             render: (_, r) => {
                 const completed = deriveStatus(r) === "completed";
-                if (completed && r.amountSpent != null) {
+                if (completed && r.cost != null) {
                     return new Intl.NumberFormat("en-AU", {
                         style: "currency",
                         currency: "AUD",
                         maximumFractionDigits: 2,
-                    }).format(r.amountSpent);
+                    }).format(r.cost);
                 }
                 return <span style={{ opacity: 0.6 }}>-</span>;
             },
@@ -426,7 +426,7 @@ export default function SchedulePage() {
             completionDate: record.completionDate
                 ? dayjs(record.completionDate, "YYYY-MM-DD")
                 : null,
-            amountSpent: record.amountSpent ?? null,
+            cost: record.cost ?? 0,
             documents: (record.documents || []).map((file, i) => {
                 const displayName =
                     typeof file === "string"
@@ -457,7 +457,7 @@ export default function SchedulePage() {
         try {
             if (done) {
                 const payload = {
-                    actualCost: Number(values.amountSpent),
+                    actualCost: Number(values.cost),
                 };
                 const { data } = await axios.post(
                     `http://localhost:3000/schedule/${selectedSchedule}/runs/${activeRow.id}/finish-task`,
@@ -486,7 +486,7 @@ export default function SchedulePage() {
                         done && values.completionDate
                             ? values.completionDate.toISOString()
                             : it.updatedAt,
-                    cost: values.amountSpent,
+                    cost: values.cost,
                     // Store simple file names locally if you want; adjust to your API shape if it returns files
                     files: (values.documents || []).map((f) => ({
                         name: f.name,
@@ -905,8 +905,8 @@ export default function SchedulePage() {
                     </Form.Item>
 
                     <Form.Item
-                        name="amountSpent"
-                        label="Amount Spent"
+                        name="cost"
+                        label="Cost"
                         rules={[
                             {
                                 required: true,
