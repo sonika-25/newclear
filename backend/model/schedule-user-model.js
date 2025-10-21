@@ -14,6 +14,11 @@ const scheduleUserSchema = new mongoose.Schema({
         enum: ["family", "POA", "carer", "serviceProvider", "manager"],
         required: true,
     },
+    employer: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+    },
 });
 
 const ScheduleUser = mongoose.model("ScheduleUser", scheduleUserSchema);

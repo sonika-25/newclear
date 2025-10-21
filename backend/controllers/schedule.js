@@ -196,6 +196,12 @@ async function addUser(req, res) {
             schedule: scheduleId,
             role,
         });
+
+        // Assign a service provider to the manager or carer
+        if (role === "manager" || role === "carer") {
+            newScheduleUser.employer = currentUser._id;
+        }
+
         await newScheduleUser.save();
         await newScheduleUser.populate("user");
         await newScheduleUser.populate("schedule");
@@ -293,7 +299,7 @@ async function removeUser(req, res) {
 
         const removedRole = tobeRemovedScheduleUser.role;
         if (removedRole === "serviceProvider") {
-            await removeOrgEmployees(scheduleId, session, req);
+            await removeOrgEmployees(scheduleId, removedUserId, session, req);
         }
 
         // Remove the link between the user and the schedule
@@ -338,13 +344,14 @@ async function removeUser(req, res) {
     }
 }
 
-// Removes all managers and carers when an org is removed
-async function removeOrgEmployees(scheduleId, session, req) {
+// Removes all the managers and carers of a service provider from the schedule
+async function removeOrgEmployees(scheduleId, serviceProviderId, session, req) {
     const io = req.app.get("io");
     const removerId = req.user._id?.toString() || req.user;
     const removedEmployees = await ScheduleUser.find({
         schedule: scheduleId,
         role: { $in: ["manager", "carer"] },
+        employer: serviceProviderId,
     })
         .populate("user")
         .session(session);
@@ -357,6 +364,7 @@ async function removeOrgEmployees(scheduleId, session, req) {
     await ScheduleUser.deleteMany({
         schedule: scheduleId,
         role: { $in: ["manager", "carer"] },
+        employer: serviceProviderId,
     }).session(session);
 
     // Live updates for each removed employee
@@ -685,7 +693,6 @@ async function completeTask(req, res) {
     }*/
     task.done = true;
     task.save();
-    console.log(task);
     const cat = await Category.findById(task.categoryId).lean();
     await Category.updateOne({ _id: cat._id }, { $inc: { value: actualCost } });
 

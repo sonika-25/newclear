@@ -10,12 +10,14 @@ const {
 
 // Find all schedules associated with the current user
 router.get("/:schedId/upcoming-runs", scheduleCtrl.listUpcomingRuns);
+
 router.post(
     "/:scheduleId/runs/:taskInsId/finish-task",
     authenticateToken,
     checkPermission("edit:task"),
     scheduleCtrl.completeTask,
 );
+
 router.get("/schedules", authenticateToken, scheduleCtrl.fetchUserSchedules);
 
 // Find all users associated with the given schedule
@@ -98,6 +100,13 @@ router.patch(
     authenticateToken,
     checkPermission("edit:task"),
     scheduleCtrl.editTask,
+);
+
+router.post(
+    "/:taskInsId/finish-task",
+    authenticateToken,
+    checkPermission("complete:task"),
+    scheduleCtrl.completeTask,
 );
 
 router.post(
