@@ -478,6 +478,8 @@ export default function ManagementPage() {
     };
 
     const HandleTaskOk = async (values) => {
+        setTaskModalOpen(false);
+
         console.log(values);
         const find = values.task ? true : false;
         console.log(editingTaskKey);
@@ -565,7 +567,6 @@ export default function ManagementPage() {
                 ]);
             }
             taskForm.resetFields();
-            setTaskModalOpen(false);
             message.success("Task added");
         } catch (err) {
             console.error(err);

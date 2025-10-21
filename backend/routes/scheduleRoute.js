@@ -61,7 +61,7 @@ router.delete(
 );
 
 router.delete (
-    "/:scheduleId/:taskId/:catId/delete-task",
+    "/:scheduleId/:taskId/:categoryId/delete-task",
     authenticateToken,
     checkPermission("delete:task"),
     scheduleCtrl.deleteTask,
