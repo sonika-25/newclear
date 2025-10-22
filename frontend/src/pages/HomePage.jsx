@@ -35,6 +35,7 @@ import axios from "axios";
 import { ScheduleContext } from "../context/ScheduleContext";
 import { getAccessToken } from "../utils/tokenUtils";
 import { jwtDecode } from "jwt-decode";
+const baseURL = 'https://newclear-1bcl.vercel.app' ;
 
 /*Chart code reference: https://ant-design-charts.antgroup.com/en*/
 
@@ -422,7 +423,7 @@ export default function HomePage() {
         try {
             axios
                 .get(
-                    `http://localhost:3000/schedule/${selectedSchedule}/getCategories`,
+                    `${baseURL}/schedule/${selectedSchedule}/getCategories`,
                 )
                 .then((res) => {
                     console.log(res.data);
@@ -437,7 +438,7 @@ export default function HomePage() {
         try {
             axios
                 .get(
-                    `http://localhost:3000/schedule/${selectedSchedule}/upcoming-runs?from=2025-10-01&to=2027-12-31`,
+                    `${baseURL}/schedule/${selectedSchedule}/upcoming-runs?from=2025-10-01&to=2027-12-31`,
                     {
                         headers: {
                             Authorization: `Bearer ${getAccessToken()}`,
@@ -757,7 +758,7 @@ const TaskBudgetBar = ({ data }) => {
         (async () => {
             try {
                 const { data: cat } = await axios.get(
-                    `http://localhost:3000/schedule/catTasks/${data._id}`,
+                    `${baseURL}/schedule/catTasks/${data._id}`,
                 );
                 if (ignore) return;
 

@@ -32,10 +32,12 @@ const { Content } = Layout;
 const { Title, Text } = Typography;
 const DATE_OPTIONS = { day: "numeric", month: "long", year: "numeric" };
 const TODAY = () => new Date();
+
 import axios from "axios";
 import { ScheduleContext } from "../context/ScheduleContext";
 import { getAccessToken } from "../utils/tokenUtils";
 import { jwtDecode } from "jwt-decode";
+const baseURL = 'https://newclear-1bcl.vercel.app' ;
 
 function isISO(s) {
     return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -402,9 +404,10 @@ export default function SchedulePage() {
 
     useEffect(() => {
         try {
+            console.log(baseURL)
             axios
                 .get(
-                    `http://localhost:3000/schedule/${selectedSchedule}/upcoming-runs?&from=2025-10-01&to=2027-12-31`,
+                    `${baseURL}/schedule/${selectedSchedule}/upcoming-runs?&from=2025-10-01&to=2027-12-31`,
                     {
                         headers: {
                             Authorization: `Bearer ${getAccessToken()}`,
@@ -453,6 +456,7 @@ export default function SchedulePage() {
     async function handleSave(values) {
         console.log(values);
         const done = values.status === "completed";
+        setOpenModal(false);
 
         try {
             if (done) {
@@ -460,7 +464,7 @@ export default function SchedulePage() {
                     actualCost: Number(values.cost),
                 };
                 const { data } = await axios.post(
-                    `http://localhost:3000/schedule/${selectedSchedule}/runs/${activeRow.id}/finish-task`,
+                    `${baseURL}/schedule/${selectedSchedule}/runs/${activeRow.id}/finish-task`,
                     payload,
                     {
                         headers: {
@@ -496,7 +500,6 @@ export default function SchedulePage() {
             }),
         );
 
-        setOpenModal(false);
         form.resetFields();
     }
 

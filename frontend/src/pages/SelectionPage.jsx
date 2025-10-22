@@ -29,6 +29,7 @@ import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { getAccessToken } from "../utils/tokenUtils";
 import { ScheduleContext } from "../context/ScheduleContext";
+const baseURL = 'https://newclear-1bcl.vercel.app' ;
 
 export default function SchedulePage() {
     const nav = useNavigate();
@@ -61,7 +62,7 @@ export default function SchedulePage() {
         const name = values.name;
         try {
             const res = await axios.post(
-                `http://localhost:3000/schedule/create`,
+                `${baseURL}/schedule/create`,
                 {
                     scheduleOwner: userId,
                     pwsnName: name,
@@ -89,7 +90,7 @@ export default function SchedulePage() {
     const fetchSchedules = async () => {
         try {
             const res = await axios.get(
-                "http://localhost:3000/schedule/schedules",
+                `${baseURL}/schedule/schedules`,
                 {
                     headers: { Authorization: `Bearer ${getAccessToken()}` },
                 },

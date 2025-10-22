@@ -23,6 +23,7 @@ import {
     clearTokens,
 } from "../utils/tokenUtils.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+const baseURL = 'https://newclear-1bcl.vercel.app' ;
 
 // temporary authentication
 function tempAuth({ email, password }) {
@@ -59,7 +60,7 @@ export default function LoginPage() {
         message.success("Account created");
         console.log(values);
         axios
-            .post("http://localhost:3000/users/signup", {
+            .post(`${baseURL}/users/signup`, {
                 firstName: values.firstname,
                 lastName: values.lastname,
                 phone: values.phoneNumber,
@@ -77,7 +78,7 @@ export default function LoginPage() {
         try {
             const result = await tempAuth(values);
             axios
-                .post("http://localhost:3000/users/signin", {
+                .post(`${baseURL}/users/signin`, {
                     email: result.user.email,
                     password: result.user.password,
                 })

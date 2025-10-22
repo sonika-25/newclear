@@ -8,7 +8,6 @@ Link to reference: https://ant.design/components/upload*/
 const { Content } = Layout;
 const {Dragger} = Upload;
 
-
 export default function EvidencePage() {
   const [evidence, setEvidence] = useState([
  

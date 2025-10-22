@@ -22,6 +22,7 @@ export default function SelectSchedule() {
     const [pageLoading, setPageLoading] = useState(true);
     const navigate = useNavigate();
     const { message } = App.useApp();
+    const baseURL = 'https://newclear-1bcl.vercel.app' ;
 
     // Load all the user's schedules
     useEffect(() => {
@@ -30,7 +31,7 @@ export default function SelectSchedule() {
         }
 
         axios
-            .get("http://localhost:3000/schedule/schedules", {
+            .get(`${baseURL}/schedule/schedules`, {
                 headers: { Authorization: `Bearer ${getAccessToken()}` },
             })
             .then((res) => {
@@ -54,7 +55,7 @@ export default function SelectSchedule() {
                 `You've been added to ${newScheduleUser.schedule.pwsnName}'s schedule`,
             );
             axios
-                .get("http://localhost:3000/schedule/schedules", {
+                .get(`${baseURL}/schedule/schedules`, {
                     headers: { Authorization: `Bearer ${getAccessToken()}` },
                 })
                 .then((res) => setScheduleUser(res.data))

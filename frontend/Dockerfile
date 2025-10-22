@@ -15,6 +15,6 @@ COPY . .
 # set environment variables and expose the port for us
 ENV HOST=0.0.0.0
 EXPOSE 5173
-
+ENV VITE_BASE_URL=https://newclear-1bcl.vercel.app
 # command to run
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]

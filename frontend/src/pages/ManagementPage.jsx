@@ -44,6 +44,7 @@ import { useSocket } from "../context/SocketContext";
 const { Content } = Layout;
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
+const baseURL = 'https://newclear-1bcl.vercel.app' ;
 
 const instructions = [
     <div>
@@ -277,7 +278,7 @@ export default function ManagementPage() {
     const fetchUsers = async () => {
         try {
             const res = await axios.get(
-                `http://localhost:3000/schedule/${selectedSchedule}/users`,
+                `${baseURL}/schedule/${selectedSchedule}/users`,
                 { headers: { Authorization: `Bearer ${getAccessToken()}` } },
             );
             setUserData(res.data);
@@ -319,7 +320,7 @@ export default function ManagementPage() {
             setUserData((prev) => [...prev, optimisticUser]);
 
             const updated = await axios.post(
-                `http://localhost:3000/schedule/${selectedSchedule}/add-user`,
+                `${baseURL}/schedule/${selectedSchedule}/add-user`,
                 {
                     userId: userToAdd._id,
                     role: values.userType,
@@ -364,7 +365,7 @@ export default function ManagementPage() {
 
         try {
             await axios.delete(
-                `http://localhost:3000/schedule/${selectedSchedule}/remove-user`,
+                `${baseURL}/schedule/${selectedSchedule}/remove-user`,
                 {
                     data: {
                         removedUser: userId,
@@ -437,7 +438,7 @@ export default function ManagementPage() {
             };
 
             let data = await axios.patch(
-                `http://localhost:3000/schedule/${selectedSchedule}/${key.key}/edit-task`,
+                `${baseURL}/schedule/${selectedSchedule}/${key.key}/edit-task`,
                 key,
             );
             console.log(data);
@@ -466,7 +467,7 @@ export default function ManagementPage() {
                 key,
             );
             let data = await axios.delete(
-                `http://localhost:3000/schedule/${selectedSchedule}/${key}/${activeKey}/delete-task`,
+                `${baseURL}/schedule/${selectedSchedule}/${key}/${activeKey}/delete-task`,
                 {
                     headers: {
                         Authorization: `Bearer ${getAccessToken()}`,
@@ -508,7 +509,7 @@ export default function ManagementPage() {
             let data;
             if (editingTaskKey) {
                 data = await axios.patch(
-                    `http://localhost:3000/schedule/${selectedSchedule}/${editingTaskKey}/edit-task`,
+                    `${baseURL}/schedule/${selectedSchedule}/${editingTaskKey}/edit-task`,
                     payload,
                     {
                         headers: {
@@ -546,7 +547,7 @@ export default function ManagementPage() {
                 );
             } else {
                 data = await axios.post(
-                    `http://localhost:3000/schedule/${selectedSchedule}/add-task`,
+                    `${baseURL}/schedule/${selectedSchedule}/add-task`,
                     payload,
                     {
                         headers: {
@@ -609,7 +610,7 @@ export default function ManagementPage() {
         (async () => {
             try {
                 const { data } = await axios.get(
-                    `http://localhost:3000/schedule/catTasks/${activeKey}`,
+                    `${baseURL}/schedule/catTasks/${activeKey}`,
                     {
                         headers: {
                             Authorization: `Bearer ${getAccessToken()}`,
@@ -685,7 +686,7 @@ export default function ManagementPage() {
                 setCatLoading(true);
                 setCatError(null);
                 const { data } = await axios.get(
-                    `http://localhost:3000/schedule/${selectedSchedule}/getCategories`,
+                    `${baseURL}/schedule/${selectedSchedule}/getCategories`,
                     {
                         headers: {
                             Authorization: `Bearer ${getAccessToken()}`,
@@ -795,7 +796,7 @@ export default function ManagementPage() {
             if (editingCatKey) {
                 // Edit the category
                 const { data } = await axios.patch(
-                    `http://localhost:3000/schedule/${selectedSchedule}/categories/${editingCatKey}`,
+                    `${baseURL}/schedule/${selectedSchedule}/categories/${editingCatKey}`,
                     {
                         name: values.name,
                         budget: values.budget,
@@ -817,7 +818,7 @@ export default function ManagementPage() {
                 );
             } else {
                 const { data } = await axios.post(
-                    `http://localhost:3000/schedule/${selectedSchedule}/add-category`,
+                    `${baseURL}/schedule/${selectedSchedule}/add-category`,
                     {
                         name: values.name,
                         budget: values.budget,
@@ -881,7 +882,7 @@ export default function ManagementPage() {
     const removeTab = async (categoryId) => {
         try {
             await axios.delete(
-                `http://localhost:3000/schedule/${selectedSchedule}/categories/${categoryId}`,
+                `${baseURL}/schedule/${selectedSchedule}/categories/${categoryId}`,
                 {
                     headers: { Authorization: `Bearer ${getAccessToken()}` },
                 },
