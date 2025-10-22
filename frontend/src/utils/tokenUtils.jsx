@@ -1,4 +1,5 @@
 import axios from "axios";
+const baseURL = 'https://newclear-1bcl.vercel.app' ;
 
 // get access token from session storage
 export function getAccessToken() {
@@ -31,7 +32,7 @@ export async function refreshAccessToken() {
     }
 
     try {
-        const res = await axios.post("http://localhost:3000/users/token", {
+        const res = await axios.post(`${baseURL}/users/token`, {
             token: refreshToken,
         });
         storeTokens(res.data.accessToken, refreshToken);

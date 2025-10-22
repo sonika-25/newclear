@@ -8,8 +8,10 @@ import {
     refreshAccessToken,
     clearTokens,
 } from "../utils/tokenUtils.jsx";
+//import { base } from "../../../backend/model/user-model.js";
 
 const AuthContext = createContext();
+const baseURL = 'https://newclear-1bcl.vercel.app' ;
 
 export const useAuth = () => {
     return useContext(AuthContext);
@@ -33,7 +35,7 @@ export const AuthProvider = ({ children }) => {
             try {
                 // try profile with current token
                 const res = await axios.get(
-                    "http://localhost:3000/users/profile",
+                    `${baseURL}/users/profile`,
                     {
                         headers: getAuthHeaders(),
                     },
@@ -58,7 +60,7 @@ export const AuthProvider = ({ children }) => {
                             );
 
                             const res2 = await axios.get(
-                                "http://localhost:3000/users/profile",
+                                `${baseURL}/users/profile`,
                                 {
                                     headers: {
                                         Authorization: `Bearer ${newAccess}`,

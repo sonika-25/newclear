@@ -15,6 +15,7 @@ const connectDB = require("./utils/db.js");
 
 const app = express();
 connectDB();
+const baseURL = 'https://newclear-1bcl.vercel.app' ;
 
 const server = http.createServer(app);
 // Socket server to allow for live updates for all users of a schedule upon any updates

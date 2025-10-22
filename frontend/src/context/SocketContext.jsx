@@ -10,6 +10,7 @@ import { io } from "socket.io-client";
 import { useAuth } from "./AuthContext.jsx";
 
 const SocketContext = createContext(null);
+const baseURL = 'https://newclear-1bcl.vercel.app' ;
 
 export const SocketProvider = ({ children }) => {
     const { user } = useAuth();
@@ -29,7 +30,7 @@ export const SocketProvider = ({ children }) => {
         }
 
         // create a new socket for the logged in user
-        const newSocket = io("http://localhost:3000", {
+        const newSocket = io(baseURL, {
             transports: ["websocket"],
             auth: { userId: user._id }, // optional if backend uses token or id
         });
