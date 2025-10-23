@@ -21,7 +21,7 @@ const server = http.createServer(app);
 // Socket server to allow for live updates for all users of a schedule upon any updates
 const io = new Server(server, {
     cors: {
-        origin: "https://newclear-c5jr-7fy5x43sc-sonika25s-projects.vercel.app",
+        origin: "https://newclear-c5jr-git-main-sonika25s-projects.vercel.app/",
         methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     },
 });
@@ -52,7 +52,7 @@ app.set("io", io);
 app.use(express.json());
 app.use(
     cors({
-        origin: "https://newclear-c5jr-7fy5x43sc-sonika25s-projects.vercel.app",
+        origin: "https://newclear-c5jr-git-main-sonika25s-projects.vercel.app/",
         methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
         allowedHeaders: ["Content-Type", "Authorization"],
     }),
