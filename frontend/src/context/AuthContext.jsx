@@ -8,7 +8,6 @@ import {
     refreshAccessToken,
     clearTokens,
 } from "../utils/tokenUtils.jsx";
-//import { base } from "../../../backend/model/user-model.js";
 
 const AuthContext = createContext();
 const baseURL = 'https://newclear-1bcl.vercel.app' ;
